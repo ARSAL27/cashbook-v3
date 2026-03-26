@@ -1,0 +1,9 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Open for all authenticated users for now to prevent permission-denied crashes
+    match /{document=**} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}

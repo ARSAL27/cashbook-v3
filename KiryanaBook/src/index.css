@@ -1,0 +1,142 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 210 20% 98%;
+    --card: 0 0% 100%;
+    --card-secondary: 210 20% 96%;
+    --primary: 151 100% 45%; /* #00E676 */
+    --success: 145 100% 39%; /* #00C853 */
+    --danger: 0 100% 66%;   /* #FF5252 */
+    --warning: 42 100% 50%;  /* #FFB300 */
+    --text-primary: 147 70% 15%; /* #0A3D24 */
+    --text-muted: 215 15% 50%;
+    --border: 214 20% 92%;
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+    --safe-left: env(safe-area-inset-left, 0px);
+    --safe-right: env(safe-area-inset-right, 0px);
+  }
+
+  .dark {
+    --background: 0 0% 4%;     /* #0A0A0A Level 0 */
+    --card: 0 0% 8%;           /* #141414 Level 1 */
+    --card-secondary: 0 0% 12%; /* #1E1E1E Level 2 */
+    --primary: 151 100% 45%;   /* #00E676 */
+    --success: 145 100% 39%;   /* #00C853 */
+    --danger: 0 100% 66%;     /* #FF5252 */
+    --warning: 42 100% 50%;    /* #FFB300 */
+    --text-primary: 0 0% 100%; /* #FFFFFF */
+    --text-muted: 0 0% 69%;    /* #B0B0B0 */
+    --border: 0 0% 16%;        /* #2A2A2A */
+  }
+
+  html {
+    /* Prevent overscroll bounce that causes layout issues on iOS */
+    overscroll-behavior: none;
+  }
+
+  body {
+    @apply bg-background text-text-primary antialiased selection:bg-primary/30;
+    /* Safe area for status bar (notch) */
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-left: env(safe-area-inset-left, 0px);
+    padding-right: env(safe-area-inset-right, 0px);
+    /* Do NOT add bottom padding here — handled by MainLayout */
+    overflow: hidden;
+    height: 100dvh;
+  }
+
+  #root {
+    height: 100dvh;
+    overflow: hidden;
+  }
+}
+
+@layer utilities {
+  /* ─── MOBILE PAGE BASE ─── */
+  /* Use on the outermost div of any page component */
+  .page-mobile {
+    @apply w-full max-w-md mx-auto font-outfit;
+    min-height: 100%;
+    padding-bottom: 2rem; /* extra breathing room above nav */
+  }
+
+  /* ─── SCROLLBAR HIDE ─── */
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* ─── SAFE AREA PAD HELPERS ─── */
+  .pt-safe {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  /* ─── PREMIUM CARDS ─── */
+  .card-premium {
+    @apply bg-card border border-border shadow-sm rounded-3xl overflow-hidden backdrop-blur-md transition-all duration-300;
+  }
+  
+  .card-hover {
+    @apply transition-all duration-300 hover:scale-[1.01] hover:bg-card-secondary hover:border-black/5 border border-transparent bg-card shadow-sm;
+  }
+  
+  .btn-premium {
+    @apply active:scale-95 transition-all duration-300 bg-primary text-[#0A3D24] font-black px-8 py-4 rounded-2xl shadow-sm hover:shadow-md text-[15px] tracking-wide;
+  }
+
+  .btn-scale {
+    @apply active:scale-[0.96] transition-transform duration-200;
+  }
+}
+
+/* ─── CUSTOM SCROLLBAR ─── */
+::-webkit-scrollbar {
+  width: 4px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-background;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-card-secondary rounded-full;
+}
+
+/* ─── ANIMATIONS ─── */
+@keyframes shimmer {
+  0% { transform: translateX(-200%) skewX(-15deg); }
+  100% { transform: translateX(200%) skewX(-15deg); }
+}
+
+.animate-shimmer {
+  animation: shimmer 2s infinite linear;
+}
+
+@keyframes glow {
+  0%, 100% { opacity: 0.3; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.1); }
+}
+
+.animate-glow {
+  animation: glow 2s infinite ease-in-out;
+}
+
+.shadow-glow {
+  filter: drop-shadow(0 0 8px currentColor);
+}
+
+.font-outfit {
+  font-family: 'Outfit', sans-serif;
+}

@@ -1,0 +1,21 @@
+# Dependencies
+**/node_modules
+**/dist
+**/.firebase
+**/.capacitor
+
+# Secrets
+**/.env
+**/.env.local
+**/.env.*.local
+
+# IDEs
+.vscode/
+
+# Build logs and outputs
+**/build_log.txt
+**/build_output.txt
+
+# OS files
+.DS_Store
+Thumbs.db

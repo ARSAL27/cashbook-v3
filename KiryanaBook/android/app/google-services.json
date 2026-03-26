@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "983345755760",
+    "project_id": "cashbook-bc952",
+    "storage_bucket": "cashbook-bc952.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:983345755760:android:1092aea682e7e23bf5e6b5",
+        "android_client_info": {
+          "package_name": "com.kiryanabook.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA3N-FXpRX6UUieYlLe5lfRFJlPIpk8dp8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
