@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
-import { Mail, RefreshCcw, LogOut, CheckCircle2 } from 'lucide-react';
+import { Mail, RefreshCcw, LogOut } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export const VerifyEmail: React.FC = () => {

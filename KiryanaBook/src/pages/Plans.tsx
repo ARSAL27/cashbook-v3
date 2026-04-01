@@ -24,7 +24,7 @@ export const Plans: React.FC = () => {
       color: 'bg-card border-border',
       accent: 'text-text-muted',
       icon: Star,
-      features: ['Unlimited Sales', 'Unlimited Customers', 'Unlimited Stock', 'Limited Staff (1 User)', 'Cloud Sync', 'Contains Ads'],
+      features: ['Unlimited Sales', 'Unlimited Customers', 'Unlimited Stock', 'Digital Assistant Chat', 'Cloud Sync', 'Contains Ads'],
     },
     {
       id: 'business',
@@ -35,7 +35,7 @@ export const Plans: React.FC = () => {
       accent: 'text-primary',
       icon: Zap,
       badge: 'POPULAR',
-      features: ['Unlimited Sales', 'Unlimited Customers', 'Full Staff Management', 'Advanced Analytics', 'Cloud Sync', 'No Ads'],
+      features: ['Unlimited Sales', 'Unlimited Customers', 'Full Staff Management', 'Digital Assistant Chat', 'Voice Entry Support', 'No Ads'],
     },
     {
       id: 'pro',

@@ -8,7 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 
 export const Notifications: React.FC = () => {
-  const { notifications, markNotificationRead, clearNotifications, contacts } = useShop();
+  const { notifications, clearNotifications, contacts } = useShop();
   const { isDarkMode } = useTheme();
   const navigate = useNavigate();
 
@@ -83,8 +83,7 @@ export const Notifications: React.FC = () => {
                     layout
                     initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }}
                     onClick={() => {
-                        markNotificationRead(n.id);
-                        if (n.relatedId) navigate(n.relatedId); // If it points to a specific page
+                        navigate('/notification/' + n.id);
                     }}
                     style={{ backgroundColor: card, borderColor: border }}
                     className={`p-4 rounded-2xl border flex gap-4 items-start active:scale-[0.98] transition-all relative overflow-hidden ${!n.read ? 'border-l-4 border-l-[#0A3D24]' : ''}`}
@@ -100,7 +99,7 @@ export const Notifications: React.FC = () => {
                         <h3 className="font-bold text-[14px]" style={{ color: text }}>{n.title}</h3>
                         <span className="text-[10px] opacity-40 font-bold uppercase">{getContactType(n.message)}</span>
                       </div>
-                      <p className="text-[12px] leading-relaxed mb-2" style={{ color: sub }}>{n.message}</p>
+                      <p className="text-[12px] leading-relaxed mb-2 line-clamp-2" style={{ color: sub }}>{n.message}</p>
                       <span className="text-[10px] font-bold opacity-30">{new Date(n.date).toLocaleDateString()} • {new Date(n.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                     </div>
                   </motion.div>

@@ -1,14 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { PageTransition } from '../components/PageTransition';
-import { ArrowLeft, User, Phone, MapPin, Save, Store, Camera } from 'lucide-react';
+import { ArrowLeft, User, Phone, MapPin, Store, Camera, Mail } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { useShop } from '../context/ShopContext';
-import { Haptics, ImpactStyle, NotificationType } from '@capacitor/haptics';
+import { useAuth } from '../context/AuthContext';
+import { Haptics, ImpactStyle } from '@capacitor/haptics';
 
 export const ProfileSettings: React.FC = () => {
   const navigate = useNavigate();
   const { profile, updateProfile } = useShop();
+  const { user } = useAuth();
   
   const [formData, setFormData] = useState({
     name: profile?.name || '',
@@ -19,7 +21,8 @@ export const ProfileSettings: React.FC = () => {
     logoUrl: profile?.logoUrl || ''
   });
 
-  const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [lastSaved, setLastSaved] = useState<number | null>(null);
 
   const triggerHaptic = (style: ImpactStyle = ImpactStyle.Light) => {
     Haptics.impact({ style }).catch(() => {});
@@ -37,6 +40,39 @@ export const ProfileSettings: React.FC = () => {
       });
     }
   }, [profile]);
+
+  // Debounced Auto-Save
+  useEffect(() => {
+    const timer = setTimeout(async () => {
+      // Don't save if nothing changed or if initial load
+      if (JSON.stringify(formData) === JSON.stringify({
+        name: profile?.name,
+        owner: profile?.owner,
+        phone: profile?.phone,
+        city: profile?.city,
+        currency: profile?.currency,
+        logoUrl: profile?.logoUrl || ''
+      })) return;
+
+      // Only save if name at least exists, others can be empty/updated later
+      if (!formData.name.trim()) return;
+
+      setIsSaving(true);
+      try {
+        await updateProfile({
+          ...profile,
+          ...formData
+        } as any);
+        setLastSaved(Date.now());
+      } catch (e) {
+        console.error("Auto-save failed", e);
+      } finally {
+        setIsSaving(false);
+      }
+    }, 1000); 
+
+    return () => clearTimeout(timer);
+  }, [formData, profile, updateProfile]);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -82,57 +118,21 @@ export const ProfileSettings: React.FC = () => {
     reader.readAsDataURL(file);
   };
 
-  const validatePhone = (phone: string) => {
-    // Basic check for 10 digits after +92
-    const digitsOnly = phone.replace('+92', '').replace(/\s/g, '');
-    return digitsOnly.length === 10 && /^\d+$/.test(digitsOnly);
-  };
+
 
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let val = e.target.value;
-    
-    // Ensure it starts with +92
     if (!val.startsWith('+92')) {
         val = '+92' + val.replace(/\D/g, '');
     } else {
-        // Keep +92 and only allow digits after that
-        const suffix = val.slice(3).replace(/\D/g, '');
+        let suffix = val.slice(3).replace(/\D/g, '');
+        if (suffix.startsWith('0')) {
+            suffix = suffix.slice(1);
+        }
         val = '+92' + suffix;
     }
-
-    // Limit to +92 + 10 digits
     if (val.length <= 13) {
       setFormData(prev => ({ ...prev, phone: val }));
-    }
-  };
-
-  const handleSave = async () => {
-    const { name, owner, city, phone } = formData;
-    
-    if (!name.trim()) return toast.error('Store Name is mandatory');
-    if (!city.trim()) return toast.error('City is mandatory');
-    if (!owner.trim()) return toast.error('Owner Name is mandatory');
-    if (!phone || phone === '+92') return toast.error('Phone Number is mandatory');
-    
-    if (!validatePhone(phone)) {
-        return toast.error('Please enter a valid 10-digit mobile number (+92 XXX XXXXXXX)');
-    }
-
-    setIsLoading(true);
-    triggerHaptic(ImpactStyle.Medium);
-    
-    try {
-      await updateProfile({
-        ...profile,
-        ...formData
-      } as any);
-      Haptics.notification({ type: NotificationType.Success }).catch(() => {});
-      toast.success('Profile updated successfully');
-      setTimeout(() => navigate(-1), 500);
-    } catch (error: any) {
-      toast.error('Failed to update profile');
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -140,7 +140,7 @@ export const ProfileSettings: React.FC = () => {
     <PageTransition>
       <div className="w-full bg-background pb-8 font-outfit max-w-md mx-auto overflow-x-hidden">
         {/* HEADER */}
-        <header className="px-4 h-12 flex items-center justify-between sticky top-0 bg-background/80 backdrop-blur-md z-50 border-b border-border/10">
+        <header className="px-4 h-14 flex items-center justify-between sticky top-0 bg-background/80 backdrop-blur-md z-50 border-b border-border/10">
           <div className="flex items-center space-x-3">
             <button 
               onClick={() => { triggerHaptic(); navigate(-1); }} 
@@ -151,18 +151,18 @@ export const ProfileSettings: React.FC = () => {
             <h1 className="text-16 font-black text-text-primary tracking-tight uppercase">Profile</h1>
           </div>
           
-          <button 
-            onClick={handleSave} 
-            disabled={isLoading}
-            className="px-6 py-2.5 bg-primary text-white font-black rounded-xl text-[10px] uppercase tracking-widest flex items-center space-x-2 shadow-lg shadow-primary/20 disabled:opacity-50 active:scale-[0.96] transition-all"
-          >
-            {isLoading ? (
-                <div className="w-3 h-3 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-            ) : (
-                <Save size={14} strokeWidth={3} />
-            )}
-            <span>Save</span>
-          </button>
+          <div className="flex items-center gap-2">
+            {isSaving ? (
+               <div className="flex items-center gap-1.5 px-3 py-1.5 bg-primary/5 rounded-full border border-primary/20">
+                  <div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
+                  <span className="text-[10px] font-black text-primary uppercase tracking-widest">Saving...</span>
+               </div>
+            ) : lastSaved ? (
+               <div className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 dark:bg-white/5 rounded-full">
+                  <span className="text-[9px] font-black text-text-muted uppercase tracking-widest opacity-60">Auto-Saved</span>
+               </div>
+            ) : null}
+          </div>
         </header>
 
         <div className="p-4 space-y-6">
@@ -238,6 +238,19 @@ export const ProfileSettings: React.FC = () => {
                     onChange={handlePhoneChange}
                     placeholder="+92 3XX XXXXXXX"
                     className="w-full bg-card border border-border focus:border-primary/50 text-text-primary text-[12px] rounded-2xl py-4.5 pl-12 pr-5 outline-none font-black uppercase transition-all tracking-tight" 
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[9px] font-black text-text-muted uppercase tracking-widest ml-1 opacity-40">Email Address</label>
+                <div className="relative">
+                  <Mail size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted/20" strokeWidth={3} />
+                  <input 
+                    value={user?.email || ''} 
+                    disabled
+                    placeholder="NO EMAIL LINKED"
+                    className="w-full bg-card border border-border text-text-primary text-[12px] rounded-2xl py-4.5 pl-12 pr-5 outline-none font-black transition-all tracking-tight opacity-70" 
                   />
                 </div>
               </div>

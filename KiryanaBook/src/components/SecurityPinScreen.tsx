@@ -1,10 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Delete, ArrowLeft, Fingerprint as FingerprintIcon } from 'lucide-react';
+import { Delete, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Haptics, ImpactStyle, NotificationType } from '@capacitor/haptics';
-import { NativeBiometric } from '@capgo/capacitor-native-biometric';
-import { Capacitor } from '@capacitor/core';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
@@ -19,16 +17,7 @@ export const SecurityPinScreen: React.FC = () => {
   const [mode, setMode] = useState<'verify' | 'create' | 'confirm'>('verify');
   const [tempPin, setTempPin] = useState('');
   const [timeLeft, setTimeLeft] = useState<number>(0);
-  const [isBioAvailable, setIsBioAvailable] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (Capacitor.getPlatform() === 'web') {
-      setIsBioAvailable(true); // Always show biometric button on PC/browser for testing
-    } else {
-      NativeBiometric.isAvailable().then(res => setIsBioAvailable(res.isAvailable)).catch(() => {});
-    }
-  }, []);
 
   useEffect(() => {
     if (userPin === null) {
@@ -105,7 +94,7 @@ export const SecurityPinScreen: React.FC = () => {
 
   const handleInput = (val: string) => {
     if (lockedUntil && timeLeft > 0) return;
-    setErrorMessage(null); // Clear error on new input
+    setErrorMessage(null);
     if (pin.length < PIN_LENGTH) {
       triggerHaptic();
       setPin(prev => prev + val);
@@ -115,45 +104,6 @@ export const SecurityPinScreen: React.FC = () => {
   const handleDelete = () => {
     triggerHaptic(ImpactStyle.Light);
     setPin(prev => prev.slice(0, -1));
-  };
-
-  const handleBiometric = async () => {
-    if (mode !== 'verify') return;
-    
-    // --- WEB SIMULATION FOR TESTING ---
-    if (Capacitor.getPlatform() === 'web') {
-       triggerHaptic(ImpactStyle.Light);
-       const confirmWeb = window.confirm("💻 WEB SIMULATION:\n\nIf you were on a real phone, your native fingerprint/face scanner would pop up right now.\n\nClick 'OK' to simulate a SUCCESSFUL scan, or 'Cancel' to simulate a FAILED match.");
-       if (confirmWeb) {
-            toast.success("Biometric Accepted (Mock)");
-            Haptics.notification({ type: NotificationType.Success }).catch(() => {});
-            setPinVerified(true);
-            updateSecurityStatus(0, null);
-       } else {
-            toast.error("Thumbprint didn't match.");
-       }
-       return;
-    }
-    // ----------------------------------
-
-    try {
-      const verified = await NativeBiometric.verifyIdentity({
-        reason: "Unlock your ledger",
-        title: "Biometric Login",
-        subtitle: "Confirm identity",
-        description: "Touch fingerprint sensor"
-      }).then(() => true).catch(() => false);
-
-      if (verified) {
-        Haptics.notification({ type: NotificationType.Success }).catch(() => {});
-        setPinVerified(true);
-        updateSecurityStatus(0, null);
-      } else {
-        toast.error("Authentication failed");
-      }
-    } catch (e) {
-      toast.error('Biometric error');
-    }
   };
 
   const formatTime = (ms: number) => {
@@ -178,7 +128,6 @@ export const SecurityPinScreen: React.FC = () => {
         animate={{ scale: 1, opacity: 1, y: 0 }}
         className="relative w-full max-w-[360px] bg-white dark:bg-[#141414] rounded-[2.5rem] shadow-2xl flex flex-col items-center py-8 px-6 font-outfit border border-white/20"
       >
-        {/* HEADER */}
         <div className="w-full flex items-center justify-between mb-6">
             <h1 className="text-[#0A3D24] dark:text-[#00E676] font-black text-[12px] tracking-[0.2em] uppercase">Security Vault</h1>
             {isChangingPin && (
@@ -191,7 +140,6 @@ export const SecurityPinScreen: React.FC = () => {
             )}
         </div>
 
-        {/* TITLE */}
         <div className="mb-6 flex flex-col items-center text-center">
             {timeLeft > 0 ? (
                 <>
@@ -218,7 +166,6 @@ export const SecurityPinScreen: React.FC = () => {
             )}
         </div>
 
-        {/* PIN DOTS */}
         <div className="flex flex-col items-center mb-8">
             <div className="flex justify-center space-x-3 mb-4">
               {[...Array(PIN_LENGTH)].map((_, i) => {
@@ -247,7 +194,6 @@ export const SecurityPinScreen: React.FC = () => {
             </AnimatePresence>
         </div>
 
-        {/* KEYPAD */}
         <div className={`grid grid-cols-3 gap-y-3 gap-x-4 w-full mb-8 transition-all duration-300 ${timeLeft > 0 ? 'opacity-20 pointer-events-none' : 'opacity-100'}`}>
           {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => (
             <motion.button
@@ -258,13 +204,7 @@ export const SecurityPinScreen: React.FC = () => {
                 {n}
             </motion.button>
           ))}
-          <motion.button
-            whileTap={{ scale: 0.9 }}
-            onClick={handleBiometric}
-            className={`h-14 w-full rounded-2xl flex items-center justify-center transition-colors ${mode === 'verify' && isBioAvailable ? 'bg-[#F4F4F5] dark:bg-[#1E1E1E] text-[#0A3D24] dark:text-[#00E676]' : 'opacity-0 pointer-events-none'}`}
-          >
-            <FingerprintIcon size={24} />
-          </motion.button>
+          <div className="h-14 w-full opacity-0 pointer-events-none" />
           <motion.button
               whileTap={{ scale: 0.92 }}
               onClick={() => handleInput('0')}
@@ -297,7 +237,6 @@ export const SecurityPinScreen: React.FC = () => {
         >
           Forgot PIN? Contact Support
         </button>
-
       </motion.div>
     </div>
   );

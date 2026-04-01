@@ -13,11 +13,11 @@ export const HelpSupport: React.FC = () => {
   };
 
   const faqs = [
-    { q: 'How do I add a sale?', a: 'Go to the Dashboard and click the "+" button or "Sale" card. Enter the items and select Cash or Credit.' },
-    { q: 'How do I track Udhaar?', a: 'All Udhaar (Credit) is managed in the Customers section. You can see total due and send WhatsApp reminders.' },
-    { q: 'Can I use this on multiple phones?', a: 'Yes! Just login with the same Google or Email account on any device to sync your data.' },
-    { q: 'How to update stock quantity?', a: 'Go to the "Stock" page, find your product, and click the edit icon to update quantity.' },
-    { q: 'How can I get PDF reports?', a: 'Daily and Monthly PDF reports are available for Premium and Business users in the Reports section.' },
+    { q: 'How do I add a sale?', a: 'Go to the "Sale" button on Dashboard, pick items, adjust quantity, and select Hishab (Udhaar) or Cash.' },
+    { q: 'How do I track Udhaar?', a: 'All Credit/Udhaar is in the "Manager" section. You can see total dues and send WhatsApp reminders to customers.' },
+    { q: 'Can I use this on multiple phones?', a: 'Yes! Login with the same Google account on any phone to sync all your shop data instantly.' },
+    { q: 'How to manage custom categories?', a: 'Go to "Stock", use the "+" pill in categories bar to add, or click an active category to delete it.' },
+    { q: 'How can I get PDF reports?', a: 'Daily, Monthly and Yearly PDF reports are available in the "Manager" section for PRO members.' },
   ];
 
   return (
@@ -106,7 +106,7 @@ export const HelpSupport: React.FC = () => {
 
           {/* SYSTEM INFO */}
           <div className="p-6 bg-card-secondary/30 border border-border/50 rounded-2xl text-center backdrop-blur-sm">
-            <p className="text-[7px] font-black uppercase tracking-[0.4em] text-text-muted opacity-40 mb-1.5 italic">Software v3.1.2 Stable</p>
+            <p className="text-[7px] font-black uppercase tracking-[0.4em] text-text-muted opacity-40 mb-1.5 italic">Software v3.2.0 Stable</p>
             <div className="flex items-center justify-center space-x-1.5">
                 <div className="w-1 h-1 rounded-full bg-primary/20" />
                 <p className="text-[6px] font-bold text-text-muted uppercase tracking-[0.3em] opacity-20">© 2026 KiryanaBook Platform</p>

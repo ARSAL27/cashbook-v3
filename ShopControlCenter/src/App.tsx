@@ -11,7 +11,7 @@ import { Toaster } from 'react-hot-toast';
 import './index.css';
 
 const AppInner: React.FC = () => {
-  const { user, loading } = useAuth();
+  const { user, loading, isAdmin, logout } = useAuth();
   const [page, setPage] = useState('dashboard');
   const [selectedShop, setSelectedShop] = useState<string | null>(null);
 
@@ -23,6 +23,17 @@ const AppInner: React.FC = () => {
 
   if (loading) return <div className="loading-screen"><div className="spinner" /></div>;
   if (!user) return <LoginPage />;
+  if (user && !isAdmin) {
+    return (
+      <div className="login-page">
+        <div className="login-card">
+          <h1 className="login-title" style={{ color: '#ef4444' }}>Access Denied</h1>
+          <p className="login-sub">Only authorized admin emails can view this control center.</p>
+          <button className="google-btn" onClick={logout}>Sign Out</button>
+        </div>
+      </div>
+    );
+  }
 
   const handleShopSelect = (id: string) => {
     setSelectedShop(id);

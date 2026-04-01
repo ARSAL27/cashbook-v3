@@ -40,13 +40,7 @@ export const AddContact: React.FC = () => {
           return;
       }
 
-      if (phone.length < 10) {
-          toast.error('Ghalat number! Kam se kam 10 digits ka number likhein');
-          setLoading(false);
-          return;
-      }
-      
-      const formattedPhone = `+92 ${phone}`;
+      const formattedPhone = phone.trim();
 
       const balVal = parseFloat(initialBalance) || 0;
       // MATH LOGIC:
@@ -73,6 +67,7 @@ export const AddContact: React.FC = () => {
     }
     setLoading(false);
   };
+
 
   return (
     <PageTransition>
@@ -128,7 +123,7 @@ export const AddContact: React.FC = () => {
           {/* CONTACT FORM */}
           <div className="rounded-3xl border overflow-hidden" style={{ backgroundColor: card, borderColor: border }}>
             {/* Name */}
-            <div className="flex items-center gap-3 px-5 py-4 border-b" style={{ borderColor: border }}>
+            <div className="flex items-center gap-3 px-5 py-4 border-b relative" style={{ borderColor: border }}>
               <User size={18} style={{ color: sub }} />
               <div className="flex-1">
                 <p className="text-[9px] font-black uppercase tracking-widest mb-0.5" style={{ color: sub }}>Full Name *</p>
@@ -146,16 +141,15 @@ export const AddContact: React.FC = () => {
             <div className="flex items-center gap-3 px-5 py-4 border-b" style={{ borderColor: border }}>
               <Phone size={18} style={{ color: sub }} />
               <div className="flex-1">
-                <p className="text-[9px] font-black uppercase tracking-widest mb-0.5" style={{ color: sub }}>Phone Number *</p>
+                <p className="text-[9px] font-black uppercase tracking-widest mb-0.5" style={{ color: sub }}>Phone Number (Optional)</p>
                 <div className="flex items-center gap-2">
-                  <span className="text-[14px] font-black text-primary opacity-60">+92</span>
                   <input
                     value={phone}
                     onChange={e => {
-                      const val = e.target.value.replace(/[^0-9]/g, '');
-                      if (val.length <= 10) setPhone(val);
+                      const val = e.target.value.replace(/[^0-9+]/g, '');
+                      setPhone(val);
                     }}
-                    placeholder="300 1234567"
+                    placeholder="e.g. 03001234567"
                     type="tel"
                     className="w-full bg-transparent outline-none text-[14px] font-bold"
                     style={{ color: text }}
@@ -214,7 +208,7 @@ export const AddContact: React.FC = () => {
               />
             </div>
             <div className="px-5 pb-4">
-              <p className="text-white/40 text-[9px]">By saving, you establish a permanent record for this merchant in The Sovereign Ledger. Fields marked with * are mandatory for audit compliance.</p>
+              <p className="text-white/40 text-[9px]">By saving, you establish a permanent record for this merchant in The Sovereign Ledger. Fields marked with * are mandatory.</p>
             </div>
           </div>
 

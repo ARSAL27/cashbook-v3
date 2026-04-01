@@ -38,12 +38,17 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
 
     const handleThemeChange = () => {
-      // FORCE LIGHT MODE: Ignore all system or user settings for now
-      applyThemeClasses(false);
-      localStorage.setItem('theme-mode', 'light');
+      if (mode === 'dark') {
+          applyThemeClasses(true);
+      } else if (mode === 'light') {
+          applyThemeClasses(false);
+      } else {
+          applyThemeClasses(mediaQuery.matches);
+      }
     };
 
     handleThemeChange();
+    localStorage.setItem('theme-mode', mode);
     mediaQuery.addEventListener('change', handleThemeChange);
     return () => mediaQuery.removeEventListener('change', handleThemeChange);
   }, [mode]);

@@ -46,14 +46,18 @@
     padding-top: env(safe-area-inset-top, 0px);
     padding-left: env(safe-area-inset-left, 0px);
     padding-right: env(safe-area-inset-right, 0px);
-    /* Do NOT add bottom padding here — handled by MainLayout */
-    overflow: hidden;
-    height: 100dvh;
+    /* Standard scrollability */
+    min-height: 100dvh;
+    overflow-x: hidden;
+    overflow-y: auto;
+    /* Mobile Native Feel */
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
   }
 
   #root {
-    height: 100dvh;
-    overflow: hidden;
+    min-height: 100dvh;
+    width: 100%;
   }
 }
 
@@ -98,6 +102,15 @@
 
   .btn-scale {
     @apply active:scale-[0.96] transition-transform duration-200;
+  }
+
+  .interactive-none {
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  .glass-card {
+    @apply bg-white/95 dark:bg-[#0D0D1A]/90 backdrop-blur-2xl border border-white/10 shadow-2xl;
   }
 }
 

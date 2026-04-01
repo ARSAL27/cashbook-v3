@@ -4,26 +4,38 @@ import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { PageTransition } from '../components/PageTransition';
 import { useShop } from '../context/ShopContext';
+import { useAuth } from '../context/AuthContext';
 
 import { Haptics, ImpactStyle, NotificationType } from '@capacitor/haptics';
 
 export const Setup: React.FC = () => {
   const navigate = useNavigate();
   const { updateProfile } = useShop();
+    const { user, hasPasswordLinked, isPasswordRecorded } = useAuth();
+  
+    const [shopName, setShopName] = useState('');
+    const [ownerName, setOwnerName] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+  
+    const triggerHaptic = (style: ImpactStyle = ImpactStyle.Light) => {
+      Haptics.impact({ style }).catch(() => {});
+    };
+  
+    const isFormValid = shopName.trim().length > 0 && ownerName.trim().length > 0;
+  
+    const handleSubmit = async () => {
+      if (!isFormValid) return;
+  
+      if (!user?.email) {
+        toast.error('Email address zaroori hai! Please dobara login karein.');
+        return navigate('/login', { replace: true });
+      }
 
-  const [shopName, setShopName] = useState('');
-  const [ownerName, setOwnerName] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-
-  const triggerHaptic = (style: ImpactStyle = ImpactStyle.Light) => {
-    Haptics.impact({ style }).catch(() => {});
-  };
-
-  const isFormValid = shopName.trim().length > 0 && ownerName.trim().length > 0;
-
-  const handleSubmit = async () => {
-    if (!isFormValid) return;
-    
+      const isGoogleUser = user.providerData.some(p => p.providerId === 'google.com');
+      if (isGoogleUser && (!hasPasswordLinked || !isPasswordRecorded)) {
+        toast.error('Pehle apna backup password set karein!');
+        return navigate('/login', { replace: true });
+      }
     setIsLoading(true);
     triggerHaptic(ImpactStyle.Medium);
 

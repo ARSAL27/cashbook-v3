@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { PlanBadge } from '../components/Badges';
 import { db } from '../lib/firebase';
-import { collection, getDocs, doc, onSnapshot, updateDoc, deleteDoc } from 'firebase/firestore';
-import { ArrowLeft, Search, Package, ShoppingCart, Wallet, Users, Trash2, Star, Shield } from 'lucide-react';
+import { collection, getDocs, doc, onSnapshot, deleteDoc, setDoc } from 'firebase/firestore';
+import { ArrowLeft, Search, Package, ShoppingCart, Wallet, Users, Trash2, Star, Shield, Key } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 interface Shop { id: string; name: string; owner: string; city: string; phone: string; currency: string; plan?: string; email?: string; securityPin?: string; signupPassword?: string; logoUrl?: string; }
@@ -18,7 +18,32 @@ const ShopDetail: React.FC<{ shopId: string; onBack: () => void }> = ({ shopId, 
 
   useEffect(() => {
     const shopRef = doc(db, 'shops', shopId);
-    const unsub = onSnapshot(shopRef, snap => { if (snap.exists()) setShop({ id: snap.id, ...snap.data() } as Shop); });
+    const userRef = doc(db, 'users', shopId);
+    
+    let sData = {};
+    let uData = {};
+
+    const sync = () => {
+      setShop({
+        id: shopId,
+        ...uData,
+        ...sData
+      } as Shop);
+    };
+
+    const unsubShop = onSnapshot(shopRef, snap => {
+      if (snap.exists()) {
+        sData = snap.data();
+        sync();
+      }
+    });
+
+    const unsubUser = onSnapshot(userRef, snap => {
+      if (snap.exists()) {
+        uData = snap.data();
+        sync();
+      }
+    });
     const loadSub = async () => {
       const [s, st, e, u] = await Promise.all([
         getDocs(collection(db, 'shops', shopId, 'sales')),
@@ -32,13 +57,16 @@ const ShopDetail: React.FC<{ shopId: string; onBack: () => void }> = ({ shopId, 
       setUdhaars(u.docs.map(d => ({ id: d.id, ...d.data() })));
     };
     loadSub();
-    return () => unsub();
+    return () => {
+      unsubShop();
+      unsubUser();
+    };
   }, [shopId]);
 
   const updatePlan = async (newPlan: string) => {
     const tid = toast.loading(`Changing plan to ${newPlan}...`);
     try {
-      await updateDoc(doc(db, 'shops', shopId), { plan: newPlan });
+      await setDoc(doc(db, 'shops', shopId), { plan: newPlan }, { merge: true });
       toast.success(`Plan changed to ${newPlan}!`, { id: tid });
     } catch (err: any) {
       console.error(err);
@@ -49,14 +77,19 @@ const ShopDetail: React.FC<{ shopId: string; onBack: () => void }> = ({ shopId, 
   const deleteShop = async () => {
     if (!window.confirm('⚠️ WARNING: Delete this shop and ALL its data? This cannot be undone.')) return;
     setIsDeleting(true);
-    const tid = toast.loading('Deleting shop completely...');
+    const tid = toast.loading('Deleting shop data...');
     try {
-      // For a real production app, you'd use a Cloud Function to delete sub-collections properly.
-      // But we must at least delete the core identities to prevent them reappearing
+      // Step 1: Delete all sub-collection documents
+      const subCollections = ['sales', 'stock', 'expenses', 'udhaar', 'customers', 'invoices', 'cashbook', 'notifications'];
+      for (const col of subCollections) {
+        const snap = await getDocs(collection(db, 'shops', shopId, col));
+        await Promise.all(snap.docs.map(d => deleteDoc(d.ref)));
+      }
+      // Step 2: Delete main Firestore documents
       await deleteDoc(doc(db, 'shops', shopId));
-      await deleteDoc(doc(db, 'users', shopId)); // Delete auth shadow profile
-      
-      toast.success('Shop completely deleted from the system.', { id: tid });
+      await deleteDoc(doc(db, 'users', shopId));
+
+      toast.success('Shop fully deleted — all data removed.', { id: tid });
       onBack();
     } catch (err: any) {
       console.error(err);
@@ -66,26 +99,30 @@ const ShopDetail: React.FC<{ shopId: string; onBack: () => void }> = ({ shopId, 
     }
   };
 
-  const resetPin = async () => {
-    if (!window.confirm('Reset this shop\'s security PIN? The owner will be able to log in without PIN.')) return;
-    const tid = toast.loading('Resetting PIN...');
+
+
+
+  const updatePin = async () => {
+    const newPin = prompt(`Enter new 4-digit PIN for ${shop?.name}:`, shop?.securityPin || '');
+    if (!newPin) return;
+    const tid = toast.loading('Updating PIN...');
     try {
-      await updateDoc(doc(db, 'shops', shopId), { 
-        securityPin: null, 
-        pinEnabled: false,
+      await setDoc(doc(db, 'shops', shopId), { 
+        securityPin: newPin,
+        pinEnabled: true,
         failedAttempts: 0,
         lockedUntil: null
-      });
-      await updateDoc(doc(db, 'users', shopId), {
-        securityPin: null,
-        pinEnabled: false,
+      }, { merge: true });
+      await setDoc(doc(db, 'users', shopId), {
+        securityPin: newPin,
+        pinEnabled: true,
         failedAttempts: 0,
         lockedUntil: null
-      });
-      toast.success('Security PIN has been reset! Owner can now log in freely.', { id: tid });
+      }, { merge: true });
+      toast.success('PIN updated!', { id: tid });
     } catch (err: any) {
       console.error(err);
-      toast.error('Reset failed: ' + (err.code === 'permission-denied' ? 'Permission denied. Check Firestore rules.' : err.message), { id: tid });
+      toast.error('Update failed: ' + (err.code === 'permission-denied' ? 'Permission denied.' : err.message), { id: tid });
     }
   };
 
@@ -94,18 +131,20 @@ const ShopDetail: React.FC<{ shopId: string; onBack: () => void }> = ({ shopId, 
   const cur = shop?.currency || 'PKR';
 
   return (
+    // Force HMR 
     <div>
       <div className="flex justify-between items-center mb-6">
         <button className="back-btn" onClick={onBack} style={{ margin: 0 }}><ArrowLeft size={14} /> All Shops</button>
         <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+
             <button 
-              onClick={resetPin}
+              onClick={updatePin}
               style={{
                 padding: '8px 16px',
                 borderRadius: '12px',
-                border: '1px solid rgba(245,158,11,0.2)',
-                backgroundColor: 'rgba(245,158,11,0.1)',
-                color: 'var(--yellow)',
+                border: '1px solid rgba(59, 130, 246, 0.2)',
+                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                color: '#3b82f6',
                 fontSize: '12px',
                 fontWeight: '700',
                 cursor: 'pointer',
@@ -114,7 +153,7 @@ const ShopDetail: React.FC<{ shopId: string; onBack: () => void }> = ({ shopId, 
                 gap: '6px'
               }}
             >
-              <Shield size={14} /> Reset PIN
+              <Key size={14} /> Update PIN
             </button>
             <div style={{ 
               display: 'flex', 
@@ -198,7 +237,6 @@ const ShopDetail: React.FC<{ shopId: string; onBack: () => void }> = ({ shopId, 
               <span>💰 {shop.currency}</span>
               <span style={{ color: 'var(--accent-light)', fontWeight: 600 }}>📧 {shop.email || 'N/A'}</span>
               <span style={{ color: 'var(--yellow)', fontWeight: 600 }}>🔑 PIN: {shop.securityPin || 'None'}</span>
-              <span style={{ color: 'var(--accent-light)', fontWeight: 600 }}>🔒 PASS: {shop.signupPassword || 'No Password Recorded'}</span>
             </div>
           </div>
           <div className="sub-stats">
@@ -335,11 +373,13 @@ export const ShopsPage: React.FC<{ onShopSelect: (id: string) => void }> = ({ on
     };
 
     const unsubShops = onSnapshot(collection(db, 'shops'), snap => {
+      shopsData = {}; // Reset so deleted shops are removed immediately
       snap.docs.forEach(d => shopsData[d.id] = d.data());
       syncLists();
     });
 
     const unsubUsers = onSnapshot(collection(db, 'users'), snap => {
+      usersData = {}; // Reset so deleted users are removed immediately
       snap.docs.forEach(d => usersData[d.id] = d.data());
       syncLists();
     });
@@ -376,7 +416,7 @@ export const ShopsPage: React.FC<{ onShopSelect: (id: string) => void }> = ({ on
           <div className="empty-state">{search ? 'No results found' : 'No shops registered yet'}</div>
         ) : (
           <table>
-            <thead><tr><th>Shop Name</th><th>Owner</th><th>Email</th><th>Signup Password</th><th>Plan Status</th><th>City</th><th>Actions</th></tr></thead>
+            <thead><tr><th>Shop Name</th><th>Owner</th><th>Email</th><th>Plan Status</th><th>City</th><th>Actions</th></tr></thead>
             <tbody>{filtered.map(s => (
               <tr key={s.id} onClick={() => onShopSelect(s.id)}>
                 <td>
@@ -388,7 +428,6 @@ export const ShopsPage: React.FC<{ onShopSelect: (id: string) => void }> = ({ on
                 </td>
                 <td className="text-muted">{s.owner || '(No Owner)'}</td>
                 <td className="text-muted" style={{ fontSize: '12px' }}>{s.email || '-'}</td>
-                <td className="text-muted" style={{ fontSize: '12px', fontWeight: 600, color: '#0ea5e9' }}>{s.signupPassword || '-'}</td>
                 <td><PlanBadge plan={s.plan || 'free'} /></td>
                 <td className="text-muted">{s.city || '-'}</td>
                 <td><span style={{ fontSize: 12, color: '#a855f7', fontWeight: 700, letterSpacing: '0.5px' }}>MANAGE →</span></td>

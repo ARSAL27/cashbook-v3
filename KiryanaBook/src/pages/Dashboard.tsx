@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { PageTransition } from '../components/PageTransition';
 import { useShop } from '../context/ShopContext';
-import { Users, Plus, Minus, Bell, HandCoins, BarChart2, Filter, ArrowDownLeft, ArrowUpRight, AlertTriangle, Menu } from 'lucide-react';
+import { Users, Plus, Minus, Bell, HandCoins, BarChart2, Filter, ArrowDownLeft, ArrowUpRight, AlertTriangle, Menu, MessageCircle, Mic } from 'lucide-react';
 import { Sidebar } from '../components/Sidebar';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -108,12 +108,41 @@ export const Dashboard: React.FC = () => {
       .sort((a, b) => (a.isImportant === b.isImportant ? 0 : a.isImportant ? -1 : 1)); // Important first
   }, [udhaars, contacts]);
 
+  const aiInsight = useMemo(() => {
+    if (stats.lowStockItems.length > 3) {
+      return { 
+        title: "Stock Alert", 
+        msg: `${stats.lowStockItems.length} items khatam ho rahe hain. Jald mangwaein!`,
+        color: "orange" 
+      };
+    }
+    if (stats.receivable > 20000) {
+      return { 
+        title: "Udhaar Recovery", 
+        msg: `Rs. ${stats.receivable.toLocaleString()} market mein hai. Wasooli ka waqt hai!`,
+        color: "red" 
+      };
+    }
+    if (stats.totalToday > 5000) {
+      return { 
+        title: "Masha'Allah!", 
+        msg: "Aaj ki sale zabardast ja rahi hai. Allah Barkat de!",
+        color: "green" 
+      };
+    }
+    return { 
+      title: "AI Munshi", 
+      msg: "Assalam-o-Alaikum! Shop ka haal jaanne ke liye mujh se poochein.",
+      color: "green" 
+    };
+  }, [stats]);
+
   return (
     <PageTransition>
-      <div className="w-full bg-[#F2F2F7] dark:bg-[#0A0A0A] font-outfit max-w-md mx-auto overflow-x-hidden pb-8 transition-colors duration-300">
+      <div className="w-full bg-[#F2F2F7] dark:bg-[#0A0A0A] font-outfit max-w-md mx-auto pb-8 transition-colors duration-300">
 
         {/* ── HEADER ── */}
-        <div className="px-5 pt-5 pb-6 border-b transition-colors duration-300 dark:border-[#2A2A2A]" style={{ backgroundColor: isDarkMode ? '#10251A' : '#1A5C38' }}>
+        <div className="sticky top-0 z-50 px-5 pt-safe pt-3 pb-4 border-b transition-colors duration-300 dark:border-[#2A2A2A]" style={{ backgroundColor: isDarkMode ? '#10251A' : '#1A5C38' }}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <button 
@@ -149,8 +178,8 @@ export const Dashboard: React.FC = () => {
         </div>
 
         {/* ── BALANCE CARD ── */}
-        <div className="px-4 -mt-1">
-          <div className="rounded-b-3xl px-5 pb-6 pt-2 border-x border-b transition-all duration-300 dark:border-[#2E4A35]" style={{ background: isDarkMode ? 'linear-gradient(to bottom right, #10251A, #1A3A25)' : '#1A5C38' }}>
+        <div className="px-4 -mt-0.5">
+          <div className="rounded-b-[2.5rem] px-6 pb-6 pt-1 border-x border-b transition-all duration-300 dark:border-[#2E4A35]" style={{ background: isDarkMode ? 'linear-gradient(to bottom right, #10251A, #1A3A25)' : '#1A5C38' }}>
             <p className="text-[11px] text-white/50 dark:text-[#B0B0B0]/60 font-semibold uppercase tracking-widest mb-1">{t('today_balance')}</p>
             <div className="flex items-end justify-between">
               <div>
@@ -194,6 +223,72 @@ export const Dashboard: React.FC = () => {
               </button>
             </div>
           </div>
+        </div>
+
+        {/* ── AI MUNSHI WIDGET ── */}
+        <div className="px-4 mt-3">
+          <motion.div 
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            onClick={() => navigate('/manager', { state: { autoStartVoice: true } })}
+            className={`relative overflow-hidden rounded-[2rem] p-5 border shadow-sm cursor-pointer active:scale-[0.98] transition-all ${
+              aiInsight.color === 'red' ? 'bg-red-50 border-red-100 dark:bg-red-950/20 dark:border-red-900/40' :
+              aiInsight.color === 'orange' ? 'bg-orange-50 border-orange-100 dark:bg-orange-950/20 dark:border-orange-900/40' :
+              'bg-[#00E676]/10 border-[#00E676]/20 dark:bg-[#00E676]/5 dark:border-[#00E676]/10'
+            }`}
+          >
+            {/* Background accent */}
+            <div className="absolute -right-4 -top-4 w-24 h-24 bg-white/40 dark:bg-white/5 rounded-full blur-2xl opacity-50" />
+            
+            <div className="flex items-center gap-4">
+              <div className="relative">
+                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg ${
+                  aiInsight.color === 'red' ? 'bg-red-500' :
+                  aiInsight.color === 'orange' ? 'bg-orange-500' :
+                  'bg-[#00E676]'
+                }`}>
+                  <MessageCircle className="text-[#0A0A0A]" size={24} strokeWidth={2.5} />
+                </div>
+                <motion.div 
+                  animate={{ scale: [1, 1.3, 1], opacity: [0.3, 0.6, 0.3] }}
+                  transition={{ duration: 2.5, repeat: Infinity }}
+                  className={`absolute inset-0 rounded-2xl -z-10 ${
+                    aiInsight.color === 'red' ? 'bg-red-400' :
+                    aiInsight.color === 'orange' ? 'bg-orange-400' :
+                    'bg-[#00E676]'
+                  }`}
+                />
+              </div>
+              
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-0.5">
+                  <span className={`text-[10px] font-black uppercase tracking-[0.2em] ${
+                    aiInsight.color === 'red' ? 'text-red-700' :
+                    aiInsight.color === 'orange' ? 'text-orange-700' :
+                    'text-[#00A846]'
+                  }`}>
+                    {aiInsight.title}
+                  </span>
+                  <div className={`w-1.5 h-1.5 rounded-full animate-pulse ${
+                    aiInsight.color === 'red' ? 'bg-red-500' :
+                    aiInsight.color === 'orange' ? 'bg-orange-500' :
+                    'bg-[#00E676]'
+                  }`} />
+                </div>
+                <p className="text-[15px] font-black text-[#0A3D24] dark:text-gray-100 leading-tight">
+                  {aiInsight.msg}
+                </p>
+              </div>
+              
+              <div className="bg-white/60 dark:bg-white/5 p-2 rounded-xl backdrop-blur-md border border-white/50 dark:border-white/5">
+                <Mic size={18} className={
+                  aiInsight.color === 'red' ? 'text-red-500' :
+                  aiInsight.color === 'orange' ? 'text-orange-500' :
+                  'text-[#00A846]'
+                } />
+              </div>
+            </div>
+          </motion.div>
         </div>
 
         {/* ── CENTRAL LEDGER BUTTON ── */}

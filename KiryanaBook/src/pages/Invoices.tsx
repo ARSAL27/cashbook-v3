@@ -1,28 +1,42 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { PageTransition } from '../components/PageTransition';
 import { useShop } from '../context/ShopContext';
 import { useNavigate } from 'react-router-dom';
-import { Search, Plus, FileText, Trash2, Menu, Mic } from 'lucide-react';
+import { Search, Plus, FileText, Trash2, Menu } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Sidebar } from '../components/Sidebar';
 import { useTheme } from '../context/ThemeContext';
 import toast from 'react-hot-toast';
 
 export const Invoices: React.FC = () => {
-  const { invoices, deleteInvoice } = useShop();
+  const { invoices, deleteInvoice, profile } = useShop();
   const { isDarkMode } = useTheme();
   const navigate = useNavigate();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [minPrice, setMinPrice] = useState<string>('');
   const [maxPrice, setMaxPrice] = useState<string>('');
+  const [dateFrom, setDateFrom] = useState<string>('');
+  const [dateTo, setDateTo] = useState<string>('');
 
   const filtered = useMemo(() => {
     let results = invoices
       .filter(inv => {
         const min = minPrice ? parseFloat(minPrice) : 0;
         const max = maxPrice ? parseFloat(maxPrice) : Infinity;
-        return inv.total >= min && inv.total <= max;
+        if (inv.total < min || inv.total > max) return false;
+
+        if (dateFrom) {
+          const invDate = new Date(inv.date).setHours(0,0,0,0);
+          const from = new Date(dateFrom).setHours(0,0,0,0);
+          if (invDate < from) return false;
+        }
+        if (dateTo) {
+          const invDate = new Date(inv.date).setHours(23,59,59,999);
+          const to = new Date(dateTo).setHours(23,59,59,999);
+          if (invDate > to) return false;
+        }
+        return true;
       })
       .filter(inv =>
         inv.customerName.toLowerCase().includes(search.toLowerCase()) ||
@@ -38,24 +52,12 @@ export const Invoices: React.FC = () => {
     });
     
     return results;
-  }, [invoices, search, minPrice, maxPrice]);
+  }, [invoices, search, minPrice, maxPrice, dateFrom, dateTo]);
 
   // Assuming checkPerms and setShowVoice are defined elsewhere or intended for a different component
   // The provided snippet for useMemo was syntactically incorrect and contained logic typically for useEffect.
   // I'm preserving the original useMemo structure and adding the event listener in a useEffect.
-  useEffect(() => {
-    // checkPerms(); // Assuming checkPerms is defined and accessible
-    const handleOpenVoice = () => {
-      // Assuming setShowVoice is a state setter for a voice assistant modal/component
-      // For this component, we'll just dispatch the event.
-      // If a voice assistant UI needs to be shown, its state should be managed here or globally.
-      console.log('openVoiceAssistant event received in Invoices component');
-    };
-    window.addEventListener('openVoiceAssistant', handleOpenVoice);
-    return () => {
-      window.removeEventListener('openVoiceAssistant', handleOpenVoice);
-    };
-  }, []);
+
 
 
   const bg = isDarkMode ? '#0A0A0A' : '#F5F5F5';
@@ -89,61 +91,74 @@ export const Invoices: React.FC = () => {
                 </button>
                 <div className="flex-1">
                    <p className="text-white/50 text-[10px] font-bold uppercase tracking-widest leading-none">
-                     Indus Ledger v3.0
+                     Indus Ledger
                    </p>
                 </div>
-                {/* Fallback Voice Button in Header */}
                 <button 
-                  onClick={() => {
-                    window.dispatchEvent(new CustomEvent('openVoiceAssistant'));
-                  }}
-                  className="w-8 h-8 flex items-center justify-center bg-[#4BFF94]/20 rounded-xl text-[#4BFF94] active:scale-90 transition-all"
+                  onClick={() => navigate('/settings')} 
+                  className="w-9 h-9 rounded-full overflow-hidden border-2 border-[#4BFF94]"
                 >
-                    <Mic size={16} strokeWidth={3} />
+                  <img src={profile?.logoUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${profile?.name || 'U'}&backgroundColor=34d399`} alt="Avatar" className="w-full h-full object-cover" />
                 </button>
             </div>
             <h1 className="text-white font-black text-[22px] tracking-tight">Purane Invoices</h1>
           </div>
 
-          {/* SEARCH + FILTER */}
-          <div className="px-4 pb-3 flex gap-2 w-full">
-            <div className="relative flex-1">
-              <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/30" />
+          {/* COMPACT SEARCH + PRICE FILTER */}
+          <div className="px-4 pb-2 flex gap-2">
+            <div className="relative flex-[2]">
+              <Search size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30" />
               <input
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                placeholder="Search name, ID or item..."
-                className="w-full bg-white/10 text-white placeholder-white/30 rounded-2xl py-2.5 pl-9 pr-4 text-[12px] font-medium outline-none border border-white/10"
+                placeholder="Search..."
+                className="w-full bg-white/5 text-white placeholder-white/30 rounded-xl py-2 pl-8 pr-3 text-[11px] font-medium outline-none border border-white/5"
               />
             </div>
-          </div>
-
-          {/* PRICE RANGE FILTER */}
-          <div className="px-4 pb-4 flex gap-2">
-            <div className="relative flex-1">
+            <div className="flex-1 flex gap-1">
               <input
                 type="number"
                 value={minPrice}
                 onChange={e => setMinPrice(e.target.value)}
-                placeholder="Min Rs."
-                className="w-full bg-white/10 text-white placeholder-white/30 rounded-xl py-2 px-4 text-[11px] font-bold outline-none border border-white/10"
+                placeholder="Min"
+                className="w-full bg-white/5 text-white placeholder-white/30 rounded-xl py-2 px-2 text-[10px] font-bold outline-none border border-white/5"
               />
-            </div>
-            <div className="relative flex-1">
               <input
                 type="number"
                 value={maxPrice}
                 onChange={e => setMaxPrice(e.target.value)}
-                placeholder="Max Rs."
-                className="w-full bg-white/10 text-white placeholder-white/30 rounded-xl py-2 px-4 text-[11px] font-bold outline-none border border-white/10"
+                placeholder="Max"
+                className="w-full bg-white/5 text-white placeholder-white/30 rounded-xl py-2 px-2 text-[10px] font-bold outline-none border border-white/5"
               />
             </div>
-            {(minPrice || maxPrice) && (
+          </div>
+
+          {/* COMPACT DATE RANGE FILTER */}
+          <div className="px-4 pb-4 flex items-center gap-2">
+            <div className="flex-1 flex items-center gap-2 bg-white/5 rounded-xl px-3 border border-white/5">
+                <span className="text-[7px] font-black text-white/30 uppercase">From</span>
+                <input
+                    type="date"
+                    value={dateFrom}
+                    onChange={e => setDateFrom(e.target.value)}
+                    className="flex-1 bg-transparent text-white py-1.5 text-[10px] font-bold outline-none [color-scheme:dark]"
+                />
+            </div>
+            <div className="flex-1 flex items-center gap-2 bg-white/5 rounded-xl px-3 border border-white/5">
+                <span className="text-[7px] font-black text-white/30 uppercase">To</span>
+                <input
+                    type="date"
+                    value={dateTo}
+                    onChange={e => setDateTo(e.target.value)}
+                    className="flex-1 bg-transparent text-white py-1.5 text-[10px] font-bold outline-none [color-scheme:dark]"
+                />
+            </div>
+            {(minPrice || maxPrice || dateFrom || dateTo) && (
               <button 
-                onClick={() => { setMinPrice(''); setMaxPrice(''); }}
-                className="px-3 bg-red-500/20 text-red-500 rounded-xl text-[10px] font-black uppercase"
+                onClick={() => { setMinPrice(''); setMaxPrice(''); setDateFrom(''); setDateTo(''); }}
+                className="h-8 w-8 bg-red-500/20 text-red-500 rounded-lg flex items-center justify-center shrink-0"
               >
-                Clear
+                <Trash2 size={12} />
               </button>
             )}
           </div>
@@ -159,12 +174,14 @@ export const Invoices: React.FC = () => {
                 <FileText size={32} className="text-gray-300" />
               </div>
               <p className="text-[13px] font-bold" style={{ color: sub }}>Koi invoice nahi</p>
-              <button
-                onClick={() => navigate('/new-invoice')}
-                className="mt-4 bg-[#0A3D24] text-white px-6 py-2.5 rounded-2xl text-[12px] font-black"
-              >
-                + Pehla Invoice Banao
-              </button>
+              <div className="flex gap-2 mt-4">
+                <button
+                    onClick={() => navigate('/new-invoice')}
+                    className="bg-[#0A3D24] text-white px-5 py-2.5 rounded-2xl text-[12px] font-black"
+                >
+                    + Pehla Invoice Banao
+                </button>
+              </div>
             </motion.div>
           ) : (
             filtered.map((inv, idx) => (
@@ -222,13 +239,14 @@ export const Invoices: React.FC = () => {
           )}
         </div>
 
-        {/* FAB */}
-        <button
+        {/* FAB - Standardized Neon Style */}
+        <motion.button
+          whileTap={{ scale: 0.9 }}
           onClick={() => navigate('/new-invoice')}
-          className="fixed bottom-[90px] right-6 w-14 h-14 rounded-2xl bg-[#0A3D24] text-white shadow-2xl flex items-center justify-center active:scale-95 transition-all z-50 border border-white/10"
+          className="fixed bottom-32 right-5 w-16 h-16 bg-[#4BFF94] rounded-2xl flex items-center justify-center shadow-2xl z-[90] border-4 border-white dark:border-[#0A0A0A]"
         >
-          <Plus size={24} />
-        </button>
+          <Plus size={32} className="text-[#0A3D24]" strokeWidth={3} />
+        </motion.button>
       </div>
     </PageTransition>
   );

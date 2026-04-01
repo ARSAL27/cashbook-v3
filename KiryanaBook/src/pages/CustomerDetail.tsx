@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { PageTransition } from '../components/PageTransition';
 import { useShop } from '../context/ShopContext';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Phone, Trash2, FileText, MessageSquare, Plus, Minus, ChevronRight, Star, X as XIcon } from 'lucide-react';
+import { ArrowLeft, Phone, Trash2, FileText, MessageSquare, Plus, Minus, ChevronRight, Star, X as XIcon, Edit3 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { useTheme } from '../context/ThemeContext';
@@ -10,11 +10,13 @@ import { useTheme } from '../context/ThemeContext';
 export const CustomerDetail: React.FC = () => {
     const { name } = useParams<{ name: string }>();
     const navigate = useNavigate();
-    const { udhaars, contacts, addUdhaar, deleteCustomer, toggleContactImportance } = useShop();
+    const { udhaars, contacts, addUdhaar, deleteCustomer, toggleContactImportance, updateContact } = useShop();
     const { isDarkMode } = useTheme();
 
     const [showAddModal, setShowAddModal] = useState(false);
     const [showStatement, setShowStatement] = useState(false);
+    const [showEditModal, setShowEditModal] = useState(false);
+    const [editForm, setEditForm] = useState({ name: '', phone: '' });
     const [modalType, setModalType] = useState<'debit' | 'credit'>('debit');
     const [amount, setAmount] = useState('');
     const [note, setNote] = useState('');
@@ -41,6 +43,26 @@ export const CustomerDetail: React.FC = () => {
     }, [transactions]);
 
     const initials = name?.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+
+    const handleEditCustomer = async () => {
+        if (!contact) return;
+        if (!editForm.name.trim()) return toast.error('Naam zaruri hai');
+        setLoading(true);
+        try {
+            await updateContact(contact.id, contact.name, {
+                name: editForm.name.trim(),
+                phone: editForm.phone.trim()
+            });
+            setShowEditModal(false);
+            toast.success('Hishab update ho gaya!');
+            if (editForm.name.trim() !== name) {
+                navigate(`/customer/${encodeURIComponent(editForm.name.trim())}`, { replace: true });
+            }
+        } catch (e) {
+            toast.error('Masla hua update karne mein');
+        }
+        setLoading(false);
+    };
 
     const handleSave = async () => {
         const val = parseFloat(amount);
@@ -75,8 +97,18 @@ export const CustomerDetail: React.FC = () => {
         const phone = contact?.phone || '';
         if (!phone) return toast.error('Phone number nahi hai');
         const msg = encodeURIComponent(`Assalam o Alaikum ${name}! Aap ka baqi Rs. ${Math.abs(stats.netBalance).toLocaleString()} hai. Meherbani kar ke ada kar dein.`);
-        const cleanPhone = phone.replace(/[^0-9]/g, '');
-        window.open(`https://wa.me/92${cleanPhone.replace(/^0/, '')}?text=${msg}`, '_blank');
+        
+        let cleanPhone = phone.replace(/[^0-9]/g, '');
+        // If it starts with 0, replace with 92. If it's 10 digits and doesn't start with 92, add 92.
+        if (cleanPhone.startsWith('0')) {
+            cleanPhone = '92' + cleanPhone.slice(1);
+        } else if (cleanPhone.length === 10 && !cleanPhone.startsWith('92')) {
+            cleanPhone = '92' + cleanPhone;
+        } else if (cleanPhone.length === 11 && cleanPhone.startsWith('920')) {
+            cleanPhone = '92' + cleanPhone.slice(3); // Handle cases like 920300...
+        }
+        
+        window.open(`https://wa.me/${cleanPhone}?text=${msg}`, '_blank');
     };
 
     const handleToggleStar = async () => {
@@ -112,8 +144,13 @@ export const CustomerDetail: React.FC = () => {
         // Share via WhatsApp if possible
         const phone = contact?.phone || '';
         if (phone) {
-            const cleanPhone = phone.replace(/[^0-9]/g, '');
-            window.open(`https://wa.me/92${cleanPhone.replace(/^0/, '')}?text=${encodeURIComponent(lines)}`, '_blank');
+            let cleanPhone = phone.replace(/[^0-9]/g, '');
+            if (cleanPhone.startsWith('0')) {
+                cleanPhone = '92' + cleanPhone.slice(1);
+            } else if (cleanPhone.length === 10 && !cleanPhone.startsWith('92')) {
+                cleanPhone = '92' + cleanPhone;
+            }
+            window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(lines)}`, '_blank');
         } else {
             // Fallback - copy to clipboard
             navigator.clipboard?.writeText(lines).then(() => {
@@ -145,9 +182,20 @@ export const CustomerDetail: React.FC = () => {
                             <ArrowLeft size={22} />
                         </button>
                         <p className="text-white/50 text-[10px] font-bold uppercase tracking-widest">{isSupplier ? 'Supplier Ledger' : 'Customer Ledger'}</p>
-                        <button onClick={handleDelete} className="w-8 h-8 bg-red-500/20 rounded-xl flex items-center justify-center">
-                            <Trash2 size={15} className="text-red-400" />
-                        </button>
+                        <div className="flex items-center gap-2">
+                             <button 
+                                onClick={() => {
+                                    setEditForm({ name: contact?.name || name || '', phone: contact?.phone || '' });
+                                    setShowEditModal(true);
+                                }} 
+                                className="w-8 h-8 bg-white/10 rounded-xl flex items-center justify-center active:scale-90 transition-transform"
+                            >
+                                <Edit3 size={14} className="text-white" />
+                            </button>
+                            <button onClick={handleDelete} className="w-8 h-8 bg-red-500/20 rounded-xl flex items-center justify-center active:scale-90 transition-transform">
+                                <Trash2 size={15} className="text-red-400" />
+                            </button>
+                        </div>
                     </div>
 
                     <div className="flex items-center gap-4 mb-5">
@@ -170,7 +218,14 @@ export const CustomerDetail: React.FC = () => {
                     </div>
 
                     <div className="grid grid-cols-3 gap-2">
-                        <button onClick={() => window.location.href=`tel:${contact?.phone}`} className="bg-white/10 border border-white/5 rounded-2xl py-3 flex flex-col items-center gap-1 active:scale-95 transition-transform">
+                        <button 
+                            onClick={() => {
+                                let p = contact?.phone || '';
+                                if (!p) return toast.error('Number nahi hai');
+                                window.location.href=`tel:${p}`;
+                            }} 
+                            className="bg-white/10 border border-white/5 rounded-2xl py-3 flex flex-col items-center gap-1 active:scale-95 transition-transform"
+                        >
                             <Phone size={18} className="text-white" />
                             <span className="text-white text-[10px] font-bold">Call</span>
                         </button>
@@ -260,7 +315,7 @@ export const CustomerDetail: React.FC = () => {
                 </div>
 
                 {/* FLOATING ACTIONS */}
-                <div className="fixed bottom-[90px] inset-x-0 px-4 flex gap-3 max-w-md mx-auto z-40">
+                <div className="fixed bottom-32 inset-x-0 px-4 flex gap-3 max-w-md mx-auto z-[90]">
                     <button 
                         onClick={() => { setModalType('debit'); setShowAddModal(true); }}
                         className="flex-1 bg-red-500 text-white py-4 rounded-2xl shadow-lg active:scale-95 transition-all font-black text-[14px] uppercase tracking-widest flex items-center justify-center gap-2"
@@ -321,6 +376,47 @@ export const CustomerDetail: React.FC = () => {
                                         className="w-full bg-[#0A3D24] text-white py-4 rounded-2xl font-black text-[15px] uppercase tracking-[0.2em] shadow-xl active:scale-95 transition-all mt-2 disabled:opacity-50"
                                     >
                                         {loading ? 'Saving...' : 'ENTRY SAVE'}
+                                    </button>
+                                </div>
+                            </motion.div>
+                        </div>
+                    )}
+                </AnimatePresence>
+
+                {/* EDIT CUSTOMER MODAL */}
+                <AnimatePresence>
+                    {showEditModal && (
+                        <div className="fixed inset-0 z-[110] flex items-end justify-center">
+                            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowEditModal(false)} className="absolute inset-0 bg-black/70 backdrop-blur-md" />
+                            <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} className="relative w-full max-w-md bg-white dark:bg-[#141414] rounded-t-[2.5rem] p-8 pb-12 shadow-2xl">
+                                <div className="w-12 h-1.5 bg-gray-200 dark:bg-gray-800 rounded-full mx-auto mb-6" />
+                                <h3 className="text-[20px] font-black mb-6" style={{ color: text }}>Hishab ki Tafseelat</h3>
+                                
+                                <div className="space-y-5">
+                                    <div>
+                                        <p className="text-[11px] font-black uppercase tracking-widest text-gray-400 mb-2 ml-1">Customer/Supplier Naam</p>
+                                        <input 
+                                            type="text" 
+                                            value={editForm.name} 
+                                            onChange={e => setEditForm({...editForm, name: e.target.value})} 
+                                            className="w-full bg-gray-50 dark:bg-[#1E1E1E] rounded-2xl py-4 px-5 font-black text-[16px] outline-none border-2 border-transparent focus:border-[#0A3D24]/20 transition-all text-black dark:text-white" 
+                                        />
+                                    </div>
+                                    <div>
+                                        <p className="text-[11px] font-black uppercase tracking-widest text-gray-400 mb-2 ml-1">Mobile Number</p>
+                                        <input 
+                                            type="tel" 
+                                            value={editForm.phone} 
+                                            onChange={e => setEditForm({...editForm, phone: e.target.value})} 
+                                            className="w-full bg-gray-50 dark:bg-[#1E1E1E] rounded-2xl py-4 px-5 font-black text-[16px] outline-none border-2 border-transparent focus:border-[#0A3D24]/20 transition-all text-black dark:text-white" 
+                                        />
+                                    </div>
+                                    <button 
+                                        onClick={handleEditCustomer} 
+                                        disabled={loading || !editForm.name} 
+                                        className="w-full bg-[#0A3D24] text-white py-5 rounded-[2rem] font-black text-[14px] uppercase tracking-[0.2em] shadow-xl active:scale-95 transition-all mt-4 disabled:opacity-50"
+                                    >
+                                        {loading ? 'SABOOT TABDEEL HO RHA HAI...' : 'TABDEELI SAVE KAREIN'}
                                     </button>
                                 </div>
                             </motion.div>

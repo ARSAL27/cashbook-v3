@@ -1,16 +1,18 @@
 import React, { useState, useMemo } from 'react';
 import { PageTransition } from '../components/PageTransition';
 import { useShop } from '../context/ShopContext';
-import { Search, Plus, Users, Building2, Star, Filter, Trash2 } from 'lucide-react';
+import { Search, Plus, Users, Building2, Star, Filter, Trash2, Menu } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTheme } from '../context/ThemeContext';
+import { Sidebar } from '../components/Sidebar';
 
 export const Customers: React.FC = () => {
-  const { udhaars, contacts, toggleContactImportance } = useShop();
+  const { udhaars, contacts, toggleContactImportance, profile } = useShop();
   const { isDarkMode } = useTheme();
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [minAmount, setMinAmount] = useState<string>('');
   const [maxAmount, setMaxAmount] = useState<string>('');
   const [showFilter, setShowFilter] = useState(false);
@@ -118,21 +120,39 @@ export const Customers: React.FC = () => {
 
   return (
     <PageTransition>
-      <div className="w-full pb-8 font-outfit max-w-md mx-auto overflow-x-hidden transition-colors" style={{ backgroundColor: bg }}>
+      <div className="w-full pb-8 font-outfit max-w-md mx-auto transition-colors" style={{ backgroundColor: bg }}>
+
+        <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
 
         {/* HEADER */}
         <div className="sticky top-0 z-40 transition-colors duration-300" style={{ backgroundColor: isDarkMode ? '#10251A' : '#0A3D24' }}>
           <div className="px-5 pt-5 pb-3 flex items-center justify-between">
-            <div>
-              <p className="text-white/50 text-[10px] font-bold uppercase tracking-widest">The Sovereign Ledger</p>
-              <h1 className="text-white font-black text-[20px] tracking-tight">Udhaar Khata</h1>
+            <div className="flex items-center gap-3">
+              <button 
+                  onClick={() => setIsSidebarOpen(true)} 
+                  className="w-8 h-8 flex items-center justify-center bg-white/10 rounded-xl text-white active:scale-90 transition-all"
+              >
+                  <Menu size={18} />
+              </button>
+              <div>
+                <p className="text-white/50 text-[10px] font-bold uppercase tracking-widest leading-none mb-1">The Sovereign Ledger</p>
+                <h1 className="text-white font-black text-[20px] tracking-tight leading-none">Udhaar Khata</h1>
+              </div>
             </div>
-            <button 
-                onClick={() => setShowFilter(!showFilter)}
-                className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${showFilter || minAmount || maxAmount ? 'bg-[#4BFF94] text-[#0A3D24]' : 'bg-white/10 text-white'}`}
-            >
-              <Filter size={20} />
-            </button>
+            <div className="flex items-center gap-2">
+              <button 
+                  onClick={() => setShowFilter(!showFilter)}
+                  className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all ${showFilter || minAmount || maxAmount ? 'bg-[#4BFF94] text-[#0A3D24]' : 'bg-white/10 text-white'}`}
+              >
+                <Filter size={18} />
+              </button>
+              <button 
+                onClick={() => navigate('/settings')}
+                className="w-9 h-9 rounded-full overflow-hidden border-2 border-[#4BFF94]"
+              >
+                 <img src={profile?.logoUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${profile?.name || 'U'}&backgroundColor=34d399`} alt="Profile" className="w-full h-full object-cover" />
+              </button>
+            </div>
           </div>
 
           <AnimatePresence>
@@ -365,13 +385,13 @@ export const Customers: React.FC = () => {
           )}
         </div>
 
-        {/* FAB */}
+        {/* FAB - Standardized Neon Style */}
         <motion.button
           whileTap={{ scale: 0.9 }}
           onClick={() => navigate(`/add-contact?type=${activeTab === 'suppliers' ? 'supplier' : 'customer'}`)}
-          className="fixed bottom-24 right-5 w-14 h-14 bg-[#0A3D24] rounded-2xl flex items-center justify-center shadow-2xl z-50 border-2 border-[#4BFF94]/20"
+          className="fixed bottom-32 right-5 w-16 h-16 bg-[#4BFF94] rounded-2xl flex items-center justify-center shadow-2xl z-[90] border-4 border-white dark:border-[#0A0A0A]"
         >
-          <Plus size={24} className="text-white" strokeWidth={3} />
+          <Plus size={32} className="text-[#0A3D24]" strokeWidth={3} />
         </motion.button>
       </div>
     </PageTransition>

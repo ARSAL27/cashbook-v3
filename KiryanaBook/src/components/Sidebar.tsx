@@ -65,16 +65,25 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                     <h3 className="text-[18px] font-black leading-tight" style={{ color: isDarkMode ? '#FFF' : '#0A0A0A' }}>
                         {profile?.name || 'My Shop'}
                     </h3>
-                    <p className="text-[11px] font-bold text-gray-500 uppercase tracking-widest mt-1">Free Trial User</p>
+                    <p className="text-[11px] font-bold text-gray-500 uppercase tracking-widest mt-1">
+                      {profile?.plan && ['pro', 'business'].includes(profile.plan.toLowerCase()) 
+                        ? `${profile.plan} User` 
+                        : 'Free Trial User'}
+                    </p>
                  </div>
               </div>
 
               <div className="bg-[#4BFF94]/10 rounded-2xl p-4 flex items-center justify-between border border-[#4BFF94]/10">
                  <div>
                     <p className="text-[8px] font-black uppercase tracking-widest text-[#4BFF94] mb-1">Current Plan</p>
-                    <p className="text-[12px] font-black" style={{ color: isDarkMode ? '#FFF' : '#0A0A0A' }}>Beta Release v3.0</p> {/* Updated branding */}
+                    <p className="text-[16px] font-black capitalize" style={{ color: isDarkMode ? '#FFF' : '#0A0A0A' }}>
+                      {profile?.plan || 'Free'}
+                    </p>
                  </div>
-                 <button className="text-[9px] font-black bg-[#4BFF94] text-[#0A3D24] px-3 py-1.5 rounded-full uppercase">
+                 <button 
+                   onClick={() => { navigate('/help'); onClose(); }}
+                   className="text-[9px] font-black bg-[#4BFF94] text-[#0A3D24] px-3 py-1.5 rounded-full uppercase"
+                 >
                     Upgrade
                  </button>
               </div>
@@ -115,7 +124,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                     </div>
                    Logout Account
                 </button>
-                <p className="text-center text-[9px] font-bold text-gray-500 mt-10 uppercase tracking-[0.3em]">Indus Ledger v3.0</p>
+                <div className="text-center mt-6">
+                  <span className="bg-[#4BFF94]/20 text-[#4BFF94] px-3 py-1 rounded-md text-[9px] font-black uppercase tracking-widest">
+                    Indus Ledger
+                  </span>
+                </div>
             </div>
 
             <button 

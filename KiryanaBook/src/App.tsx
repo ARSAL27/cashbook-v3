@@ -1,5 +1,8 @@
 import React, { useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { LocalNotifications } from '@capacitor/local-notifications';
+import { Capacitor } from '@capacitor/core';
+
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ShopProvider, useShop } from './context/ShopContext';
@@ -37,47 +40,105 @@ import { InvoiceDetail } from './pages/InvoiceDetail';
 import { Setup } from './pages/Setup';
 import { VerifyEmail } from './pages/VerifyEmail';
 import { SecurityPinScreen } from './components/SecurityPinScreen';
+import { Manager } from './pages/Manager';
+import { NotificationDetail } from './pages/NotificationDetail';
+import { StockReceive } from './pages/StockReceive';
 import { App as CapApp } from '@capacitor/app';
 import { motion } from 'framer-motion';
 
-// ─── SPLASH LOADER ──────────────────────────────────────────────────────────
+// ─── THE EXACT DISNEY+ APP SPLASH REPLICA ('KiryanaBook' Edition) ────────────
 const SplashLoader = () => {
   return (
-    <div className="fixed inset-0 z-[10000] bg-[#FAFAFA] dark:bg-[#0A0A0A] flex flex-col items-center justify-center font-outfit">
-      <div className="relative flex flex-col items-center">
-        <motion.div 
-            initial={{ scale: 0.8, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            className="w-20 h-20 bg-[#22C55E] dark:bg-[#00E676] rounded-[2rem] shadow-xl flex items-center justify-center mb-6"
-        >
-             <div className="w-10 h-1 bg-white/30 rounded-full rotate-45" />
-        </motion.div>
-        <h2 className="text-[18px] font-black text-[#0A3D24] dark:text-[#E0E0E0] tracking-[0.2em] uppercase mb-1">KiryanaBook</h2>
-        <div className="flex items-center space-x-2">
-            <p className="text-[8px] font-black text-[#22C55E] dark:text-[#00E676] uppercase tracking-[0.3em] opacity-40">Secure Ledger</p>
-        </div>
+    <div 
+      className="fixed inset-0 z-[10000] flex flex-col items-center justify-center overflow-hidden"
+      style={{ background: 'radial-gradient(circle at center, #051A0F 0%, #000000 100%)' }}
+    >
+      <motion.div 
+        initial={{ scale: 1.15 }}
+        animate={{ scale: 1 }}
+        transition={{ duration: 3.5, ease: "easeOut" }}
+        className="relative flex items-center justify-center w-full max-w-sm h-48"
+      >
         
-        <div className="absolute -bottom-20 w-32 h-[3px] bg-gray-100 dark:bg-[#1A1A1A] rounded-full overflow-hidden">
-             <motion.div 
-              initial={{ x: '-100%' }}
-              animate={{ x: '100%' }}
-              transition={{ repeat: Infinity, duration: 1.5, ease: 'easeInOut' }}
-              className="w-1/2 h-full bg-[#22C55E] dark:bg-[#00E676] rounded-full shadow-[0_0_10px_rgba(0,230,118,0.5)]" 
-             />
-        </div>
-      </div>
+        {/* Main Text: KiryanaBook */}
+        <motion.div
+           initial={{ opacity: 0, scale: 0.95 }}
+           animate={{ opacity: 1, scale: 1 }}
+           transition={{ duration: 1.2, ease: "easeOut", delay: 1.0 }}
+           className="relative z-10 flex flex-col items-center"
+           style={{ fontFamily: "'Outfit', sans-serif" }}
+        >
+          <span className="text-[42px] font-black text-white tracking-tight leading-none mb-1">
+            KiryanaBook
+          </span>
+          <motion.div 
+             initial={{ opacity: 0 }}
+             animate={{ opacity: 0.8 }}
+             transition={{ delay: 1.8, duration: 1 }}
+             className="flex items-center space-x-3 w-full justify-center"
+          >
+             <div className="w-6 h-[2px] bg-gradient-to-r from-transparent to-[#00E676] rounded-full" />
+             <p className="text-[8px] font-black text-[#00E676] uppercase tracking-[0.4em] drop-shadow-[0_0_4px_rgba(0,230,118,0.5)]">Secure Ledger</p>
+             <div className="w-6 h-[2px] bg-gradient-to-l from-transparent to-[#00E676] rounded-full" />
+          </motion.div>
+        </motion.div>
+
+        {/* The Exact Disney Swoosh Arc (Stays Visible as a Rainbow/Glow) */}
+        <svg className="absolute inset-0 w-full h-full pointer-events-none z-20" viewBox="0 0 300 150">
+            {/* The Trail left behind by the comet (Stays visible!) */}
+            <motion.path 
+                d="M 30,85 C 80,-5 220,-5 270,85" 
+                fill="none" 
+                stroke="url(#disneyGlow)" 
+                strokeWidth="3.5" 
+                strokeLinecap="round"
+                initial={{ pathLength: 0 }}
+                animate={{ pathLength: 1 }}
+                transition={{ duration: 1.4, ease: "easeIn", delay: 0.2 }}
+                style={{ filter: "drop-shadow(0 0 8px rgba(0,230,118,0.6))" }}
+            />
+            {/* Custom Green Arc Gradient */}
+            <defs>
+                <linearGradient id="disneyGlow" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stopColor="#051A0F" />
+                    <stop offset="30%" stopColor="#00C853" />
+                    <stop offset="70%" stopColor="#00E676" />
+                    <stop offset="100%" stopColor="#ffffff" />
+                </linearGradient>
+            </defs>
+
+            {/* Final Target Flash at precise arc landing coordinates (270, 85) */}
+            <motion.circle 
+               cx="270" cy="85"
+               fill="#ffffff"
+               initial={{ opacity: 0, r: 0 }}
+               animate={{ opacity: [0, 1, 0], r: [0, 50, 80] }}
+               transition={{ delay: 1.6, duration: 1.2, ease: "easeOut" }}
+               style={{ filter: "blur(15px)" }}
+            />
+            <motion.circle 
+               cx="270" cy="85"
+               fill="#ffffff"
+               initial={{ opacity: 0, r: 0 }}
+               animate={{ opacity: [0, 1, 0], r: [0, 15, 0] }}
+               transition={{ delay: 1.6, duration: 0.5, ease: "easeOut" }}
+               style={{ filter: "blur(2px)" }}
+            />
+        </svg>
+
+      </motion.div>
     </div>
   );
 };
 
 // ─── AUTH GUARD ─────────────────────────────────────────────────────────────
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { user, loading: authLoading, pinVerified, setPinVerified } = useAuth();
+  const { user, loading: authLoading, pinVerified, setPinVerified, isSecurityReady } = useAuth();
   const { profile, loading: shopLoading } = useShop();
   const location = useLocation();
 
   useEffect(() => {
-    if (!profile?.securitySettings || !user) return;
+    if (!profile?.securitySettings || !user || !isSecurityReady) return;
     const path = location.pathname;
     const { lockStock, lockKhata, lockReports, lockStaff } = profile.securitySettings;
 
@@ -89,14 +150,20 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     if (isLocked && !pinVerified) {
        setPinVerified(false);
     }
-  }, [location.pathname, profile, pinVerified, user, setPinVerified]);
+  }, [location.pathname, profile, pinVerified, user, setPinVerified, isSecurityReady]);
 
-  if (authLoading) return <SplashLoader />;
+  if (authLoading || !isSecurityReady) return <SplashLoader />;
   if (!user) return <Navigate to="/login" replace />;
   
-  // NEW: Email Verification Guard
-  if (user && !user.emailVerified && !user.isAnonymous && user.email) {
+  const isGoogleUser = user?.providerData?.some(p => p.providerId === 'google.com');
+  const isEmailPasswordUser = user?.providerData?.some(p => p.providerId === 'password');
+
+  if (user && isEmailPasswordUser && !isGoogleUser && (!user.email || !user.emailVerified) && !user.isAnonymous) {
     return <Navigate to="/verify-email" replace />;
+  }
+
+  if (!user.email && !user.isAnonymous) {
+    return <Navigate to="/login" replace />;
   }
 
   if (shopLoading) return <SplashLoader />;
@@ -107,10 +174,10 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
 // ─── NEW USER GUARD ─────────────────────────────────────────────────────────
 const NewUserRoute = ({ children }: { children: React.ReactNode }) => {
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, isSecurityReady } = useAuth();
   const { profile, loading: shopLoading } = useShop();
 
-  if (authLoading) return <SplashLoader />;
+  if (authLoading || !isSecurityReady) return <SplashLoader />;
   if (!user) return <Navigate to="/login" replace />;
   if (shopLoading) return <SplashLoader />;
   if (profile) return <Navigate to="/" replace />;
@@ -119,9 +186,29 @@ const NewUserRoute = ({ children }: { children: React.ReactNode }) => {
 };
 
 function AppRoutes() {
-  const { user } = useAuth();
+  const { user, loading: authLoading, isSecurityReady } = useAuth();
+  const { loading: shopLoading } = useShop();
   const location = useLocation();
-  
+  const [initialSplash, setInitialSplash] = React.useState(true);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (Capacitor.isNativePlatform()) {
+      LocalNotifications.addListener('localNotificationActionPerformed', (notification) => {
+          const path = notification.notification.extra?.path;
+          if (path) navigate(path);
+      });
+    }
+
+    const timer = setTimeout(() => {
+      setInitialSplash(false);
+    }, 800);
+    return () => {
+        clearTimeout(timer);
+        if (Capacitor.isNativePlatform()) LocalNotifications.removeAllListeners();
+    };
+  }, [navigate]);
+
   useEffect(() => {
     const handleBackButton = async () => {
       const path = window.location.pathname;
@@ -131,22 +218,25 @@ function AppRoutes() {
         window.history.back();
       }
     };
-
     const handler = CapApp.addListener('backButton', handleBackButton);
     return () => {
       handler.then(h => h.remove());
     };
   }, []);
 
+  if (initialSplash || authLoading || !isSecurityReady || (user && shopLoading)) {
+    return <SplashLoader />;
+  }
+
   return (
     <>
       <Toaster position="top-right" />
-      {user && location.pathname !== '/help' && <SecurityPinScreen />}
+      {user && isSecurityReady && location.pathname !== '/help' && <SecurityPinScreen />}
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/onboarding" element={<NewUserRoute><Onboarding /></NewUserRoute>} />
         <Route path="/setup" element={<NewUserRoute><Setup /></NewUserRoute>} />
-        <Route path="/verify-email" element={user && !user.emailVerified && !user.isAnonymous ? <VerifyEmail /> : <Navigate to="/" replace />} />
+        <Route path="/verify-email" element={user && user.providerData?.some((p: any) => p.providerId === 'password') && !user.emailVerified && !user.isAnonymous ? <VerifyEmail /> : <Navigate to="/" replace />} />
         <Route path="/help" element={<HelpSupport />} />
         <Route path="/" element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
           <Route index element={<Dashboard />} />
@@ -157,11 +247,13 @@ function AppRoutes() {
           <Route path="staff" element={<StaffDirectory />} />
           <Route path="invoices" element={<Invoices />} />
           <Route path="notifications" element={<Notifications />} />
+          <Route path="notification/:id" element={<NotificationDetail />} />
           <Route path="cashflow" element={<CashFlow />} />
           <Route path="reports-detail" element={<ReportsDetail />} />
           <Route path="profile-settings" element={<ProfileSettings />} />
           <Route path="plans" element={<Plans />} />
           <Route path="add-item" element={<AddItem />} />
+          <Route path="stock-receive" element={<StockReceive />} />
           <Route path="stock/:id" element={<StockDetail />} />
           <Route path="add-sale" element={<AddSale />} />
           <Route path="add-expense" element={<AddExpense />} />
@@ -174,6 +266,7 @@ function AppRoutes() {
           <Route path="add-staff" element={<AddStaff />} />
           <Route path="staff/:id" element={<StaffActivity />} />
           <Route path="staff/roles" element={<RolePermissions />} />
+          <Route path="manager" element={<Manager />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

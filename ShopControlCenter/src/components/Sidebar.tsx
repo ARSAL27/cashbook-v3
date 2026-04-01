@@ -37,7 +37,7 @@ export const Sidebar: React.FC<Props> = ({ page, setPage }) => {
         <div className="nav-label">Host Configuration</div>
         <div style={{ padding: '4px 12px', fontSize: '11px', color: 'var(--muted2)', borderLeft: '2px solid var(--accent-glow)', marginLeft: '12px' }}>
            <div>Local Host: <span style={{ color: 'var(--text)', fontWeight: 600 }}>127.0.0.1:5173</span></div>
-           <div style={{ marginTop: '2px' }}>Live URL: <span style={{ color: 'var(--accent-light)' }}>kiryanabook.web.app</span></div>
+           <div style={{ marginTop: '2px' }}>Live URL: <span style={{ color: 'var(--accent-light)' }}>kiryanabook-control.web.app</span></div>
         </div>
       </div>
 

@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, User, Phone, Grid3x3, ChevronRight, Fingerprint, Cloud, RotateCcw, Database, FileSpreadsheet, FileText, Moon, Crown } from 'lucide-react';
+import { ArrowLeft, User, Phone, Grid3x3, ChevronRight, RotateCcw, Database, FileSpreadsheet, FileText, Moon, Crown, Lock } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { PageTransition } from '../components/PageTransition';
 import { useAuth } from '../context/AuthContext';
@@ -10,46 +10,26 @@ import { useLanguage } from '../context/LanguageContext';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { NativeBiometric } from '@capgo/capacitor-native-biometric';
+import { Capacitor } from '@capacitor/core';
+import { Filesystem, Directory } from '@capacitor/filesystem';
+import { Share } from '@capacitor/share';
+
 
 
 export const Settings: React.FC = () => {
   const navigate = useNavigate();
   const { userPin, resetPin, autoLockTimer, saveAutoLockTimer } = useAuth();
-  const { profile, sales, expenses, stock, contacts, invoices, clearOldData, updateLastSync } = useShop();
+  const { profile, sales, expenses, stock, contacts, invoices, clearOldData } = useShop();
   const { setMode, isDarkMode } = useTheme();
   const { language, setLanguage, t } = useLanguage();
-
-  const [bioEnabled, setBioEnabled] = React.useState(true);
-  const [isSyncing, setIsSyncing] = React.useState(false);
-
   const storageUsed = React.useMemo(() => {
     const dataSize = JSON.stringify({ sales, expenses, stock, contacts, invoices }).length;
     return (dataSize / (1024)).toFixed(1); // KB
   }, [sales, expenses, stock, contacts, invoices]);
 
-  const handleToggleBio = async () => {
-    try {
-        const result = await NativeBiometric.isAvailable();
-        if (result.isAvailable) {
-            const verified = await NativeBiometric.verifyIdentity({
-                reason: "Identify yourself",
-                title: "Biometric Login",
-                subtitle: "Confirm your identity",
-                description: "Touch the sensor to verify"
-            }).then(() => true).catch(() => false);
 
-            if (verified) {
-                setBioEnabled(!bioEnabled);
-                import('react-hot-toast').then(t => t.default.success(bioEnabled ? 'Biometric disabled' : 'Biometric enabled!'));
-            }
-        }
-    } catch(e) {
-        import('react-hot-toast').then(t => t.default.error('Biometric not supported on this device'));
-    }
-  };
 
-  const handleExportExcel = () => {
+  const handleExportExcel = async () => {
     try {
       const wb = XLSX.utils.book_new();
       
@@ -73,15 +53,34 @@ export const Settings: React.FC = () => {
       const contactRows = contacts.map(c => [c.name, c.phone, c.type, c.initialBalance]);
       XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([...contactHeader, ...contactRows]), "Contacts");
 
-      XLSX.writeFile(wb, `${profile?.name || 'KiryanaBook'}_Backup.xlsx`);
-      import('react-hot-toast').then(t => t.default.success('Full Excel backup ready!'));
+      const fileName = `${profile?.name || 'KiryanaBook'}_Backup.xlsx`;
+
+      if (Capacitor.isNativePlatform()) {
+        const base64Data = XLSX.write(wb, { type: 'base64', bookType: 'xlsx' });
+        const savedFile = await Filesystem.writeFile({
+          path: fileName.replace(/[^a-z0-9_.-]/gi, '_'),
+          data: base64Data,
+          directory: Directory.Documents,
+        });
+
+        await Share.share({
+          title: 'KiryanaBook Backup',
+          text: 'Here is your Excel backup',
+          url: savedFile.uri,
+          dialogTitle: 'Save or Share Excel'
+        });
+        import('react-hot-toast').then(t => t.default.success('Excel backup generated!'));
+      } else {
+        XLSX.writeFile(wb, fileName);
+        import('react-hot-toast').then(t => t.default.success('Full Excel backup ready!'));
+      }
     } catch (err) {
       console.error(err);
       import('react-hot-toast').then(t => t.default.error('Excel export failed.'));
     }
   };
 
-  const handleExportPDF = () => {
+  const handleExportPDF = async () => {
     const doc = new jsPDF() as any;
     
     // Header
@@ -210,32 +209,43 @@ export const Settings: React.FC = () => {
     doc.text(`CURRENT STOCK ASSETS: Rs. ${totalStockValue.toLocaleString()}`, 20, 70);
     doc.text(`TOTAL PENDING UDHAAR: Rs. ${totalUdhaar.toLocaleString()}`, 20, 80);
 
-    doc.save(`${profile?.name || 'KiryanaBook'}_FullAudit.pdf`);
-    import('react-hot-toast').then(t => t.default.success('Full Professional Audit Report Generated!'));
+    const fileName = `${profile?.name || 'KiryanaBook'}_FullAudit.pdf`;
+
+    try {
+      if (Capacitor.isNativePlatform()) {
+        const dataUri = doc.output('datauristring');
+        const base64Data = dataUri.split(',')[1];
+        
+        const savedFile = await Filesystem.writeFile({
+          path: fileName.replace(/[^a-z0-9_.-]/gi, '_'),
+          data: base64Data,
+          directory: Directory.Documents,
+        });
+
+        await Share.share({
+          title: 'KiryanaBook Audit Report',
+          text: 'Here is your PDF Report',
+          url: savedFile.uri,
+          dialogTitle: 'Save or Share PDF'
+        });
+        
+        import('react-hot-toast').then(t => t.default.success('Full Professional Audit Report Generated!'));
+      } else {
+        doc.save(fileName);
+        import('react-hot-toast').then(t => t.default.success('Full Professional Audit Report Generated!'));
+      }
+    } catch (error) {
+      console.error(error);
+      import('react-hot-toast').then(t => t.default.error('PDF export failed.'));
+    }
   };
 
 
 
-  const handleSync = async () => {
-    setIsSyncing(true);
-    await updateLastSync();
-    setIsSyncing(false);
-    import('react-hot-toast').then(t => t.default.success('All data synced to cloud!'));
-  };
 
 
-  const formatLastSync = (dateString?: string) => {
-    if (!dateString) return 'Never';
-    const date = new Date(dateString);
-    const now = new Date();
-    const msDiff = now.getTime() - date.getTime();
-    if (msDiff < 0) return 'Just now'; // Future timestamps
-    const diff = Math.floor(msDiff / 60000);
-    if (diff < 1) return 'Just now';
-    if (diff < 60) return `${diff} mins ago`;
-    if (diff < 1440) return `${Math.floor(diff / 60)} hours ago`;
-    return date.toLocaleDateString();
-  };
+
+
 
   const handleClearOldData = async () => {
     if (window.confirm('Kya aap 90 din se purane records delete karna chahte hain?')) {
@@ -285,15 +295,21 @@ export const Settings: React.FC = () => {
                             )}
                         </div>
                         <div className="flex flex-col">
-                            <h2 className="text-[15px] font-black text-[#0A3D24] dark:text-white leading-tight mb-1.5">{profile?.name || 'Zahid General Store'}</h2>
-                            <div className="flex items-center gap-1.5 text-gray-500 dark:text-[#B0B0B0] mb-0.5">
-                                <User size={10} strokeWidth={3} />
-                                <span className="text-[10px] font-medium">{profile?.owner || 'Zahid Khan'}</span>
-                            </div>
-                            <div className="flex items-center gap-1.5 text-gray-500 dark:text-[#B0B0B0]">
-                                <Phone size={10} strokeWidth={3} />
-                                <span className="text-[10px] font-medium">{profile?.phone || '+92 300 1234567'}</span>
-                            </div>
+                            <h2 className="text-[15px] font-black text-[#0A3D24] dark:text-white leading-tight mb-1.5">
+                              {profile?.name || 'My Shop'}
+                            </h2>
+                            {profile?.owner && (
+                              <div className="flex items-center gap-1.5 text-gray-500 dark:text-[#B0B0B0] mb-0.5">
+                                  <User size={10} strokeWidth={3} />
+                                  <span className="text-[10px] font-medium">{profile.owner}</span>
+                              </div>
+                            )}
+                            {profile?.phone && (
+                              <div className="flex items-center gap-1.5 text-gray-500 dark:text-[#B0B0B0]">
+                                  <Phone size={10} strokeWidth={3} />
+                                  <span className="text-[10px] font-medium">{profile.phone}</span>
+                              </div>
+                            )}
                         </div>
                     </div>
                     <button onClick={() => navigate('/profile-settings')} className="bg-[#F4F4F5] dark:bg-[#252525] text-gray-700 dark:text-white px-4 py-1.5 rounded-lg text-[11px] font-bold active:scale-95 transition-transform">
@@ -343,12 +359,17 @@ export const Settings: React.FC = () => {
                         <ChevronRight size={16} className="text-gray-300" />
                       </div>
                     )}
-                    <div className="flex items-center justify-between p-4 border-b border-gray-50 dark:border-[#1E1E1E]">
-                        <div className="flex items-center gap-3">
-                            <Fingerprint size={18} className="text-[#0A3D24] dark:text-[#00E676]" />
-                            <span className="text-[13px] font-bold text-gray-800 dark:text-white">{t('biometric_login')}</span>
+
+                    <div className="p-4 bg-gray-50 dark:bg-[#1E1E1E] rounded-xl mx-4 mb-4 border border-blue-100 dark:border-blue-900/30">
+                        <div className="flex gap-3">
+                            <Lock size={16} className="text-blue-500 shrink-0 mt-0.5" />
+                            <div className="flex flex-col">
+                                <span className="text-[11px] font-bold text-gray-800 dark:text-white mb-1">Login Password Kaise Badlein?</span>
+                                <p className="text-[10px] font-medium text-gray-500 dark:text-[#B0B0B0] leading-relaxed">
+                                    Agar aap apna signup password badalna chahtay hain to login screen par <span className="font-bold text-blue-500">"Forgot Password"</span> ka option use karein. Aapko email par reset link mil jaye ga.
+                                </p>
+                            </div>
                         </div>
-                        <Toggle active={bioEnabled} onClick={handleToggleBio} />
                     </div>
                 </div>
             </section>
@@ -382,36 +403,7 @@ export const Settings: React.FC = () => {
                 </div>
             </section>
 
-            {/* BACKUP & SYNC */}
-            <section>
-                <h3 className="text-[10px] font-bold text-gray-500 dark:text-[#B0B0B0]/60 tracking-[0.15em] uppercase mb-2 ml-1">Backup & Sync</h3>
-                <div className="bg-white dark:bg-[#141414] rounded-[1.25rem] border border-gray-100 dark:border-[#2A2A2A] shadow-[0_2px_10px_rgba(0,0,0,0.02)] overflow-hidden p-4 space-y-4">
-                    <div className="flex items-center justify-between p-4">
-                        <div className="flex items-center gap-3">
-                            <Cloud size={18} className="text-[#0A3D24] dark:text-[#00E676]" />
-                            <div className="flex flex-col">
-                                <span className="text-[13px] font-bold text-gray-800 dark:text-white">Sync Now</span>
-                                <span className="text-[9px] font-medium text-gray-400 dark:text-[#B0B0B0]">Last sync: {formatLastSync(profile?.lastSync)}</span>
-                            </div>
-                        </div>
-                        <button 
-                            onClick={handleSync}
-                            disabled={isSyncing}
-                            className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all ${
-                                isSyncing 
-                                ? 'bg-gray-100 text-gray-400' 
-                                : 'bg-[#00FFA3] text-[#0A3D24] active:scale-95'
-                            }`}
-                        >
-                            <RotateCcw size={14} className={isSyncing ? 'animate-spin' : ''} />
-                            <span className="text-[11px] font-black uppercase tracking-tight">{isSyncing ? 'Syncing...' : 'Sync Now'}</span>
-                        </button>
-                    </div>
-                    <div className="w-full h-1 bg-gray-100 dark:bg-[#252525] rounded-full overflow-hidden">
-                        <div className="w-[100%] h-full bg-[#0A3D24] dark:bg-[#00E676] rounded-full" />
-                    </div>
-                </div>
-            </section>
+
 
             {/* LANGUAGE & DISPLAY */}
             <section>
@@ -473,10 +465,9 @@ export const Settings: React.FC = () => {
             </section>
 
             {/* FOOTER REMOVED */}
-            <div className="pt-6 pb-4 flex flex-col items-center justify-center text-center opacity-40">
-                <div className="w-12 h-1 bg-gray-200 dark:bg-gray-800 rounded-full" />
-            </div>
-            
+            {/* GLOBAL SAVE BUTTON REMOVED FOR AUTO-SAVE */}
+
+            <div className="h-40" />
         </div>
       </div>
     </PageTransition>

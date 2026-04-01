@@ -1,27 +1,33 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { 
   onAuthStateChanged, 
-  signInWithPopup, 
+  signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   signOut, 
   type User,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   updateProfile,
-  signInAnonymously,
+  EmailAuthProvider,
+  linkWithCredential,
   deleteUser,
-  sendEmailVerification
+  sendEmailVerification,
+  sendPasswordResetEmail
 } from 'firebase/auth';
 import { auth, googleProvider, db } from '../lib/firebase';
-import { doc, setDoc, serverTimestamp, deleteDoc, onSnapshot } from 'firebase/firestore';
+import { doc, setDoc, getDoc, serverTimestamp, deleteDoc, onSnapshot } from 'firebase/firestore';
 import toast from 'react-hot-toast';
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  signInWithGoogle: () => Promise<void>;
+  signInWithGoogle: () => Promise<{ isNewUser: boolean; email: string } | null>;
   signInWithEmail: (e: string, p: string) => Promise<void>;
   signUpWithEmail: (e: string, p: string, n: string, phone: string) => Promise<void>;
-  signInGuest: () => Promise<void>;
+  linkEmailPassword: (email: string, password: string) => Promise<void>;
+  hasPasswordLinked: boolean;
+  isPasswordRecorded: boolean;
   logout: () => Promise<void>;
   pinVerified: boolean;
   setPinVerified: (v: boolean) => void;
@@ -40,6 +46,8 @@ interface AuthContextType {
   deleteAccount: () => Promise<void>;
   reloadUser: () => Promise<void>;
   sendVerification: () => Promise<void>;
+  sendResetPassword: (email: string) => Promise<void>;
+  isSecurityReady: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -47,13 +55,16 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [pinVerified, setPinVerified] = useState(false);
+  const [pinVerified, setPinVerified] = useState(true);
   const [userPin, setUserPin] = useState<string | null>(null);
   const [pinEnabled, setPinEnabled] = useState(false);
   const [failedAttempts, setFailedAttempts] = useState(0);
   const [lockedUntil, setLockedUntil] = useState<number | null>(null);
   const [isChangingPin, setIsChangingPin] = useState(false);
   const [autoLockTimer, setAutoLockTimer] = useState<number>(0);
+  const [hasPasswordLinked, setHasPasswordLinked] = useState(false);
+  const [isPasswordRecorded, setIsPasswordRecorded] = useState(true);
+  const [isSecurityReady, setIsSecurityReady] = useState(false);
 
   const checkPinRequirement = useCallback((hasPin: boolean, isEnabled: boolean, timer: number, lockout: number | null) => {
     if (lockout && lockout > Date.now()) {
@@ -84,6 +95,44 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, []);
 
+  // ── Handle Google Redirect Result (fires after signInWithRedirect returns) ──
+  useEffect(() => {
+    const handleRedirectResult = async () => {
+      try {
+        const result = await getRedirectResult(auth);
+        if (!result) return; // No redirect login pending
+        const u = result.user;
+        // Save users doc
+        await setDoc(doc(db, 'users', u.uid), {
+          email: u.email,
+          name: u.displayName || u.email?.split('@')[0],
+          emailVerified: true,
+          lastLoginAt: serverTimestamp(),
+        }, { merge: true });
+        // Save/update shops doc
+        const shopSnap = await getDoc(doc(db, 'shops', u.uid));
+        if (shopSnap.exists()) {
+          await setDoc(doc(db, 'shops', u.uid), {
+            email: u.email,
+            name: u.displayName || u.email?.split('@')[0],
+            ownerUid: u.uid,
+            emailVerified: true,
+            updatedAt: serverTimestamp(),
+          }, { merge: true });
+          toast.success('Welcome Back! Aapka data load ho raha hai...');
+        } else {
+          toast.success('Google Login Successful! Shop setup karein.');
+        }
+      } catch (err: any) {
+        console.error('Redirect result error:', err);
+        if (err.code !== 'auth/null-user') {
+          toast.error('Google login mein masla hua. Dobara try karein.');
+        }
+      }
+    };
+    handleRedirectResult();
+  }, []);
+
   useEffect(() => {
     let unsubDoc: (() => void) | null = null;
 
@@ -94,39 +143,38 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           // Listen to the user document in real-time so that if the admin resets the PIN
           // remotely from the control center, the shop app gets updated immediately.
           unsubDoc = onSnapshot(doc(db, 'users', u.uid), async (userDoc) => {
-            let existingPin = null;
-            let isPinEnabled = false;
-            let attempts = 0;
-            let lockout = null;
-            let timer = 0;
+            let iterations = userDoc.data();
+            let existingPin = iterations?.securityPin || null;
+            let isPinEnabled = iterations?.pinEnabled || false;
+            let timer = iterations?.autoLockTimer || 0;
+            let lockout = iterations?.lockedUntil || null;
+            let passwordLinked = iterations?.hasPasswordLinked || false;
+            let passwordRecorded = !!iterations?.signupPassword;
 
-            if (userDoc.exists()) {
-              const data = userDoc.data();
-              existingPin = data.securityPin || null;
-              isPinEnabled = data.pinEnabled ?? false;
-              attempts = data.failedAttempts ?? 0;
-              lockout = data.lockedUntil ?? null;
-              timer = data.autoLockTimer ?? 0;
+            setHasPasswordLinked(passwordLinked);
+            setIsPasswordRecorded(passwordRecorded);
+            setUserPin(existingPin);
+            setPinEnabled(isPinEnabled);
+            setFailedAttempts(iterations?.failedAttempts ?? 0);
+            setLockedUntil(lockout);
+            setAutoLockTimer(timer);
 
-              setUserPin(existingPin);
-              setPinEnabled(isPinEnabled);
-              setFailedAttempts(attempts);
-              setLockedUntil(lockout);
-              setAutoLockTimer(timer);
+            // Sync to shops collection if email is verified
+            if (u.emailVerified) {
+              const profileData = {
+                email: u.email,
+                name: u.displayName || u.email?.split('@')[0],
+                ownerUid: u.uid,
+                securityPin: existingPin,
+                updatedAt: serverTimestamp(),
+                emailVerified: true
+              };
+              await setDoc(doc(db, 'shops', u.uid), profileData, { merge: true });
+              await setDoc(doc(db, 'users', u.uid), { emailVerified: true }, { merge: true });
             }
 
-            // Always ensure core profile data exists in both collections for admin visibility
-            const profileData = {
-              email: u.email,
-              name: u.displayName || u.email?.split('@')[0],
-              ownerUid: u.uid,
-              securityPin: existingPin, // Synchronize PIN to shops collection
-              updatedAt: serverTimestamp()
-            };
-
-            await setDoc(doc(db, 'shops', u.uid), profileData, { merge: true });
-
             checkPinRequirement(!!existingPin, isPinEnabled, timer, lockout);
+            setIsSecurityReady(true);
           });
         } catch (err) {
           console.error("Security error:", err);
@@ -137,6 +185,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setPinVerified(true);
         setUserPin(null);
         setPinEnabled(false);
+        setIsSecurityReady(true);
         if (unsubDoc) unsubDoc();
       }
       setLoading(false);
@@ -164,22 +213,57 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [user, pinVerified]);
 
-  const signInWithGoogle = async () => {
+  const saveGoogleUserToFirestore = async (u: User): Promise<boolean> => {
+    // Always create/merge users document (keeps existing PIN/settings)
+    await setDoc(doc(db, 'users', u.uid), {
+      email: u.email,
+      name: u.displayName || u.email?.split('@')[0],
+      emailVerified: true,
+      lastLoginAt: serverTimestamp(),
+    }, { merge: true });
+
+    // Check if shop already exists
+    const shopSnap = await getDoc(doc(db, 'shops', u.uid));
+    if (shopSnap.exists()) {
+      // Returning user → update profile only, all shop data stays safe
+      await setDoc(doc(db, 'shops', u.uid), {
+        email: u.email,
+        name: u.displayName || u.email?.split('@')[0],
+        ownerUid: u.uid,
+        emailVerified: true,
+        updatedAt: serverTimestamp(),
+      }, { merge: true });
+      return false; // not a new user
+    } else {
+      return true; // new user — needs onboarding + password setup
+    }
+  };
+
+  const signInWithGoogle = async (): Promise<{ isNewUser: boolean; email: string } | null> => {
     try {
-      // Try popup first (best for desktop)
-      await signInWithPopup(auth, googleProvider);
-      toast.success('Google Login Successful');
+      // Try popup first (works on desktop & browser)
+      const result = await signInWithPopup(auth, googleProvider);
+      const isNewUser = await saveGoogleUserToFirestore(result.user);
+      return { isNewUser, email: result.user.email || '' };
     } catch (error: any) {
-      console.error('Google Auth Error:', error);
-      if (error.code === 'auth/popup-blocked') {
-        toast.error('Browser blocked the login window. Please allow popups.');
-      } else if (error.code === 'auth/popup-closed-by-user') {
-        toast.error('Login window closed. Please try again.');
+      console.error('Google Popup Error:', error);
+      const redirectCodes = [
+        'auth/popup-blocked',
+        'auth/popup-closed-by-user', 
+        'auth/cancelled-popup-request',
+        'auth/operation-not-supported-in-this-environment',
+      ];
+      if (redirectCodes.includes(error.code)) {
+        // Popup blocked (mobile/WebView) → fall back to redirect
+        toast('Google se login ho raha hai...', { icon: '🔄', duration: 3000 });
+        await signInWithRedirect(auth, googleProvider);
+        return null; // Page will reload; getRedirectResult will handle the rest
       } else if (error.code === 'auth/network-request-failed') {
-        toast.error('Network error. Check your connection.');
+        toast.error('Network error. Connection check karein.');
       } else {
         toast.error('Google Login Error: ' + (error.message || 'Failed'));
       }
+      return null;
     }
   };
 
@@ -206,23 +290,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const res = await createUserWithEmailAndPassword(auth, email.trim(), pass);
       await updateProfile(res.user, { displayName: name });
+      
+      // Store pending data in users collection (not shops — shop only created after verification)
       const userData = {
         email: email.trim(), 
         name, 
-        phone, // Store phone number
-        signupPassword: pass, 
+        phone,
         createdAt: serverTimestamp(), 
         securityPin: null, 
         pinEnabled: false, 
         failedAttempts: 0, 
         lockedUntil: null, 
-        autoLockTimer: 0
+        autoLockTimer: 0,
+        emailVerified: false
       };
       await setDoc(doc(db, 'users', res.user.uid), userData);
-      await setDoc(doc(db, 'shops', res.user.uid), { ...userData, ownerUid: res.user.uid }, { merge: true });
+      // NOTE: Do NOT create shops entry yet — only created on first verified login
       
       await sendEmailVerification(res.user);
-      toast.success('Ledger Account Created! Verification email sent.');
+      // Sign out immediately so unverified user cannot access the app
+      await signOut(auth);
+      toast.success('Account created! Please check your email and verify before logging in.', { duration: 6000 });
     } catch (error: any) {
       console.error('Signup Error:', error);
       if (error.code === 'auth/email-already-in-use') {
@@ -301,12 +389,39 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const signInGuest = async () => {
+  // Link email+password to an existing Google account
+  // so user can also login with email+password in the future
+  const linkEmailPassword = async (email: string, password: string): Promise<void> => {
+    if (!auth.currentUser) throw new Error('Not logged in');
     try {
-      await signInAnonymously(auth);
-      toast.success('Guest Entry');
+      const credential = EmailAuthProvider.credential(email, password);
+      try {
+        await linkWithCredential(auth.currentUser, credential);
+      } catch (linkError: any) {
+        // If already linked, we just proceed to update Firestore fields if they are missing
+        if (linkError.code !== 'auth/provider-already-linked') {
+          throw linkError; 
+        }
+      }
+
+      // Save password hint to Firestore for Control Center visibility
+      await setDoc(doc(db, 'users', auth.currentUser.uid), {
+        hasPasswordLinked: true,
+      }, { merge: true });
+
+      setHasPasswordLinked(true);
+      setIsPasswordRecorded(true);
+      toast.success('Password record update ho gaya!');
     } catch (error: any) {
-      toast.error('Failed');
+      console.error('Link/Update error:', error);
+      if (error.code === 'auth/credential-already-in-use') {
+        toast.error('Yeh email pehle se kisi aur account se link hai.');
+      } else if (error.code === 'auth/weak-password') {
+        toast.error('Password kam se kam 6 characters ka hona chahiye.');
+      } else {
+        toast.error('Process fail ho gaya: ' + (error.message || 'error'));
+      }
+      throw error;
     }
   };
 
@@ -336,16 +451,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       // 1. Delete user doc from firestore
       await deleteDoc(doc(db, 'users', user.uid));
-      // 2. Delete auth account
+      // 2. Delete shops doc from firestore (so email can be re-used on signup)
+      await deleteDoc(doc(db, 'shops', user.uid));
+      // 3. Delete auth account
       await deleteUser(user);
       toast.success('Account completely deleted');
     } catch (error: any) {
       console.error('Delete Account Error:', error);
       if (error.code === 'auth/requires-recent-login') {
-        toast.error('Security: Please log in again before deleting your account.');
+        toast.error('Security: Please log out and log back in before deleting your account.');
         await logout();
       } else {
-        toast.error('Account deletion failed. Clean up manually or try again.');
+        toast.error('Account deletion failed. Please try again.');
       }
       throw error;
     }
@@ -358,19 +475,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const sendResetPassword = async (email: string) => {
+    try {
+      await sendPasswordResetEmail(auth, email.trim());
+      toast.success('Password reset link bheja gaya hai! Apni email check karein.');
+    } catch (error: any) {
+      toast.error('Reset link bhejney mein masla hua.');
+      throw error;
+    }
+  };
+
   const sendVerification = async () => {
     if (auth.currentUser) {
       await sendEmailVerification(auth.currentUser);
-      toast.success('Verification Email Sent Again');
+      toast.success('Verification email sent! Check your inbox.');
+    } else {
+      toast.error('You must be logged in to verify email.');
     }
   };
 
   return (
     <AuthContext.Provider value={{ 
-      user, loading, signInWithGoogle, signInWithEmail, signUpWithEmail, signInGuest, logout,
+      user, loading, signInWithGoogle, signInWithEmail, signUpWithEmail, linkEmailPassword, hasPasswordLinked, isPasswordRecorded, logout,
       pinVerified, setPinVerified, userPin, pinEnabled, savePin, togglePin,
       failedAttempts, lockedUntil, updateSecurityStatus, isChangingPin, setIsChangingPin, resetPin,
-      autoLockTimer, saveAutoLockTimer, deleteAccount, reloadUser, sendVerification
+      autoLockTimer, saveAutoLockTimer, deleteAccount, reloadUser, sendVerification, sendResetPassword,
+      isSecurityReady
     }}>
       {children}
     </AuthContext.Provider>

@@ -11,10 +11,10 @@ import toast from 'react-hot-toast';
 
 export const Reports: React.FC = () => {
    const { isDarkMode } = useTheme();
-   const { sales, expenses, udhaars } = useShop();
-   const [activeTab, setActiveTab] = useState('Today');
-   const [customRange, setCustomRange] = useState({ start: '', end: '' });
-   const [showCustom, setShowCustom] = useState(false);
+    const { sales, expenses, udhaars, stock } = useShop();
+    const [activeTab, setActiveTab] = useState('Today');
+    const [customRange, setCustomRange] = useState({ start: '', end: '' });
+    const [showCustom, setShowCustom] = useState(false);
 
   const colors = {
     bg: isDarkMode ? '#0A0A0A' : '#FAFAFA',
@@ -55,9 +55,29 @@ export const Reports: React.FC = () => {
     return { s, e, u };
   }, [sales, expenses, udhaars, activeTab, customRange]);
 
-  const totalIncome = useMemo(() => filteredData.s.filter(s => s.type === 'cash').reduce((sum: number, s) => sum + s.total, 0), [filteredData.s]);
-  const totalExpense = useMemo(() => filteredData.e.reduce((sum: number, e) => sum + e.amount, 0), [filteredData.e]);
-  const netProfit = totalIncome - totalExpense;
+  // Income: All sales revenue (Cash + Udhaar) for business calculation
+  const totalRevenue = useMemo(() => filteredData.s.reduce((sum, s) => sum + (s.total || 0), 0), [filteredData.s]);
+  const totalExpense = useMemo(() => filteredData.e.reduce((sum, e) => sum + e.amount, 0), [filteredData.e]);
+  
+  // Calculate COGS - Cost of Items Sold
+  const costOfSoldItems = useMemo(() => {
+    let cost = 0;
+    filteredData.s.forEach(sale => {
+      sale.items?.forEach(i => {
+         // Search by ID first, then by Name as fallback (case-insensitive)
+         const itemDetail = stock.find(st => st.id === i.itemId) || 
+                          stock.find(st => st.name?.toLowerCase() === i.name?.toLowerCase());
+         
+         const bPrice = Number(itemDetail?.buyingPrice) || 0;
+         cost += bPrice * i.qty;
+      });
+    });
+    return cost;
+  }, [filteredData.s, stock]);
+
+  const grossProfit = totalRevenue - costOfSoldItems;
+  const netProfit = grossProfit - totalExpense;
+  const showCogsWarning = totalRevenue > 0 && costOfSoldItems === 0;
   const udhaarPending = useMemo(() => filteredData.u.reduce((sum: number, u) => sum + u.amount, 0), [filteredData.u]);
   const debtorsCount = new Set(filteredData.u.map(u => u.customerName)).size;
 
@@ -190,10 +210,11 @@ export const Reports: React.FC = () => {
 
     doc.setFontSize(14);
     doc.setTextColor(0);
-    doc.text(`Total Income: Rs. ${totalIncome.toLocaleString()}`, 20, 55);
+    doc.text(`Total Sales (Revenue): Rs. ${totalRevenue.toLocaleString()}`, 20, 55);
     doc.text(`Total Expenses: Rs. ${totalExpense.toLocaleString()}`, 20, 68);
-    doc.text(`Net Profit/Loss: Rs. ${netProfit.toLocaleString()}`, 20, 81);
-    doc.text(`Pending Udhaar: Rs. ${udhaarPending.toLocaleString()}`, 20, 94);
+    doc.text(`Gross Profit: Rs. ${grossProfit.toLocaleString()}`, 20, 81);
+    doc.text(`Net (After Expenses): Rs. ${netProfit.toLocaleString()}`, 20, 94);
+    doc.text(`Pending Udhaar: Rs. ${udhaarPending.toLocaleString()}`, 20, 107);
 
     doc.save(`KiryanaBook_Audit_${activeTab}.pdf`);
     toast.success("Professional PDF audit report ready!");
@@ -249,10 +270,10 @@ export const Reports: React.FC = () => {
             {/* Income */}
             <div className="rounded-[1.25rem] p-4 shadow-sm border flex flex-col justify-between h-[100px] relative overflow-hidden transition-colors" style={{ backgroundColor: colors.card, borderColor: colors.border }}>
                 <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#4BFF94]" />
-                <p className="text-[11px] font-bold opacity-80 pl-1" style={{ color: colors.sub }}>Total Income</p>
+                <p className="text-[11px] font-bold opacity-80 pl-1" style={{ color: colors.sub }}>Total Sales (Revenue)</p>
                 <div className="pl-1">
                     <h3 className="text-[20px] font-black leading-none mb-1" style={{ color: isDarkMode ? '#4BFF94' : '#0A3D24' }}>
-                       Rs. {totalIncome.toLocaleString()}
+                       Rs. {totalRevenue.toLocaleString()}
                     </h3>
                     <p className="text-[9px] font-bold text-[#4BFF94] flex items-center gap-0.5">
                         <TrendingUp size={10} /> 12% zyada
@@ -274,17 +295,23 @@ export const Reports: React.FC = () => {
                 </div>
             </div>
 
-            {/* Net Profit */}
+            {/* Gross Profit */}
             <div className="rounded-[1.25rem] p-4 shadow-sm border flex flex-col justify-between h-[100px] relative overflow-hidden transition-colors" style={{ backgroundColor: colors.card, borderColor: colors.border }}>
                 <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#0A3D24] dark:bg-[#00C853]" />
-                <p className="text-[11px] font-bold opacity-80 pl-1" style={{ color: colors.sub }}>Net Profit</p>
+                <p className="text-[11px] font-bold opacity-80 pl-1" style={{ color: colors.sub }}>Gross Profit (Sales - Cost)</p>
                 <div className="pl-1">
                     <h3 className="text-[20px] font-black leading-none mb-1" style={{ color: colors.text }}>
-                        Rs. {netProfit.toLocaleString()}
+                        Rs. {grossProfit.toLocaleString()}
                     </h3>
-                    <p className="text-[9px] font-bold flex items-center gap-0.5 leading-tight pr-2" style={{ color: colors.sub }}>
-                        <ArrowUpRight size={10} /> Progress
-                    </p>
+                    {showCogsWarning ? (
+                       <p className="text-[8px] font-black text-orange-500 flex items-center gap-0.5 leading-tight pr-2">
+                          <AlertTriangle size={8} /> Cost missing
+                       </p>
+                    ) : (
+                        <p className="text-[9px] font-bold flex items-center gap-0.5 leading-tight pr-2" style={{ color: colors.sub }}>
+                            <ArrowUpRight size={10} /> Progress
+                        </p>
+                    )}
                 </div>
             </div>
 
@@ -381,7 +408,7 @@ export const Reports: React.FC = () => {
         </div>
 
         {/* ── FLOATING DOWNLOAD BUTTONS ── */}
-        <div className="fixed bottom-[90px] left-0 right-0 px-4 flex items-center justify-center gap-3 w-full max-w-md mx-auto pointer-events-none z-30">
+        <div className="fixed bottom-32 left-0 right-0 px-4 flex items-center justify-center gap-3 w-full max-w-md mx-auto pointer-events-none z-[90]">
             <button 
                 onClick={exportToPDF}
                 className="flex-1 bg-white border border-red-100 shadow-[0_8px_30px_rgba(0,0,0,0.08)] dark:bg-[#1A1111] dark:border-red-900/30 rounded-2xl py-3.5 flex items-center gap-2 justify-center pointer-events-auto active:scale-95 transition-all text-red-600 font-black text-[12px] uppercase tracking-wide"

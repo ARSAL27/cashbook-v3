@@ -104,50 +104,8 @@ export const AddUdhaar: React.FC = () => {
           <div className="w-8" />
         </div>
 
-        {/* TYPE TOGGLE */}
-        <div className="px-5 mt-4 flex gap-3">
-            <button 
-                onClick={() => { setType('diye'); triggerHaptic(); }}
-                className={`flex-1 py-4 rounded-2xl font-black text-[12px] uppercase tracking-[0.15em] transition-all border ${type === 'diye' ? (isDarkMode ? 'bg-[#00E676] text-black border-[#00E676]' : 'bg-[#0A3D24] text-white border-[#0A3D24]') : 'bg-card text-gray-400 dark:border-white/5'}`}
-            >
-                Maine Diye
-            </button>
-            <button 
-                onClick={() => { setType('liye'); triggerHaptic(); }}
-                className={`flex-1 py-4 rounded-2xl font-black text-[12px] uppercase tracking-[0.15em] transition-all border ${type === 'liye' ? 'bg-[#FF5252] text-white border-[#FF5252]' : 'bg-card text-gray-400 dark:border-white/5'}`}
-            >
-                Maine Liye
-            </button>
-        </div>
-
-        {/* AMOUNT PANEL */}
-        <div className="flex-1 flex flex-col items-center justify-center p-6 relative">
-             <span className="text-gray-400 text-[9px] font-black uppercase tracking-[0.3em] mb-4">
-                {type === 'diye' ? 'You Gave (Payment / Credit)' : 'You Received (Debt / Bill)'}
-             </span>
-              <div className="flex items-center gap-3">
-                <span className={`text-[20px] font-black mt-2 opacity-60 ${type === 'diye' ? 'text-success' : 'text-danger'}`}>Rs.</span>
-                <span className="text-[64px] font-black leading-none tracking-tighter text-text-primary">{amount}</span>
-                <button onClick={handleDelete} className="ml-2 mt-4 w-10 h-10 rounded-xl flex items-center justify-center active:scale-90 transition-transform bg-card-secondary text-text-muted">
-                    <Delete size={20} />
-                </button>
-              </div>
-             
-             {customerName && (
-                <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} className="mt-10 flex flex-col items-center gap-1.5 px-6 py-4 rounded-[1.5rem] border transition-colors shadow-sm" style={{ backgroundColor: isDarkMode ? '#18241F' : '#F0F5F2', borderColor: isDarkMode ? '#00E67620' : '#E8F5E9' }}>
-                    <div className="flex items-center gap-2">
-                        <Wallet size={12} style={{ color: isDarkMode ? '#4BFF94' : '#0A3D24' }} />
-                        <span className="text-[10px] font-black uppercase tracking-widest opacity-60" style={{ color: isDarkMode ? '#4BFF94' : '#0A3D24' }}>Status after this:</span>
-                    </div>
-                    <span className={`text-[16px] font-black ${newBalance >= 0 ? (isDarkMode ? 'text-[#4BFF94]' : 'text-[#0A3D24]') : 'text-[#FF5252]'}`}>
-                        Rs. {Math.abs(newBalance).toLocaleString()} {newBalance >= 0 ? (isSupplier ? 'Advance To Him' : 'Lena Hai') : (isSupplier ? 'Dena Hai' : 'Advance From Him')}
-                    </span>
-                </motion.div>
-             )}
-        </div>
-
-        {/* FORM SECTION */}
-        <div className="px-5 pb-5 space-y-3">
+        {/* FORM SECTION - Moved to top for better visibility */}
+        <div className="px-5 pt-3 pb-2 space-y-3">
             <div className="relative">
                 <div className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400">
                     <UserCircle size={20} />
@@ -161,7 +119,7 @@ export const AddUdhaar: React.FC = () => {
                         setShowSuggestions(true);
                     }}
                     onFocus={() => setShowSuggestions(true)}
-                    className="w-full rounded-2xl py-5 pl-14 pr-6 outline-none font-bold text-[14px] transition-all shadow-sm border border-border bg-card-secondary text-text-primary"
+                    className="w-full rounded-2xl py-4 pl-12 pr-6 outline-none font-bold text-[14px] transition-all shadow-sm border border-border bg-card-secondary text-text-primary"
                 />
                 
                 {/* Suggestions */}
@@ -169,7 +127,7 @@ export const AddUdhaar: React.FC = () => {
                     {showSuggestions && suggestions.length > 0 && (
                         <motion.div 
                             initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}
-                            className="absolute left-0 right-0 bottom-full mb-3 rounded-2xl shadow-2xl z-50 overflow-hidden border dark:border-white/5"
+                            className="absolute left-0 right-0 top-full mt-2 rounded-2xl shadow-2xl z-[100] overflow-hidden border dark:border-white/5"
                             style={{ backgroundColor: card }}
                         >
                             {suggestions.map((name, i) => (
@@ -201,17 +159,60 @@ export const AddUdhaar: React.FC = () => {
             
             <input
                 type="text"
-                placeholder="Note (optional): e.g. grocery, rent..."
+                placeholder="Note (optional)"
                 value={note}
                 onChange={e => setNote(e.target.value)}
-                className="w-full rounded-2xl py-4 px-5 outline-none font-semibold text-[13px] transition-all shadow-sm border dark:border-white/5"
+                className="w-full rounded-2xl py-3 px-5 outline-none font-semibold text-[13px] transition-all shadow-sm border dark:border-white/5"
                 style={{ backgroundColor: isDarkMode ? '#1A1A1A' : '#F4F4F5', color: text }}
             />
         </div>
 
+        {/* TYPE TOGGLE - Made slightly smaller */}
+        <div className="px-5 mt-2 flex gap-3">
+            <button 
+                onClick={() => { setType('diye'); triggerHaptic(); }}
+                className={`flex-1 py-3.5 rounded-xl font-black text-[11px] uppercase tracking-[0.1em] transition-all border ${type === 'diye' ? (isDarkMode ? 'bg-[#00E676] text-black border-[#00E676]' : 'bg-[#0A3D24] text-white border-[#0A3D24]') : 'bg-card text-gray-400 dark:border-white/5'}`}
+            >
+                Maine Diye
+            </button>
+            <button 
+                onClick={() => { setType('liye'); triggerHaptic(); }}
+                className={`flex-1 py-3.5 rounded-xl font-black text-[11px] uppercase tracking-[0.1em] transition-all border ${type === 'liye' ? 'bg-[#FF5252] text-white border-[#FF5252]' : 'bg-card text-gray-400 dark:border-white/5'}`}
+            >
+                Maine Liye
+            </button>
+        </div>
+
+        {/* AMOUNT PANEL */}
+        <div className="flex-1 flex flex-col items-center justify-center p-4 relative mb-2">
+             <span className="text-gray-400 text-[8px] font-black uppercase tracking-[0.2em] mb-2">
+                {type === 'diye' ? 'You Gave (Payment / Credit)' : 'You Received (Debt / Bill)'}
+             </span>
+              <div className="flex items-center gap-2">
+                <span className={`text-[16px] font-black mt-1 opacity-60 ${type === 'diye' ? 'text-success' : 'text-danger'}`}>Rs.</span>
+                <span className="text-[48px] font-black leading-none tracking-tighter text-text-primary">{amount}</span>
+                <button onClick={handleDelete} className="ml-2 mt-2 w-8 h-8 rounded-lg flex items-center justify-center active:scale-90 transition-transform bg-card-secondary text-text-muted">
+                    <Delete size={18} />
+                </button>
+              </div>
+             
+             {customerName && (
+                <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} className="mt-4 flex flex-col items-center gap-1 px-4 py-2 rounded-2xl border transition-colors shadow-sm" style={{ backgroundColor: isDarkMode ? '#18241F' : '#F0F5F2', borderColor: isDarkMode ? '#00E67620' : '#E8F5E9' }}>
+                    <div className="flex items-center gap-2">
+                        <Wallet size={10} style={{ color: isDarkMode ? '#4BFF94' : '#0A3D24' }} />
+                        <span className="text-[9px] font-black uppercase tracking-widest opacity-60" style={{ color: isDarkMode ? '#4BFF94' : '#0A3D24' }}>Status after this:</span>
+                    </div>
+                    <span className={`text-[14px] font-black ${newBalance >= 0 ? (isDarkMode ? 'text-[#4BFF94]' : 'text-[#0A3D24]') : 'text-[#FF5252]'}`}>
+                        Rs. {Math.abs(newBalance).toLocaleString()} {newBalance >= 0 ? (isSupplier ? 'Advance To Him' : 'Lena Hai') : (isSupplier ? 'Dena Hai' : 'Advance From Him')}
+                    </span>
+                </motion.div>
+             )}
+        </div>
+
+
         {/* NUMPAD & BUTTON - FIXED ABOVE NAV */}
-        <div className="fixed bottom-[90px] inset-x-0 mx-auto max-w-md p-6 rounded-t-[2.5rem] shadow-2xl border-t bg-card animate-in slide-in-from-bottom duration-300 z-50" style={{ borderColor: border }}>
-            <div className="grid grid-cols-3 gap-3.5 mb-6 w-full">
+        <div className="fixed bottom-[80px] inset-x-0 mx-auto max-w-md p-5 rounded-t-[2rem] shadow-2xl border-t bg-card animate-in slide-in-from-bottom duration-300 z-50" style={{ borderColor: border }}>
+            <div className="grid grid-cols-3 gap-2.5 mb-4 w-full">
                 {['1','2','3','4','5','6','7','8','9','.', '0'].map(n => (
                     <button 
                         key={n} onClick={() => handleNumpad(n)} 
@@ -222,17 +223,17 @@ export const AddUdhaar: React.FC = () => {
                     </button>
                 ))}
                 <button onClick={handleDelete} className="h-[64px] rounded-2xl text-[24px] font-black shadow-sm active:scale-95 transition-all flex items-center justify-center border dark:border-white/5" style={{ backgroundColor: isDarkMode ? '#222' : '#FFFFFF', color: '#FF5252' }}>
-                    <Delete size={24} />
+                    <Delete size={20} />
                 </button>
             </div>
             
             <button 
                 onClick={handleSave} 
-                className={`w-full text-[16px] font-black py-5 rounded-[2rem] shadow-xl active:scale-[0.98] transition-all tracking-[0.2em] uppercase flex items-center justify-center gap-3 ${
+                className={`w-full text-[15px] font-black py-4 rounded-[1.5rem] shadow-xl active:scale-[0.98] transition-all tracking-[0.15em] uppercase flex items-center justify-center gap-3 ${
                     customerName.trim() ? (isDarkMode ? 'bg-[#00E676] text-black' : 'bg-[#0A3D24] text-white') : 'bg-gray-200 text-gray-400 opacity-50'
                 }`}
             >
-                <UserPlus size={18} strokeWidth={3} />
+                <UserPlus size={16} strokeWidth={3} />
                 SAVE HISAAB
             </button>
         </div>

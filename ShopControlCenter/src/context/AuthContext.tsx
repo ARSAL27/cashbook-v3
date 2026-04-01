@@ -3,8 +3,7 @@ import { auth, googleProvider } from '../lib/firebase';
 import { onAuthStateChanged, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, type User } from 'firebase/auth';
 import { Capacitor } from '@capacitor/core';
 
-// Admin UIDs
-const ADMIN_UIDS = ['BYwNyWXjgsT1ezOyK65CTQJy8xf2'];
+const ADMIN_EMAIL = 'mrarsal410@gmail.com';
 
 interface AuthCtx {
   user: User | null;
@@ -49,7 +48,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = async () => { await signOut(auth); };
 
-  const isAdmin = !!user && ADMIN_UIDS.includes(user.uid);
+  const isAdmin = !!user && user.email === ADMIN_EMAIL;
 
   return <Ctx.Provider value={{ user, isAdmin, loading, login, logout, error }}>{children}</Ctx.Provider>;
 };
