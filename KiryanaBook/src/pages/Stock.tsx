@@ -2,10 +2,11 @@ import React, { useState, useMemo } from 'react';
 import { PageTransition } from '../components/PageTransition';
 import { useShop } from '../context/ShopContext';
 import { useNavigate } from 'react-router-dom';
-import { Search, Plus, Filter, Package, AlertTriangle, DollarSign, Menu } from 'lucide-react';
+import { Search, Plus, Filter, Package, AlertTriangle, DollarSign, Menu, ScanLine, Zap, Tag } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sidebar } from '../components/Sidebar';
 import { useTheme } from '../context/ThemeContext';
+import { getBrandStyle } from '../data/kiryanaDatabase';
 
 export const Stock: React.FC = () => {
   const { stock, profile, categories, addCategory, deleteCategory } = useShop();
@@ -16,12 +17,18 @@ export const Stock: React.FC = () => {
   const [activeCategory, setActiveCategory] = useState('All Items');
   const [showFilter, setShowFilter] = useState(false);
   const [filterType, setFilterType] = useState<'all' | 'low' | 'out'>('all');
+  const [isFABOpen, setIsFABOpen] = useState(false);
 
   const stats = useMemo(() => {
     const totalItems = stock.reduce((acc, item) => acc + item.quantity, 0);
     const totalValue = stock.reduce((acc, item) => acc + (item.quantity * item.price), 0);
     const lowStockCount = stock.filter(item => item.quantity <= (item.minThreshold || 5)).length;
     return { totalItems, totalValue, lowStockCount };
+  }, [stock]);
+
+  const uniqueBrands = useMemo(() => {
+    const brands = Array.from(new Set(stock.map(s => s.company).filter(Boolean)));
+    return brands as string[];
   }, [stock]);
 
   const filteredStock = useMemo(() => {
@@ -109,7 +116,34 @@ export const Stock: React.FC = () => {
            </motion.div>
         </div>
 
-        <div className="px-5 mt-8 flex gap-3">
+        <div className="px-5 mt-8">
+            <div className="flex items-center justify-between mb-4">
+                <h3 className="text-[12px] font-black uppercase tracking-widest" style={{ color: text }}>Brand Portfolios</h3>
+            </div>
+            <div className="flex gap-4 overflow-x-auto no-scrollbar pb-2">
+                {uniqueBrands.map((brand, i) => {
+                    const style = getBrandStyle(brand);
+                    return (
+                        <motion.button
+                            key={i}
+                            whileTap={{ scale: 0.9 }}
+                            onClick={() => navigate(`/brand/${encodeURIComponent(brand)}`)}
+                            className="flex flex-col items-center gap-2 group"
+                        >
+                            <div className="w-16 h-16 rounded-[1.8rem] flex items-center justify-center shadow-lg transition-all duration-300 group-active:shadow-none"
+                                 style={{ backgroundColor: style.bg }}>
+                                <span className="text-[16px] font-black" style={{ color: style.text }}>{style.abbr}</span>
+                            </div>
+                            <span className="text-[10px] font-black max-w-[64px] truncate text-center uppercase tracking-tight" style={{ color: text }}>
+                                {brand}
+                            </span>
+                        </motion.button>
+                    );
+                })}
+            </div>
+        </div>
+
+        <div className="px-5 mt-4 flex gap-3">
            <div className="flex-1 relative">
               <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2" style={{ color: sub }} />
               <input 
@@ -278,27 +312,60 @@ export const Stock: React.FC = () => {
            ))}
         </div>
 
-        <motion.div 
-           className="fixed bottom-[180px] right-5 flex flex-col gap-3 items-end z-[90]"
-        >
-          <motion.button
-            whileTap={{ scale: 0.9 }}
-            onClick={() => navigate('/stock-receive')}
-            className="px-6 py-4 bg-[#0A3D24] text-[#4BFF94] rounded-2xl flex items-center gap-3 shadow-2xl border-4 border-white dark:border-[#0A0A0A] font-black text-[14px]"
-          >
-            <Package size={20} />
-            Company Product
-          </motion.button>
+        {/* ── MODERN FAB MENU ── */}
+        <div className="fixed bottom-24 right-6 flex flex-col items-end gap-3 z-[100]">
+          <AnimatePresence>
+            {isFABOpen && (
+              <motion.div 
+                initial={{ opacity: 0, y: 20, scale: 0.8 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 20, scale: 0.8 }}
+                className="flex flex-col items-end gap-3 mb-4"
+              >
+              <button
+                onClick={() => navigate('/add-item')}
+                className="flex items-center gap-2 px-4 py-3 rounded-2xl bg-blue-600 text-white shadow-lg active:scale-95 transition-all text-sm font-bold border border-white/20"
+              >
+                Manual Item Dalo
+                <Plus size={18} />
+              </button>
+              <button
+                onClick={() => navigate('/bulk-scan')}
+                className="flex items-center gap-2 px-4 py-3 rounded-2xl bg-purple-600 text-white shadow-lg active:scale-95 transition-all text-sm font-bold border border-white/20"
+              >
+                <span className="bg-purple-800/50 px-2 py-0.5 rounded text-[10px] uppercase tracking-wider">Fast</span>
+                Bulk Scan Mode
+                <Zap size={18} />
+              </button>
+              <button
+                onClick={() => navigate('/stock-receive')}
+                className="flex items-center gap-2 px-4 py-3 rounded-2xl bg-emerald-950 text-emerald-400 shadow-lg active:scale-95 transition-all text-sm font-bold border border-white/20"
+              >
+                Find by Category
+                <Tag size={18} />
+              </button>
+              <button
+                onClick={() => navigate('/barcode-scan?mode=stock')}
+                className="flex items-center gap-2 px-4 py-3 rounded-2xl bg-spring-green text-emerald-950 shadow-lg active:scale-95 transition-all text-sm font-bold border border-white/20"
+              >
+                Quick Barcode
+                <ScanLine size={18} />
+              </button>
+            </motion.div>
+            )}
+          </AnimatePresence>
 
+          {/* Main FAB Trigger */}
           <motion.button
             whileTap={{ scale: 0.9 }}
-            onClick={() => navigate('/add-item')}
-            className="px-6 py-4 bg-[#4BFF94] text-[#0A3D24] rounded-2xl flex items-center gap-3 shadow-2xl border-4 border-white dark:border-[#0A0A0A] font-black text-[14px]"
+            onClick={() => setIsFABOpen(!isFABOpen)}
+            className={`w-16 h-16 rounded-full flex items-center justify-center shadow-2xl border-4 transition-all duration-300 ${
+              isFABOpen ? 'bg-red-500 border-white rotate-45' : 'bg-[#4BFF94] border-white dark:border-[#0A0A0A]'
+            }`}
           >
-            <Plus size={20} strokeWidth={3} />
-            Custom Product
+            <Plus size={32} className={isFABOpen ? 'text-white' : 'text-[#0A3D24]'} strokeWidth={3} />
           </motion.button>
-        </motion.div>
+        </div>
 
       </div>
     </PageTransition>

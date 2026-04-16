@@ -138,127 +138,129 @@ export const ProfileSettings: React.FC = () => {
 
   return (
     <PageTransition>
-      <div className="w-full bg-background pb-8 font-outfit max-w-md mx-auto overflow-x-hidden">
+      <div className="w-full bg-[#FAFAFA] dark:bg-[#0A0A0A] pb-10 font-outfit max-w-md mx-auto overflow-x-hidden min-h-screen">
         {/* HEADER */}
-        <header className="px-4 h-14 flex items-center justify-between sticky top-0 bg-background/80 backdrop-blur-md z-50 border-b border-border/10">
-          <div className="flex items-center space-x-3">
+        <header className="px-6 h-20 flex items-center justify-between sticky top-0 bg-background/80 backdrop-blur-xl z-50 border-b border-border/10">
+          <div className="flex items-center space-x-4">
             <button 
               onClick={() => { triggerHaptic(); navigate(-1); }} 
-              className="w-10 h-10 flex items-center justify-center text-text-muted bg-card border border-border rounded-xl active:scale-90 transition-all font-black"
+              className="w-10 h-10 flex items-center justify-center text-text-primary bg-card border border-border shadow-sm rounded-2xl active:scale-95 transition-all"
             >
               <ArrowLeft size={18} strokeWidth={3} />
             </button>
-            <h1 className="text-16 font-black text-text-primary tracking-tight uppercase">Profile</h1>
+            <h1 className="text-20 font-black text-text-primary tracking-tight">Profile</h1>
           </div>
           
           <div className="flex items-center gap-2">
             {isSaving ? (
-               <div className="flex items-center gap-1.5 px-3 py-1.5 bg-primary/5 rounded-full border border-primary/20">
-                  <div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
-                  <span className="text-[10px] font-black text-primary uppercase tracking-widest">Saving...</span>
+               <div className="flex items-center gap-2 px-3 py-1.5 bg-primary/10 rounded-full border border-primary/20">
+                  <div className="w-1.5 h-1.5 bg-primary rounded-full animate-pulse" />
+                  <span className="text-[10px] font-black text-primary uppercase tracking-widest">Saving</span>
                </div>
             ) : lastSaved ? (
                <div className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 dark:bg-white/5 rounded-full">
-                  <span className="text-[9px] font-black text-text-muted uppercase tracking-widest opacity-60">Auto-Saved</span>
+                  <span className="text-[9px] font-black text-text-muted uppercase tracking-widest opacity-40">Synced</span>
                </div>
             ) : null}
           </div>
         </header>
 
-        <div className="p-4 space-y-6">
-          {/* SHOP DETAILS */}
-          <div className="bg-card border border-border rounded-[2rem] p-6 shadow-sm space-y-6 text-center">
-            <div className="flex flex-col items-center justify-center pt-2">
-              <div className="relative group">
-                <div className="w-24 h-24 rounded-[2.5rem] border border-dashed border-border flex items-center justify-center bg-card-secondary/30 overflow-hidden group-hover:border-primary/40 transition-all shadow-inner relative">
+        <div className="p-6 space-y-8">
+          {/* PROFILE IMAGE HERO */}
+          <div className="relative flex flex-col items-center">
+            <div className="relative group">
+               <div className="w-32 h-32 rounded-[3.5rem] border-4 border-card shadow-2xl overflow-hidden bg-card-secondary relative transition-all duration-500 group-hover:scale-[1.02]">
                   {formData.logoUrl ? (
                     <img src={formData.logoUrl} alt="Shop Logo" className="w-full h-full object-cover" />
                   ) : (
-                    <Store size={32} className="text-text-muted opacity-10" strokeWidth={3} />
+                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/10 to-primary/5">
+                      <Store size={40} className="text-primary/20" strokeWidth={2.5} />
+                    </div>
                   )}
-                </div>
-                <label className="absolute -bottom-1 -right-1 w-10 h-10 bg-primary text-white rounded-2xl flex items-center justify-center shadow-xl cursor-pointer hover:scale-105 active:scale-95 transition-transform border-4 border-card z-10">
+               </div>
+               <label className="absolute -bottom-2 -right-2 w-11 h-11 bg-primary text-black rounded-2xl flex items-center justify-center shadow-2xl cursor-pointer active:scale-90 transition-transform border-4 border-card z-10">
                   <Camera size={20} strokeWidth={3} />
                   <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
-                </label>
-              </div>
-              <p className="text-[10px] font-black text-text-muted uppercase tracking-[0.2em] mt-4 opacity-40">Shop Logo</p>
+               </label>
             </div>
+            <div className="mt-4 text-center">
+                <h2 className="text-[18px] font-black text-text-primary uppercase tracking-tight">{formData.name || 'Store Name'}</h2>
+                <p className="text-[10px] font-black text-text-muted uppercase tracking-[0.2em] mt-1 opacity-40">Shop Identity</p>
+            </div>
+          </div>
 
-            <div className="space-y-4 text-left">
-              <div className="space-y-2">
-                <label className="text-[9px] font-black text-text-muted uppercase tracking-widest ml-1 opacity-40">Store Name</label>
-                <div className="relative">
-                  <Store size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted/20" strokeWidth={3} />
-                  <input 
-                    value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})}
-                    placeholder="ENTER STORE NAME"
-                    className="w-full bg-card border border-border focus:border-primary/50 text-text-primary text-[12px] rounded-2xl py-4.5 pl-12 pr-5 outline-none font-black uppercase transition-all tracking-tight" 
-                  />
+          <div className="space-y-6">
+            {/* SHOP DETAILS SECTION */}
+            <div className="bg-card border border-border/60 rounded-[2.5rem] p-6 shadow-sm space-y-5">
+              <h3 className="text-[10px] font-black text-text-muted uppercase tracking-widest opacity-40 mb-2">Business Information</h3>
+              
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <div className="relative">
+                    <Store size={18} className="absolute left-5 top-1/2 -translate-y-1/2 text-primary opacity-20" strokeWidth={3} />
+                    <input 
+                      value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})}
+                      placeholder="Store Name"
+                      className="w-full bg-background/50 border border-border/60 focus:border-primary/50 text-text-primary text-[14px] rounded-2xl py-5 pl-14 pr-6 outline-none font-bold transition-all" 
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="relative">
+                    <MapPin size={18} className="absolute left-5 top-1/2 -translate-y-1/2 text-primary opacity-20" strokeWidth={3} />
+                    <input 
+                      value={formData.city} onChange={e => setFormData({...formData, city: e.target.value})}
+                      placeholder="City"
+                      className="w-full bg-background/50 border border-border/60 focus:border-primary/50 text-text-primary text-[14px] rounded-2xl py-5 pl-14 pr-6 outline-none font-bold transition-all" 
+                    />
+                  </div>
                 </div>
               </div>
+            </div>
 
-              <div className="space-y-2">
-                <label className="text-[9px] font-black text-text-muted uppercase tracking-widest ml-1 opacity-40">City</label>
-                <div className="relative">
-                  <MapPin size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted/20" strokeWidth={3} />
-                  <input 
-                    value={formData.city} onChange={e => setFormData({...formData, city: e.target.value})}
-                    placeholder="ENTER CITY"
-                    className="w-full bg-card border border-border focus:border-primary/50 text-text-primary text-[12px] rounded-2xl py-4.5 pl-12 pr-5 outline-none font-black uppercase transition-all tracking-tight" 
-                  />
+            {/* PERSONAL DETAILS SECTION */}
+            <div className="bg-card border border-border/60 rounded-[2.5rem] p-6 shadow-sm space-y-5">
+              <h3 className="text-[10px] font-black text-text-muted uppercase tracking-widest opacity-40 mb-2">Owner Contact</h3>
+              
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <div className="relative">
+                    <User size={18} className="absolute left-5 top-1/2 -translate-y-1/2 text-primary opacity-20" strokeWidth={3} />
+                    <input 
+                      value={formData.owner} onChange={e => setFormData({...formData, owner: e.target.value})}
+                      placeholder="Owner Name"
+                      className="w-full bg-background/50 border border-border/60 focus:border-primary/50 text-text-primary text-[14px] rounded-2xl py-5 pl-14 pr-6 outline-none font-bold transition-all" 
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="relative">
+                    <Phone size={18} className="absolute left-5 top-1/2 -translate-y-1/2 text-primary opacity-20" strokeWidth={3} />
+                    <input 
+                      value={formData.phone} type="tel"
+                      onChange={handlePhoneChange}
+                      placeholder="+92 3XX XXXXXXX"
+                      className="w-full bg-background/50 border border-border/60 focus:border-primary/50 text-text-primary text-[14px] rounded-2xl py-5 pl-14 pr-6 outline-none font-bold transition-all" 
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="relative">
+                    <Mail size={18} className="absolute left-5 top-1/2 -translate-y-1/2 text-text-muted opacity-20" strokeWidth={3} />
+                    <div className="w-full bg-gray-50 dark:bg-white/5 border border-border/60 text-text-muted text-[14px] rounded-2xl py-5 pl-14 pr-6 font-bold truncate opacity-60">
+                      {user?.email || 'No email linked'}
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* PERSONAL DETAILS */}
-          <div className="bg-card border border-border rounded-[2rem] p-6 shadow-sm space-y-6 text-left">
-            <h3 className="text-[10px] font-black text-text-muted uppercase tracking-widest opacity-40 border-b border-border/10 pb-2">Personal Info</h3>
-            
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-[9px] font-black text-text-muted uppercase tracking-widest ml-1 opacity-40">Owner Name</label>
-                <div className="relative">
-                  <User size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted/20" strokeWidth={3} />
-                  <input 
-                    value={formData.owner} onChange={e => setFormData({...formData, owner: e.target.value})}
-                    placeholder="ENTER FULL NAME"
-                    className="w-full bg-card border border-border focus:border-primary/50 text-text-primary text-[12px] rounded-2xl py-4.5 pl-12 pr-5 outline-none font-black uppercase transition-all tracking-tight" 
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-[9px] font-black text-text-muted uppercase tracking-widest ml-1 opacity-40">Phone</label>
-                <div className="relative">
-                  <Phone size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted/20" strokeWidth={3} />
-                  <input 
-                    value={formData.phone} type="tel"
-                    onChange={handlePhoneChange}
-                    placeholder="+92 3XX XXXXXXX"
-                    className="w-full bg-card border border-border focus:border-primary/50 text-text-primary text-[12px] rounded-2xl py-4.5 pl-12 pr-5 outline-none font-black uppercase transition-all tracking-tight" 
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-[9px] font-black text-text-muted uppercase tracking-widest ml-1 opacity-40">Email Address</label>
-                <div className="relative">
-                  <Mail size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted/20" strokeWidth={3} />
-                  <input 
-                    value={user?.email || ''} 
-                    disabled
-                    placeholder="NO EMAIL LINKED"
-                    className="w-full bg-card border border-border text-text-primary text-[12px] rounded-2xl py-4.5 pl-12 pr-5 outline-none font-black transition-all tracking-tight opacity-70" 
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="text-center opacity-20 pt-8 pb-12">
-            <p className="text-[8px] font-black text-text-muted uppercase tracking-[0.3em]">Protection Active</p>
+          <div className="text-center pt-6 opacity-30">
+            <p className="text-[9px] font-black text-text-muted uppercase tracking-[0.4em]">Hardware Encryption Active</p>
           </div>
         </div>
       </div>

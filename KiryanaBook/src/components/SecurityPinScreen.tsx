@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { Haptics, ImpactStyle, NotificationType } from '@capacitor/haptics';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import { verifyPin } from '../utils/crypto';
 
 const MAX_ATTEMPTS = 5;
 const LOCKOUT_DURATION_MS = 5 * 60 * 1000;
@@ -47,7 +48,8 @@ export const SecurityPinScreen: React.FC = () => {
 
   const processPin = useCallback(async (finalPin: string) => {
     if (mode === 'verify') {
-      if (finalPin === userPin) {
+      const isCorrect = await verifyPin(finalPin, userPin || '');
+      if (isCorrect) {
         Haptics.notification({ type: NotificationType.Success }).catch(() => {});
         if (isChangingPin) {
             setMode('create');

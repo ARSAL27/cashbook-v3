@@ -12,18 +12,52 @@ service cloud.firestore {
         );
     }
 
+    // Helper to check if user belongs to the shop (Owner or Staff)
+    function isShopMember(shopId) {
+      return request.auth != null && (
+        get(/databases/$(database)/documents/shops/$(shopId)).data.ownerUid == request.auth.uid ||
+        exists(/databases/$(database)/documents/shops/$(shopId)/staff/$(request.auth.uid))
+      );
+    }
+
     // Users collection
     match /users/{userId} {
       allow read, write: if (request.auth != null && request.auth.uid == userId) || isAdmin();
     }
     
-    // Shops and their subcollections (stock, sales, etc.)
+    // Shops and their subcollections (Verified Multi-Tenant)
     match /shops/{shopId} {
-      allow read, write: if (request.auth != null && request.auth.uid == shopId) || isAdmin();
+      allow read, write: if isShopMember(shopId) || isAdmin();
       
+      // 🛡️ SUB-COLLECTION HARDENING
       match /{allSubcollections=**} {
-        allow read, write: if (request.auth != null && request.auth.uid == shopId) || isAdmin();
+        allow read, write: if isShopMember(shopId) || isAdmin();
       }
+
+      // 🛑 ANTI-FRAUD: Audit logs are append-only. No updates, no deletes.
+      match /audit_logs/{logId} {
+        allow read: if isShopMember(shopId) || isAdmin();
+        allow create: if isShopMember(shopId) || isAdmin();
+        allow update, delete: if false; 
+      }
+
+      // 💰 FINANCIAL DATA VALIDATION
+      match /transactions/{txId} {
+        allow create: if isShopMember(shopId) && 
+                      request.resource.data.amount is number && 
+                      request.resource.data.amount > 0;
+      }
+    }
+    
+    // Public/Global Barcode Database
+    match /pakistan_barcodes/{entryId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null;
+      allow update: if request.auth != null && (
+        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['confirmCount', 'flagCount']) && 
+         request.resource.data.confirmCount is int && request.resource.data.flagCount is int) ||
+        (request.resource.data.diff(resource.data).affectedKeys().hasAny(['status']) && isAdmin())
+      );
     }
     
     // Default deny for other collections

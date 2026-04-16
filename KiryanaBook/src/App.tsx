@@ -43,6 +43,9 @@ import { SecurityPinScreen } from './components/SecurityPinScreen';
 import { Manager } from './pages/Manager';
 import { NotificationDetail } from './pages/NotificationDetail';
 import { StockReceive } from './pages/StockReceive';
+import { BarcodeScanner } from './pages/BarcodeScanner';
+import { BrandDetail } from './pages/BrandDetail';
+import { BulkScanMode } from './pages/BulkScanMode';
 import { App as CapApp } from '@capacitor/app';
 import { motion } from 'framer-motion';
 
@@ -231,7 +234,7 @@ function AppRoutes() {
   return (
     <>
       <Toaster position="top-right" />
-      {user && isSecurityReady && location.pathname !== '/help' && <SecurityPinScreen />}
+      {user && isSecurityReady && location.pathname !== '/help' && location.pathname !== '/verify-email' && <SecurityPinScreen />}
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/onboarding" element={<NewUserRoute><Onboarding /></NewUserRoute>} />
@@ -267,6 +270,9 @@ function AppRoutes() {
           <Route path="staff/:id" element={<StaffActivity />} />
           <Route path="staff/roles" element={<RolePermissions />} />
           <Route path="manager" element={<Manager />} />
+          <Route path="barcode-scan" element={<BarcodeScanner />} />
+          <Route path="brand/:name" element={<BrandDetail />} />
+          <Route path="bulk-scan" element={<BulkScanMode />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

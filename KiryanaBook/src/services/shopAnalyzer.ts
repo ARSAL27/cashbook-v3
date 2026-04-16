@@ -56,8 +56,14 @@ export const calculateMetrics = (
   let payable = 0;
   Object.entries(customerBalances).forEach(([name, bal]) => {
     const contact = contacts.find(c => c.name.toLowerCase() === name.toLowerCase());
-    if (contact?.type === 'customer' && bal > 0) receivable += bal;
-    else if (contact?.type === 'supplier' && bal < 0) payable += Math.abs(bal);
+    if (contact?.type === 'supplier') {
+      if (bal > 0) payable += bal; // Shop owes supplier
+      else receivable += Math.abs(bal); // Supplier owes shop (advance)
+    } else {
+      // Default to customer logic for unrecognized names
+      if (bal > 0) receivable += bal; // Customer owes shop
+      else payable += Math.abs(bal); // Shop owes customer (advance)
+    }
   });
 
   // Stock

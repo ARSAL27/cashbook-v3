@@ -13,8 +13,7 @@ export interface AdviceItem {
   impact: 'High' | 'Medium' | 'Low';
 }
 
-// Helper to generate IDs
-let currentId = 1;
+// Master Advice Library
 export const MASTER_ADVICE_LIBRARY: AdviceItem[] = [
   // --- GAHAK (CUSTOMER SERVICE & PSYCHOLOGY) - 50 Items ---
   { id: 'GP1', category: 'Psychology', topic: 'Scent Marketing', problem: 'Shop feels stuffy', solution: 'Entrance par taza Podina (Mint) rakhen ya halki agarbatti lagayen take gahak fresh feel kare.', impact: 'High' },
@@ -24,9 +23,13 @@ export const MASTER_ADVICE_LIBRARY: AdviceItem[] = [
   { id: 'GP11', category: 'Psychology', topic: 'Naming Trust', problem: 'Anjan customer bhag jata ha', solution: 'Unhe "Uncle/Beta" keh k bulayen, rishta banta ha to sale pakki hoti ha.', impact: 'High' },
   { id: 'GP12', category: 'Psychology', topic: 'Bargain Win-Win', problem: 'Gahak discount mang raha ha', solution: 'Rate kam na karen balkay aik sachet (10Rs wala) free de den.', impact: 'Medium' },
   { id: 'GP17', category: 'Psychology', topic: 'Kid Loyalty', problem: 'Bachay tang karty hain', solution: 'Bacho k liye alag 5-10 Rs wala bucket neche floor level pe rakhen.', impact: 'High' },
-  { id: 'GP18', category: 'Psychology', topic: 'Bargaining Wall', problem: 'Log rates pe larty hain', solution: 'Counter k piche bare haruf mein "Fird Fixed Price" board lagayen.', impact: 'Medium' },
+  { id: 'GP18', category: 'Psychology', topic: 'Bargaining Wall', problem: 'Log rates pe larty hain', solution: 'Counter k piche bare haruf mein "Fixed Price" board lagayen.', impact: 'Medium' },
   { id: 'GP19', category: 'Psychology', topic: 'Service Pace', problem: 'Gahak jaldi mein ha', solution: 'Unhe batayen "Sir aapka order tayyar ha", wait na karwayen.', impact: 'High' },
   { id: 'GP20', category: 'Psychology', topic: 'Positive Outro', problem: 'Gahak wapis nai ata', solution: 'Aakhri alfaz "Allah hafiz, agli bar zaroor ayeye ga" lazmi bolen.', impact: 'Medium' },
+  { id: 'ST21', category: 'Stock', topic: 'Bundle Offers', problem: 'Slow items stack up', solution: 'Slow item ko fast item k sath "Dhamaka Deal" (e.g. Sabun + Surf) bana k bechain.', impact: 'High' },
+  { id: 'ST22', category: 'Stock', topic: 'Counter Impulse', problem: 'Small items lost in shelves', solution: 'Galle k pass 10-20 Rs wali namko aur chocolates ka basket lazmi rakhen.', impact: 'High' },
+  { id: 'F16', category: 'Finance', topic: 'Udhaar Limit', problem: 'Recovery slow ho gayi', solution: 'Jab tak purana udhaar 50% clear na ho, naya sauda udhaar pe na den.', impact: 'High' },
+  { id: 'F17', category: 'Finance', topic: 'Supplier Cashback', problem: 'Margin kam hai', solution: 'Naye items pe companies se promotional samples ya cashback zaroor mangen.', impact: 'Medium' },
 
   // --- MAAL (STOCK & INVENTORY) - 50 Items ---
   { id: 'ST1', category: 'Stock', topic: 'Dampness Control', problem: 'Maal sil gaya ha', solution: 'Wooden palletes istemal karen, floor se 6 inch ucha maal rakhen.', impact: 'High' },

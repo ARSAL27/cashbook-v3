@@ -18,6 +18,7 @@ import {
 import { auth, googleProvider, db } from '../lib/firebase';
 import { doc, setDoc, getDoc, serverTimestamp, deleteDoc, onSnapshot } from 'firebase/firestore';
 import toast from 'react-hot-toast';
+import { verifyPin, hashPin } from '../utils/crypto';
 
 interface AuthContextType {
   user: User | null;
@@ -66,7 +67,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isPasswordRecorded, setIsPasswordRecorded] = useState(true);
   const [isSecurityReady, setIsSecurityReady] = useState(false);
 
-  const checkPinRequirement = useCallback((hasPin: boolean, isEnabled: boolean, timer: number, lockout: number | null) => {
+  const checkPinRequirement = useCallback(async (hasPin: boolean, isEnabled: boolean, timer: number, lockout: number | null, mode: 'check' | 'verify' = 'check', finalPin: string = '') => {
     if (lockout && lockout > Date.now()) {
       setPinVerified(false);
       return;
@@ -75,6 +76,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setPinVerified(true);
       return;
     }
+    
+    if (mode === 'verify') {
+      const isCorrect = await verifyPin(finalPin, userPin || '');
+      if (isCorrect) {
+        setPinVerified(true);
+        return;
+      } else {
+        setPinVerified(false);
+        return;
+      }
+    }
+
     const lastActive = localStorage.getItem('last_active_time');
     if (!lastActive) {
       setPinVerified(false);
@@ -327,8 +340,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const savePin = async (pin: string) => {
     if (!user) return;
     try {
+      const hashed = await hashPin(pin);
       const pinData = { 
-        securityPin: pin, 
+        securityPin: hashed, 
         pinEnabled: true, 
         pinUpdatedAt: serverTimestamp(), 
         failedAttempts: 0, 
@@ -339,13 +353,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // 2. Save to shops collection for Control Center visibility
       await setDoc(doc(db, 'shops', user.uid), pinData, { merge: true });
       
-      setUserPin(pin);
+      setUserPin(hashed);
       setPinEnabled(true);
       setPinVerified(true);
       setFailedAttempts(0);
-      toast.success('PIN Saved Everywhere');
+      toast.success('PIN Hash Saved Securely');
     } catch (e) {
-      toast.error('Sync Failed');
+      toast.error('Security Update Failed');
     }
   };
 

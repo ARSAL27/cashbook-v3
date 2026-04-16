@@ -13,12 +13,12 @@ import {
 // Both Google and Email/Password are ENABLED
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 const firebaseConfig = {
-  apiKey: "AIzaSyAduHq5SFHiPpv93FIqjMmz4udI9usBaaY",
-  authDomain: "kiryanabook.firebaseapp.com",
-  projectId: "kiryanabook",
-  storageBucket: "kiryanabook.firebasestorage.app",
-  messagingSenderId: "979880042570",
-  appId: "1:979880042570:web:2ff34dd3e731b7906546b3"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID
 };
 
 // Singleton pattern prevents double-init errors

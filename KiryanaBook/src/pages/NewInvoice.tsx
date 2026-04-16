@@ -2,11 +2,12 @@ import React, { useState, useMemo } from 'react';
 import { PageTransition } from '../components/PageTransition';
 import { useShop } from '../context/ShopContext';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Package, Trash2, Search, Plus, Minus, CreditCard, Wallet, BookOpenCheck } from 'lucide-react';
+import { ArrowLeft, Package, Trash2, Search, Plus, Minus, CreditCard, Wallet, BookOpenCheck, Share2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../context/ThemeContext';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
 import toast from 'react-hot-toast';
+import { formatReceipt, shareOnWhatsApp } from '../services/whatsappService';
 
 interface Item { itemId: string; name: string; qty: number; price: number; total: number; }
 
@@ -28,6 +29,8 @@ export const NewInvoice: React.FC = () => {
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'online' | 'udhaar'>('cash');
   const [notes] = useState('');
   const [loading, setLoading] = useState(false);
+  const [savedInvoice, setSavedInvoice] = useState<any>(null);
+  const { profile } = useShop();
 
   const triggerHaptic = (style: ImpactStyle = ImpactStyle.Light) => {
     Haptics.impact({ style }).catch(() => {});
@@ -86,7 +89,7 @@ export const NewInvoice: React.FC = () => {
 
     setLoading(true);
     try {
-      await addInvoice({
+      const newInvoice = await addInvoice({
         customerName: customerName.trim(),
         customerPhone: customerPhone.trim(),
         items,
@@ -99,7 +102,7 @@ export const NewInvoice: React.FC = () => {
       });
       triggerHaptic(ImpactStyle.Heavy);
       toast.success('Bill Mehfooz Kar Liya Gaya! ✅');
-      setTimeout(() => navigate('/invoices'), 600);
+      setSavedInvoice(newInvoice);
     } catch (e: any) {
       toast.error(e.message || 'Saving failed');
     }
@@ -326,6 +329,68 @@ export const NewInvoice: React.FC = () => {
                 </div>
             </motion.button>
         </div>
+        
+        {/* SUCCESS OVERLAY */}
+        <AnimatePresence>
+          {savedInvoice && (
+            <motion.div 
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-md flex items-end justify-center px-4 pb-12"
+            >
+              <motion.div 
+                initial={{ y: 100, scale: 0.9 }} animate={{ y: 0, scale: 1 }}
+                className="w-full max-w-sm bg-white dark:bg-[#111] rounded-[40px] p-8 text-center shadow-2xl relative overflow-hidden"
+              >
+                <div className="absolute top-0 right-0 p-4">
+                  <button onClick={() => setSavedInvoice(null)} className="opacity-30 hover:opacity-100 transition-opacity">
+                    <Trash2 size={24} />
+                  </button>
+                </div>
+
+                <div className="w-24 h-24 bg-green-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <BookOpenCheck size={48} className="text-green-500" />
+                </div>
+
+                <h2 className="text-[24px] font-black leading-tight mb-2">Bill Saved!</h2>
+                <p className="text-[14px] opacity-60 mb-8 font-medium">Invoice #{savedInvoice.invoiceNumber} tyar hai.</p>
+
+                <div className="space-y-4">
+                  <button 
+                    onClick={() => {
+                      const msg = formatReceipt(savedInvoice, profile?.name || 'Our Shop');
+                      shareOnWhatsApp(savedInvoice.customerPhone, msg);
+                    }}
+                    className="w-full py-5 rounded-[24px] bg-[#25D366] text-white font-black text-[15px] flex items-center justify-center gap-3 shadow-lg shadow-green-500/20 active:scale-95 transition-transform"
+                  >
+                    <Share2 size={20} />
+                    WhatsApp Receipt
+                  </button>
+                  
+                  <button 
+                    onClick={() => {
+                      setSavedInvoice(null);
+                      setItems([]);
+                      setCustomerName('');
+                      setCustomerPhone('');
+                      setDiscount('');
+                      navigate('/new-invoice'); // Refresh state
+                    }}
+                    className="w-full py-5 rounded-[24px] bg-gray-100 dark:bg-white/5 font-black text-[15px] active:scale-95 transition-transform"
+                  >
+                    Naya Bill Banayein
+                  </button>
+                  
+                  <button 
+                    onClick={() => navigate('/invoices')}
+                    className="w-full py-3 opacity-40 font-black text-[12px] uppercase tracking-widest"
+                  >
+                    Dashboard Per Jayein
+                  </button>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </PageTransition>
   );

@@ -18,10 +18,13 @@ const parseHybridNumber = (text: string): number | null => {
     .replace(/hazaar|hazar/g, '*1000 ');
     
   const numWords: Record<string, number> = {
-    "ek": 1, "do": 2, "teen": 3, "char": 4, "chaar": 4, "paanch": 5, "panch": 5, "che": 6, "saat": 7, "aath": 8, "nau": 9, "das": 10,
-    "gyara": 11, "bara": 12, "bis": 20, "bees": 20, "tees": 30, "chalis": 40, "pachas": 50, "saath": 60, "sattar": 70, "assi": 80, "nabbe": 90,
-    "fifty": 50, "one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6, "seven": 7, "eight": 8, "nine": 9, "ten": 10,
-    "twenty": 20, "thirty": 30, "forty": 40, "sixty": 60, "seventy": 70, "eighty": 80, "ninety": 90, "hundred": 100, "thousand": 1000
+    "ek": 1, "aik": 1, "hik": 1, "yo": 1, "one": 1, "do": 2, "du": 2, "two": 2, "teen": 3, "tre": 3, "tr": 3, "three": 3, 
+    "char": 4, "chaar": 4, "four": 4, "paanch": 5, "panch": 5, "panj": 5, "five": 5, "che": 6, "chay": 6, "six": 6, 
+    "saat": 7, "sath": 7, "seven": 7, "aath": 8, "ath": 8, "eight": 8, "nau": 9, "nao": 9, "nine": 9, "das": 10, "des": 10, "ten": 10,
+    "gyara": 11, "giara": 11, "yara": 11, "bara": 12, "twel": 12, "bis": 20, "bees": 20, "beas": 20, "twenty": 20,
+    "tees": 30, "thirty": 30, "chalis": 40, "chales": 40, "forty": 40, "forti": 40, "pachas": 50, "pachash": 50, "fifty": 50,
+    "saath": 60, "sixty": 60, "sattar": 70, "seventy": 70, "assi": 80, "eighty": 80, "nabbe": 90, "nabbay": 90, "ninety": 90,
+    "so": 100, "sau": 100, "sow": 100, "hundred": 100, "hazar": 1000, "hazaar": 1000, "thousand": 1000, "lac": 100000, "lakh": 100000
   };
 
   // Convert known words to numbers
@@ -117,12 +120,13 @@ export const parseProductVoice = (text: string): ParsedProduct => {
   }
 
   // Unit Auto Match
-  if (/\b(kg|kilo)\b/.test(t)) result.unit = 'kg';
-  else if (/\b(piece|pcs|pis)\b/.test(t)) result.unit = 'pcs';
-  else if (/\b(litre|liter|ltr)\b/.test(t)) result.unit = 'ltr';
-  else if (/\b(dozen|darjan)\b/.test(t)) result.unit = 'dozen';
-  else if (/\b(bori|bag|sack|pack|packs)\b/.test(t)) result.unit = 'packs';
-  else if (/\b(unit|units)\b/.test(t)) result.unit = 'units';
+  if (/\b(kg|kilo|kilogram|kgm|kg s|killo)\b/i.test(t)) result.unit = 'kg';
+  else if (/\b(piece|pcs|pis|piece|peece|pice|danay|dana)\b/i.test(t)) result.unit = 'pcs';
+  else if (/\b(litre|liter|ltr|litr|liters)\b/i.test(t)) result.unit = 'ltr';
+  else if (/\b(dozen|darjan|darjn|dozn)\b/i.test(t)) result.unit = 'dozen';
+  else if (/\b(bori|bag|sack|pack|packs|thela|thali)\b/i.test(t)) result.unit = 'packs';
+  else if (/\b(unit|units|unite|unt)\b/i.test(t)) result.unit = 'units';
+  else if (/\b(gram|gr|gm|grams)\b/i.test(t)) result.unit = 'gram';
 
   // Pack Size
   // If it mentions like "5kg pack", "1 liter pack"
@@ -132,15 +136,15 @@ export const parseProductVoice = (text: string): ParsedProduct => {
   }
 
   // Buying Price
-  const bp = extractValueAfter(t, /\b(buying (price)?|kharid|khareed)\b/i);
+  const bp = extractValueAfter(t, /\b(buying (price)?|kharid|khareed|leya|lia|liya|khred|kharidari)\b/i);
   if (bp) result.buyingPrice = bp;
 
   // Selling Price
-  const sp = extractValueAfter(t, /\b(selling (price)?|bechne|farokht|sale price)\b/i);
+  const sp = extractValueAfter(t, /\b(selling (price)?|bechne|farokht|sale price|becha|bechna|bechnay)\b/i);
   if (sp) result.sellingPrice = sp;
 
   // Opening Stock
-  const stock = extractValueAfter(t, /\b(opening stock|stock|inventory|aaya|aya)\b/i);
+  const stock = extractValueAfter(t, /\b(opening stock|stock|inventory|aaya|aya|shamil|dala|daalo)\b/i);
   if (stock) result.openingStock = stock;
   // Alternative: "50 kg aaya" -> stock = 50
   if (!result.openingStock) {

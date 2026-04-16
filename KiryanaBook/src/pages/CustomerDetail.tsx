@@ -56,7 +56,7 @@ export const CustomerDetail: React.FC = () => {
             setShowEditModal(false);
             toast.success('Hishab update ho gaya!');
             if (editForm.name.trim() !== name) {
-                navigate(`/customer/${encodeURIComponent(editForm.name.trim())}`, { replace: true });
+                navigate(`/customers/${encodeURIComponent(editForm.name.trim())}`, { replace: true });
             }
         } catch (e) {
             toast.error('Masla hua update karne mein');

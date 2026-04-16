@@ -1,9 +1,9 @@
 /**
- * 📚 KiryanaBook Munshi Knowledge Base
+ * 📚 KiryanaBook Manager Knowledge Base
  * A diagnostic map covering 900+ business permutations across 12 pillars.
  */
 
-export const MUNSHI_KNOWLEDGE = {
+export const MANAGER_KNOWLEDGE = {
   FINANCIAL: {
     title: "Maali Masail (Finance)",
     scenarios: [
@@ -66,9 +66,9 @@ export const MUNSHI_KNOWLEDGE = {
   // Omniscient Framework: 20,000+ permutations derived from these 18+ micro-pillars.
 };
 
-export const MUNSHI_DIAGNOSTIC_GUIDE = `
+export const MANAGER_DIAGNOSTIC_GUIDE = `
 If a user mentions "Problem", "Tension", "Masla", or "Nuqsan":
 1. ASK: "Kya yeh Udhaar ka masla hai, Maal (Stock) ka, ya Kharchon ka?"
 2. DIAGNOSE: Use the Knowledge Base to find the best match.
-3. ADVISE: Give 3 actionable steps + 1 'Munshi Tip'.
+3. ADVISE: Give 3 actionable steps + 1 'Manager Tip'.
 `;

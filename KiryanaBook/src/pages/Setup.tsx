@@ -68,10 +68,10 @@ export const Setup: React.FC = () => {
         
         {/* ── HEADER ── */}
         <div className="px-6 pt-5 pb-4 flex items-center justify-center relative">
-          <button className="absolute left-6 active:scale-95 transition-transform">
-            <ArrowLeft className="text-[#0A3D24]" size={22} strokeWidth={2.5} />
+          <button onClick={() => navigate(-1)} className="absolute left-6 active:scale-95 transition-transform text-[#0A3D24]">
+            <ArrowLeft size={22} strokeWidth={2.5} />
           </button>
-          <p className="text-text-muted text-[10px] font-bold uppercase tracking-widest">Indus Ledger v3.0</p>
+          <p className="text-text-muted text-[10px] font-black uppercase tracking-widest opacity-40">KiryanaBook v3.0</p>
         </div>
 
         {/* ── STEP HEADER ── */}
@@ -91,7 +91,7 @@ export const Setup: React.FC = () => {
           {/* ── TITLE ── */}
           <h2 className="text-[32px] font-black text-gray-900 leading-tight mb-2 tracking-tight">
             Let's set up your<br />
-            <span className="text-[#0A3D24]">Digital Ledger</span>
+            <span className="text-[#0A3D24]">Shop Pocket</span>
           </h2>
           <p className="text-[14px] font-medium text-gray-500 mb-10 leading-relaxed max-w-[280px]">
             This helps us personalize your accounting experience.

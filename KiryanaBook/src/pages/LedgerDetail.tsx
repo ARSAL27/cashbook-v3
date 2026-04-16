@@ -5,6 +5,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Building2, Users, Star } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useTheme } from '../context/ThemeContext';
+import { EmptyState } from '../components/EmptyState';
 
 export const LedgerDetail: React.FC = () => {
   const { udhaars, contacts } = useShop();
@@ -145,9 +146,15 @@ export const LedgerDetail: React.FC = () => {
             ))}
 
             {filteredEntries.length === 0 && (
-                <div className="py-20 text-center">
-                    <p className="text-gray-400 font-bold text-[13px]">No entries found in this category</p>
-                </div>
+                <EmptyState 
+                    icon={Users}
+                    title="Koi Entry Nahi Hai"
+                    description={`Abhi tak aapne koi ${currentView === 'receivables' ? 'Lena (Receivable)' : 'Dena (Payable)'} entry nahi ki hai.`}
+                    action={{
+                        label: "+ Nayi Entry",
+                        onClick: () => navigate('/add-sale')
+                    }}
+                />
             )}
         </div>
       </div>

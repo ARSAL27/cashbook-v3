@@ -53,8 +53,8 @@ export const Onboarding: React.FC = () => {
              transition={{ duration: 0.5, delay: 0.2 }}
              className="space-y-3"
           >
-            <h1 className="text-4xl font-black text-text-primary tracking-tight leading-tight uppercase">
-              Indus<br /><span className="text-primary">Ledger v3.0</span>
+            <h1 className="text-4xl font-black text-primary tracking-tight leading-tight uppercase">
+              Kiryana<br /><span>Book v3.0</span>
             </h1>
             <p className="text-primary text-[10px] font-black uppercase tracking-[0.2em] mt-1 italic opacity-80">
                 Asaan Karobar, Behtar Hisaab

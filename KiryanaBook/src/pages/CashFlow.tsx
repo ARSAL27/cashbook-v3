@@ -5,6 +5,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, ArrowDownLeft, ArrowUpRight, Calendar, Filter } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../context/ThemeContext';
+import { EmptyState } from '../components/EmptyState';
 
 type RangeType = 'daily' | 'weekly' | 'monthly' | 'custom';
 
@@ -171,25 +172,31 @@ export const CashFlow: React.FC = () => {
                                     className="overflow-hidden"
                                 >
                                     <div className="pt-3 pb-1 flex gap-2">
-                                        <div className="flex-1">
-                                            <p className="text-[9px] font-black uppercase tracking-widest mb-1.5 ml-1" style={{ color: sub }}>Shuru (From)</p>
-                                            <input
-                                                type="date"
-                                                value={customFrom}
-                                                onChange={e => setCustomFrom(e.target.value)}
-                                                className="w-full rounded-xl px-3 py-2 text-[12px] font-bold outline-none"
-                                                style={{ backgroundColor: isDarkMode ? '#1E1E1E' : '#F5F5F5', color: text }}
-                                            />
+                                        <div className="flex-1 space-y-1.5">
+                                            <p className="text-[9px] font-black uppercase tracking-widest pl-1" style={{ color: sub }}>Shuru (From)</p>
+                                            <div className="relative">
+                                                <Calendar size={14} className="absolute left-3 top-1/2 -translate-y-1/2 opacity-30" />
+                                                <input
+                                                    type="date"
+                                                    value={customFrom}
+                                                    onChange={e => setCustomFrom(e.target.value)}
+                                                    className="w-full rounded-xl pl-9 pr-3 py-2.5 text-[12px] font-bold outline-none border border-transparent focus:border-accent transition-all [color-scheme:dark]"
+                                                    style={{ backgroundColor: isDarkMode ? '#1E1E1E' : '#F5F5F5', color: text }}
+                                                />
+                                            </div>
                                         </div>
-                                        <div className="flex-1">
-                                            <p className="text-[9px] font-black uppercase tracking-widest mb-1.5 ml-1" style={{ color: sub }}>Khatam (To)</p>
-                                            <input
-                                                type="date"
-                                                value={customTo}
-                                                onChange={e => setCustomTo(e.target.value)}
-                                                className="w-full rounded-xl px-3 py-2 text-[12px] font-bold outline-none"
-                                                style={{ backgroundColor: isDarkMode ? '#1E1E1E' : '#F5F5F5', color: text }}
-                                            />
+                                        <div className="flex-1 space-y-1.5">
+                                            <p className="text-[9px] font-black uppercase tracking-widest pl-1" style={{ color: sub }}>Khatam (To)</p>
+                                            <div className="relative">
+                                                <Calendar size={14} className="absolute left-3 top-1/2 -translate-y-1/2 opacity-30" />
+                                                <input
+                                                    type="date"
+                                                    value={customTo}
+                                                    onChange={e => setCustomTo(e.target.value)}
+                                                    className="w-full rounded-xl pl-9 pr-3 py-2.5 text-[12px] font-bold outline-none border border-transparent focus:border-accent transition-all [color-scheme:dark]"
+                                                    style={{ backgroundColor: isDarkMode ? '#1E1E1E' : '#F5F5F5', color: text }}
+                                                />
+                                            </div>
                                         </div>
                                     </div>
                                 </motion.div>
@@ -201,12 +208,11 @@ export const CashFlow: React.FC = () => {
                 {/* TRANSACTION LIST */}
                 <div className="px-4 space-y-2">
                     {filtered.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center pt-20">
-                            <div className="w-20 h-20 rounded-3xl flex items-center justify-center mb-4" style={{ backgroundColor: bgAccent }}>
-                                <Calendar size={32} style={{ color: accentColor }} />
-                            </div>
-                            <p className="text-[13px] font-bold opacity-40">Is period mein koi record nahi</p>
-                        </div>
+                        <EmptyState 
+                            icon={Calendar}
+                            title="Koi Record Nahi Mila"
+                            description={`Is period mein aapka koi cash ${isIn ? 'in (income)' : 'out (expense)'} record nahi hai.`}
+                        />
                     ) : (
                         filtered.map((item, i) => (
                             <motion.div

@@ -1,19 +1,23 @@
 import React, { useState } from 'react';
 import { PageTransition } from '../components/PageTransition';
 import { useShop } from '../context/ShopContext';
-import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Package, AlertTriangle, Check, ChevronDown, Mic } from 'lucide-react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { ArrowLeft, Package, AlertTriangle, Check, ChevronDown, Mic, Camera } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import toast from 'react-hot-toast';
+import { SearchableSelector } from '../components/SearchableSelector';
+import { KIRYANA_DATABASE, KIRYANA_CATEGORIES } from '../data/kiryanaDatabase';
+import { guessCategory, validateProductEntry, standardizeBrand } from '../utils/productValidation';
 
 
 export const AddItem: React.FC = () => {
-  const { addStockItem, categories } = useShop();
-  const { isDarkMode } = useTheme();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const { stock, addStockItem } = useShop();
+  const { isDarkMode } = useTheme();
 
   const [name, setName] = useState('');
-  const [category, setCategory] = useState(categories.length > 0 ? categories[0] : 'Grocery');
+  const [category, setCategory] = useState(KIRYANA_CATEGORIES[0].name);
   const [unit, setUnit] = useState<'kg' | 'units' | 'packs' | 'ltr' | 'pcs' | 'dozen'>('kg');
   const [openingStock, setOpeningStock] = useState('');
   const [buyingPrice, setBuyingPrice] = useState('');
@@ -23,8 +27,46 @@ export const AddItem: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [showCategoryInput, setShowCategoryInput] = useState(false);
   const [newCategory, setNewCategory] = useState('');
+  const [imageUrl, setImageUrl] = useState('');
+  const [company, setCompany] = useState('');
 
   const [categoryWarning, setCategoryWarning] = useState(false);
+  const [sku, setSku] = useState('');
+  const [showImageSource, setShowImageSource] = useState(false);
+  const cameraInputRef = React.useRef<HTMLInputElement>(null);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  // ─── BARCODE INTEGRATION ───
+  React.useEffect(() => {
+    const barcode = searchParams.get('barcode');
+    if (!barcode) return;
+
+    setSku(barcode);
+    
+    // 1. Check local stock first
+    const existing = stock.find(s => s.sku === barcode);
+    if (existing) {
+       setName(existing.name);
+       setCategory(existing.category);
+       setUnit(existing.unit as any);
+       setCompany(existing.company || '');
+       setBuyingPrice(existing.buyingPrice?.toString() || '');
+       setSellingPrice(existing.price?.toString() || '');
+       setImageUrl(existing.imageUrl || '');
+       toast('Yeh item pehle se stock mein hai. Updates save honge.', { icon: 'ℹ️' });
+       return;
+    }
+
+    // 2. Search master database
+    const master = KIRYANA_DATABASE.find(item => item.name.toLowerCase().includes(barcode.toLowerCase())); // Mock lookup or exact if available
+    if (master) {
+       setName(master.name);
+       if (master.category) setCategory(master.category);
+       if (master.company) setCompany(master.company);
+       if (master.unit) setUnit(master.unit as any);
+       toast.success('Product found in Database!', { icon: '📦' });
+    }
+  }, [searchParams, stock]);
 
 
   const bg = isDarkMode ? '#0A0A0A' : '#FAFAFA';
@@ -33,34 +75,69 @@ export const AddItem: React.FC = () => {
   const sub = isDarkMode ? '#B0B0B0' : '#888888';
   const input = isDarkMode ? '#1E1E1E' : '#FFFFFF';
 
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-
-
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const MAX_WIDTH = 300;
+        const netWidth = img.width > MAX_WIDTH ? MAX_WIDTH : img.width;
+        const netHeight = (img.height / img.width) * netWidth;
+        canvas.width = netWidth;
+        canvas.height = netHeight;
+        const ctx = canvas.getContext('2d');
+        ctx?.drawImage(img, 0, 0, netWidth, netHeight);
+        setImageUrl(canvas.toDataURL('image/jpeg', 0.7));
+      };
+      img.src = event.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+  };
 
   const handleSave = async () => {
     if (!name.trim()) return toast.error('Product name zaroori hai');
-    if (!sellingPrice || !openingStock || !buyingPrice) return toast.error('Khareed qemat aur Farokht qemat dono zaroori hain');
+    if (buyingPrice === '' || sellingPrice === '' || openingStock === '') {
+      return toast.error('Qemat aur Stock ki details bharna lazmi hai');
+    }
+
+    const finalCategory = showCategoryInput ? newCategory.trim() : category;
+    const finalBrand = standardizeBrand(company);
+
+    // Smart Validation Engine
+    const validation = validateProductEntry(name.trim(), finalCategory, finalBrand);
+    if (!validation.isValid && !categoryWarning) {
+      setCategoryWarning(true);
+      return toast.error(`${validation.message} (Save dubara dabayein confirm karne ke liye)`, { duration: 5000 });
+    }
     
     setLoading(true);
     try {
       const newItem: any = {
         name: name.trim(),
-        category: showCategoryInput ? newCategory : category,
+        company: finalBrand,
+        category: finalCategory || 'Others',
         unit,
         quantity: Number(openingStock),
         buyingPrice: Number(buyingPrice),
         price: Number(sellingPrice),
         minThreshold: Number(minThreshold),
-        sku: `SKU-${Math.floor(1000 + Math.random() * 9000)}`
+        imageUrl: imageUrl || '',
+        sku: sku || `SKU-${Math.floor(1000 + Math.random() * 9000)}`
       };
       
       if (packSize.trim()) newItem.packSize = packSize.trim();
 
       await addStockItem(newItem);
       toast.success('Product add ho gaya! 🎉');
+      setLoading(false);
       navigate(-1);
-    } catch (e) {
-      toast.error('Kuch masla hua save karne mein');
+    } catch (e: any) {
+      console.error('AddItem Error:', e);
+      toast.error(`Saving fail hui: ${e?.message || 'Unknown error'}`);
       setLoading(false);
     }
   };
@@ -81,25 +158,108 @@ export const AddItem: React.FC = () => {
 
         <div className="px-5 pt-6 space-y-6">
            
-           {/* PRODUCT NAME */}
-           <div className="space-y-2">
-              <p className="text-[11px] font-black uppercase tracking-widest px-1" style={{ color: sub }}>Product Name</p>
-              <div className="relative flex items-center">
-                <input 
-                    value={name} onChange={e => setName(e.target.value)}
-                    placeholder="e.g. Basmati Rice Premium"
-                    className="w-full p-4 pr-12 rounded-2xl border outline-none font-bold text-[15px] transition-all"
-                    style={{ color: text, borderColor: border, backgroundColor: input }}
+           {/* IMAGE UPLOADER */}
+            <div className="flex flex-col items-center justify-center py-2">
+                <div className="relative">
+                    <div className="w-24 h-24 rounded-[2rem] border-2 border-dashed flex items-center justify-center overflow-hidden transition-all" 
+                         style={{ backgroundColor: input, borderColor: border }}>
+                        {imageUrl ? (
+                            <img src={imageUrl} alt="Product" className="w-full h-full object-cover" />
+                        ) : (
+                            <div className="flex flex-col items-center gap-1 opacity-20">
+                                <Package size={24} />
+                                <span className="text-[8px] font-black uppercase">NO PIC</span>
+                            </div>
+                        )}
+                    </div>
+                    {/* CAMERA TRIGGER BUTTON */}
+                    <button 
+                      onClick={() => setShowImageSource(true)}
+                      className="absolute -bottom-1 -right-1 w-10 h-10 bg-[#4BFF94] text-[#0A3D24] rounded-2xl flex items-center justify-center shadow-lg cursor-pointer active:scale-90 transition-transform border-4 border-white dark:border-[#0A0A0A]">
+                        <Camera size={18} strokeWidth={3} />
+                    </button>
+                    
+                    {/* HIDDEN INPUTS */}
+                    <input type="file" accept="image/*" capture="environment" className="hidden" ref={cameraInputRef} onChange={handleImageUpload} />
+                    <input type="file" accept="image/*" className="hidden" ref={fileInputRef} onChange={handleImageUpload} />
+                </div>
+                <p className="text-[9px] font-black uppercase tracking-widest mt-3 opacity-40">Product Image</p>
+            </div>
 
-                />
-                <button
-                   disabled={true}
-                   className="absolute right-3 w-10 h-10 rounded-xl flex items-center justify-center bg-gray-100 dark:bg-white/5 text-gray-400 cursor-not-allowed opacity-60"
-                >
-                   <Mic size={18} />
-                   <span className="absolute -top-1 -right-1 bg-yellow-500 text-[6px] text-white px-1 rounded-full font-black">PRO</span>
-                </button>
+            {/* IMAGE SOURCE CHOICE MENU */}
+            {showImageSource && (
+              <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm px-6" onClick={() => setShowImageSource(false)}>
+                <div className="w-full max-w-xs bg-white dark:bg-[#1E1E1E] rounded-[2.5rem] p-8 shadow-2xl animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+                   <h3 className="text-[18px] font-black text-center mb-6" style={{ color: text }}>Tasweer Kahan Se Lein?</h3>
+                   <div className="grid grid-cols-2 gap-4">
+                      <button 
+                        onClick={() => { cameraInputRef.current?.click(); setShowImageSource(false); }}
+                        className="flex flex-col items-center gap-3 p-5 rounded-3xl bg-[#4BFF94]/10 border border-[#4BFF94]/20 active:scale-95 transition-all"
+                      >
+                         <div className="w-12 h-12 rounded-full bg-[#4BFF94] text-[#0A3D24] flex items-center justify-center shadow-lg">
+                           <Camera size={22} strokeWidth={3} />
+                         </div>
+                         <span className="text-[12px] font-black" style={{ color: text }}>CAMERA</span>
+                      </button>
+                      <button 
+                        onClick={() => { fileInputRef.current?.click(); setShowImageSource(false); }}
+                        className="flex flex-col items-center gap-3 p-5 rounded-3xl bg-gray-100 dark:bg-white/5 border border-transparent active:scale-95 transition-all"
+                      >
+                         <div className="w-12 h-12 rounded-full bg-gray-200 dark:bg-white/10 text-gray-600 dark:text-gray-300 flex items-center justify-center shadow-sm">
+                           <Package size={22} />
+                         </div>
+                         <span className="text-[12px] font-black" style={{ color: text }}>GALLERY</span>
+                      </button>
+                   </div>
+                   <button 
+                    onClick={() => setShowImageSource(false)}
+                    className="w-full mt-6 py-3 rounded-xl font-bold text-[13px] opacity-40" 
+                    style={{ color: text }}
+                   >
+                     Nahin, rehne dein
+                   </button>
+                </div>
               </div>
+            )}
+           
+           {/* PRODUCT NAME (Database Integrated) */}
+           <div className="space-y-2">
+              <SearchableSelector 
+                label="Product Search"
+                items={KIRYANA_DATABASE}
+                keys={['name', 'company']}
+                placeholder="Dhund kar add karein (e.g. Shan Dalda)"
+                category="products"
+                onSelect={(item) => {
+                   setName(item.name);
+                   if (item.category) setCategory(item.category);
+                   if (item.company) setCompany(item.company);
+                   if (item.unit) setUnit(item.unit as any);
+                }}
+                onAddNew={(newName) => {
+                   setName(newName);
+                   const suggested = guessCategory(newName);
+                   if (suggested) {
+                     setCategory(suggested);
+                     toast.success(`Category auto-selected: ${suggested}`, { icon: '🤖' });
+                   }
+                }}
+              />
+              <div className="flex items-center gap-1.5 px-1 mt-1 opacity-40">
+                <span className="text-[10px] font-bold uppercase tracking-tighter">Database matching active</span>
+                <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+              </div>
+           </div>
+
+           {/* COMPANY / BRAND */}
+           <div className="space-y-2">
+              <p className="text-[11px] font-black uppercase tracking-widest px-1" style={{ color: sub }}>Company / Brand</p>
+              <input 
+                  value={company} onChange={e => setCompany(e.target.value)}
+                  placeholder="e.g. Shan, Pepsi, National"
+                  className="w-full p-4 rounded-2xl border outline-none font-bold text-[15px] transition-all"
+                  style={{ color: text, borderColor: border, backgroundColor: input }}
+              />
            </div>
 
            {/* CAT, UNIT & PACK SIZE */}
@@ -118,10 +278,9 @@ export const AddItem: React.FC = () => {
                             className="w-full p-4 rounded-2xl outline-none font-bold text-[15px] appearance-none bg-transparent"
                             style={{ color: text }}
                             >
-                            {categories.map(c => (
-                                <option key={c} value={c}>{c}</option>
+                            {KIRYANA_CATEGORIES.map(c => (
+                                <option key={c.id} value={c.name}>{c.emoji} {c.name}</option>
                             ))}
-                            <option value="ADD_NEW">+ Add New Category</option>
                             </select>
                             <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: sub }} />
                         </>
@@ -162,6 +321,7 @@ export const AddItem: React.FC = () => {
                          <option value="ltr">ltr</option>
                          <option value="pcs">pcs</option>
                          <option value="dozen">dozen</option>
+                         <option value="bori">bori</option>
                       </select>
                       <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: sub }} />
                    </div>
@@ -278,7 +438,7 @@ export const AddItem: React.FC = () => {
            className="fixed bottom-[180px] right-5 z-[80] w-[60px] h-[60px] rounded-full shadow-2xl flex items-center justify-center bg-gray-400 text-white cursor-not-allowed opacity-50"
         >
            <Mic size={26} />
-           <div className="absolute -top-2 bg-yellow-500 text-[10px] text-white px-2 py-0.5 rounded-full font-bold shadow-sm">PAID</div>
+           <div className="absolute -top-2 bg-purple-600 text-[10px] text-white px-2 py-0.5 rounded-full font-bold shadow-sm">PRO</div>
         </button>
 
       </div>

@@ -1,6 +1,7 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { MASTER_ADVICE_LIBRARY } from "./adviceLibrary";
-const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY);
+const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+const genAI = apiKey ? new GoogleGenerativeAI(apiKey) : null;
 
 export interface VoiceAction {
   action: 'add' | 'update' | 'remove' | 'discount' | 'customer' | 'unknown';
@@ -10,8 +11,10 @@ export interface VoiceAction {
   type?: 'percent' | 'fixed';
   customerName?: string;
 }
-
 export const parseVoiceCommand = async (transcript: string, stockNames: string[]): Promise<VoiceAction[]> => {
+  if (!genAI) {
+    throw new Error("Gemini API Key missing (Business Manager AI disabled)");
+  }
   const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
   const prompt = `
@@ -67,6 +70,7 @@ export interface ProductAction {
 }
 
 export const parseProductCommand = async (transcript: string): Promise<ProductAction> => {
+  if (!genAI) return { name: "", category: "Grocery" };
   const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
   const prompt = `
@@ -109,35 +113,29 @@ export const parseProductCommand = async (transcript: string): Promise<ProductAc
 };
 
 const SHOP_MANAGER_TRAINING_PROMPT = `
-You are the **"Universal AI Munshi"** for 'KiryanaBook' — a legendary, 30-year experienced Pakistani shop manager, CA, and high-level business strategist. 
-Your brain is built for massive resilience. You understand the "dirty" language of real shopkeepers.
+You are the **"Professional Business Manager"** for 'KiryanaBook'. 
+You are a domain-specific financial agent, NOT a general chatbot.
 
-### 🧠 TYPO-PROOF INTELLIGENCE (Strict Rule)
-- **Ignore Mistakes**: Users will make spelling mistakes, use no punctuation, and mix languages. (e.g. 'udhar???', 'kl ki sela', 'pisa kider gya', 'dukan kesi he').
-- **Phonetic Matching**: Match 'udhar' to Udhaar, 'sela' to Sale, 'munafa' to Profit, 'kl' to Yesterday, 'aj' to Today.
-- **Never Fail**: Never say "Samajh nahi aaya". If the query is totally messy, use the provided Shop Data to give a **Vitals Summary** and politely ask if they meant to ask about their sales or profit.
+### 📜 STRICT OPERATIONAL RULES:
+1. **Domain Focus**: Only assist with shop cashbook data, financial summaries, transactions, and shopkeeper operations.
+2. **Intent Classification**: You must internalize the intent before responding:
+   - GREETING: (Hi, Hello, Assalam-o-Alaikum) -> Brief response + ask how you can help with cashbook tasks.
+   - FINANCIAL_OPERATION: (Sales, Expenses, Profit, Udhaar, Stock) -> Accurate data-driven response.
+   - REPORT_SUMMARY: (Audit, Performance, Week/Month summaries) -> Focused summary.
+   - INVALID_REQUEST: (Jokes, weather, general talk, non-business) -> "I can only help with your shop cashbook and financial records."
+3. **Redirection**: If the request is unrelated to business/cashbook/shops, politely redirect to app usage.
+4. **Output Format**: Short, action-focused, no unnecessary conversation. 
+5. **No Hallucination**: If data is missing in the context, say "No data available". Do NOT guess numbers.
+6. **Cultural Tone**: Be professional. Use "Masha'Allah", "Insha'Allah", "Bhai", "Sahib". Use Roman Urdu/English hybrid.
 
-### 🌟 YOUR CORE PHILOSOPHY
-- You are a wise partner, not just a chatbot. 
-- Use "Masha'Allah", "Insha'Allah", "Bhai", "Sahib".
-- Language: **Roman Urdu (Hinglish/Urdu-English hybrid)**. 
-
-### 📚 MASTER KNOWLEDGE BASE (10,000+ Scenarios)
-1. **Financial Strategy**: sugggest FIFO (milk/yogurt), seasonality (Ramadan/Eids/Summer), identify "Dead Stock" (30+ days no sale).
-2. **Growth Mastery**: When user asks to "improve", "increase", or "grow", synthesize a **3-Step Masterplan** using 2-3 unique actions from the 500+ library injected in context.
-3. **Udhaar Recovery**: polite vs strict strategies based on balance age.
-
-### 🌌 THE 50+ BRAIN INTENTS (Classify into one)
-SALES_TODAY, SALES_YESTERDAY, SALES_WEEK, SALES_MONTH, PROFIT_TODAY, PROFIT_YESTERDAY, PROFIT_WEEK, PROFIT_MONTH, TOTAL_UDHAAR, TOP_DEBTORS, STOCK_LOW, ITEM_STOCK, SLOW_STOCK, TOP_EXPENSE, CASH_HAND, NET_WORTH, SHOP_HEALTH, ADVICE_GROWTH, ADVICE_EXPENSE, ADVICE_UDHAAR, VENDOR_PAYMENT, CUSTOMER_LOYALTY, LOSS_ANALYSIS, SPECIFIC_DATE, MATH, UNKNOWN_GENERAL.
-
-### 📝 RESPONSE FORMAT
-1. **Context Summary**: (e.g. "Bhai, aapki aaj ki sale Rs. 15,200 hai...")
-2. **Expert Insight**: (e.g. "Ye kal se 10% kam hai, dukan pe rush kam lag raha hai.")
-3. **Professional Tip**: (e.g. "Munshi Tip: Doodh ka stock check karain, expiry qareeb hai.")
-4. **Formatting**: Use **Bold numbers**, bullet points, and 📈, 📦, ✨, 💰.
+### 📝 RESPONSE STRUCTURE:
+1. **Classify**: (Internal step, do not print the category name unless asked, just align response style).
+2. **Context**: Use specific figures from provided Shop Data.
+3. **Action**: Suggest a specific business action based on data.
 `;
 
 export const analyzeBusinessQuery = async (queryText: string): Promise<string> => {
+  if (!genAI) return 'HEALTH_CHECK';
   const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
   const prompt = `
@@ -158,6 +156,7 @@ export const analyzeBusinessQuery = async (queryText: string): Promise<string> =
 };
 
 export const generateBusinessResponse = async (queryText: string, dataSummary: string, intent: string): Promise<string> => {
+  if (!genAI) return "Pehlay AI key lagayen App settings me (Business Manager AI disabled)";
   const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
   // Shuffle and pick 15 random strategies for extreme variation

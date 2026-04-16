@@ -110,7 +110,24 @@
   }
 
   .glass-card {
-    @apply bg-white/95 dark:bg-[#0D0D1A]/90 backdrop-blur-2xl border border-white/10 shadow-2xl;
+    @apply bg-white/70 dark:bg-black/40 backdrop-blur-xl border border-white/20 dark:border-white/5 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)];
+  }
+
+  .mesh-gradient-green {
+    background-color: #1A5C38;
+    background-image: 
+      radial-gradient(at 0% 0%, hsla(151, 100%, 45%, 0.15) 0px, transparent 50%),
+      radial-gradient(at 100% 0%, hsla(145, 100%, 39%, 0.1) 0px, transparent 50%),
+      radial-gradient(at 100% 100%, hsla(151, 100%, 45%, 0.15) 0px, transparent 50%),
+      radial-gradient(at 0% 100%, hsla(145, 100%, 39%, 0.1) 0px, transparent 50%);
+  }
+
+  .text-glow {
+    text-shadow: 0 0 15px rgba(0, 230, 118, 0.4);
+  }
+
+  .border-glow {
+    box-shadow: 0 0 0 1px rgba(0, 230, 118, 0.1), 0 0 15px rgba(0, 230, 118, 0.05);
   }
 }
 

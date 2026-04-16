@@ -22,10 +22,12 @@ export const StockReceive: React.FC = () => {
   
   // Sheet state
   const [selectedProduct, setSelectedProduct] = useState<KiryanaProduct | null>(null);
+  const [selectedSize, setSelectedSize] = useState<string>('');
   const [quantity, setQuantity] = useState('');
   const [buyingPrice, setBuyingPrice] = useState('');
   const [sellingPrice, setSellingPrice] = useState('');
   const [lowStock, setLowStock] = useState('10');
+  const [overrideCategory, setOverrideCategory] = useState<string>('');
   const [loading, setLoading] = useState(false);
 
   // Session stats
@@ -50,9 +52,12 @@ export const StockReceive: React.FC = () => {
   }, [selectedCategory]);
 
   const productsMatch = useMemo(() => {
-    if (!selectedCompany) return [];
-    return KIRYANA_DATABASE.filter(p => p.company === selectedCompany);
-  }, [selectedCompany]);
+    if (!selectedCompany || !selectedCategory) return [];
+    return KIRYANA_DATABASE.filter(p => 
+      p.company === selectedCompany && 
+      p.category === selectedCategory
+    );
+  }, [selectedCompany, selectedCategory]);
 
   // Global search implementation
   const searchResults = useMemo(() => {
@@ -80,15 +85,18 @@ export const StockReceive: React.FC = () => {
     const existing = stock.find(s => s.name === product.name && s.category === product.category);
     
     setSelectedProduct(product);
+    setSelectedSize(''); // Reset size
     setQuantity('');
     if (existing) {
       setBuyingPrice(existing.buyingPrice?.toString() || '');
       setSellingPrice(existing.price?.toString() || '');
       setLowStock(existing.minThreshold?.toString() || '10');
+      setOverrideCategory(existing.category || product.category);
     } else {
       setBuyingPrice('');
       setSellingPrice('');
       setLowStock('10');
+      setOverrideCategory(product.category);
     }
   };
 
@@ -96,10 +104,17 @@ export const StockReceive: React.FC = () => {
     if (!selectedProduct) return;
     if (!quantity || !buyingPrice || !sellingPrice) return toast.error('Quantity aur Prices zaroori hain');
     
+    // VALIDATION
+    if (isNaN(Number(quantity)) || Number(quantity) <= 0) return toast.error('Quantity sahi daalein');
+    if (isNaN(Number(buyingPrice)) || Number(buyingPrice) < 0) return toast.error('Khareed qemat sahi daalein');
+    if (isNaN(Number(sellingPrice)) || Number(sellingPrice) < 0) return toast.error('Farokht qemat sahi daalein');
+    
     setLoading(true);
+    console.log('Adding Stock Details:', { product: selectedProduct, quantity, buyingPrice, sellingPrice, size: selectedSize });
     try {
-      // Check if item already exists
-      const existing = stock.find(s => s.name === selectedProduct.name && s.category === selectedProduct.category);
+      // Check if item already exists - Check using the target category
+      const targetCategory = overrideCategory || selectedProduct.category;
+      const existing = stock.find(s => s.name === selectedProduct.name && s.category === targetCategory);
       
       if (existing) {
         // UPDATE EXISTING ITEM
@@ -116,6 +131,8 @@ export const StockReceive: React.FC = () => {
           buyingPrice: Number(buyingPrice),
           price: Number(sellingPrice),
           minThreshold: Number(lowStock),
+          packSize: selectedSize || existing.packSize,
+          company: selectedProduct.company,
           imageUrl: getBrandStyle(selectedProduct.company).logoUrl || existing.imageUrl,
           history: [...(existing.history || []), historyEntry],
           isDeleted: false
@@ -124,8 +141,10 @@ export const StockReceive: React.FC = () => {
         // ADD NEW ITEM
         await addStockItem({
           name: selectedProduct.name,
-          category: selectedProduct.category,
+          company: selectedProduct.company,
+          category: overrideCategory || selectedProduct.category,
           unit: selectedProduct.unit as any,
+          packSize: selectedSize,
           quantity: Number(quantity),
           buyingPrice: Number(buyingPrice),
           price: Number(sellingPrice),
@@ -135,11 +154,12 @@ export const StockReceive: React.FC = () => {
         });
       }
 
-      toast.success(`${selectedProduct.name} stock mein add ho gaya!`);
+      toast.success(`${selectedProduct.name} ${selectedSize ? `(${selectedSize})` : ''} stock mein add ho gaya!`);
       setAddedCount(prev => prev + 1);
       setSelectedProduct(null);
-    } catch (e) {
-      toast.error('Error saving stock');
+    } catch (e: any) {
+      console.error("Stock Save Error:", e);
+      toast.error('Error saving stock: ' + (e.message || 'Unknown error'));
     }
     setLoading(false);
   };
@@ -163,7 +183,8 @@ export const StockReceive: React.FC = () => {
            <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
                  <button onClick={() => {
-                   if (step === 4) cancelSearch();
+                   if (selectedProduct) setSelectedProduct(null);
+                   else if (step === 4) cancelSearch();
                    else if (step === 3) setStep(2);
                    else if (step === 2) setStep(1);
                    else navigate(-1);
@@ -276,61 +297,73 @@ export const StockReceive: React.FC = () => {
                 {step === 4 ? 'Search Results' : 'Product Select Karo'}
               </h2>
               
-              {(step === 4 ? searchResults : productsMatch).map(prod => {
-                const isAdded = stock.some(s => s.name === prod.name && s.category === prod.category);
-                const brand = getBrandStyle(prod.company);
+              {(() => {
+                const list = step === 4 ? searchResults : productsMatch;
                 
-                return (
-                  <div 
-                    key={prod.id}
-                    className="flex items-center justify-between p-4 rounded-2xl border shadow-sm"
-                    style={{ backgroundColor: card, borderColor: border }}
-                  >
-                    <div className="flex items-center gap-3">
-                       {/* Brand Logo / Icon */}
-                       <div 
-                         className="w-12 h-12 rounded-xl flex items-center justify-center relative overflow-hidden shadow-sm border border-gray-100 dark:border-white/5"
-                         style={{ backgroundColor: brand.bg }}
-                       >
-                         {isAdded ? (
-                           <div className="absolute inset-0 bg-white/90 dark:bg-black/80 flex items-center justify-center z-10">
-                             <Check size={20} className="text-[#00C853]" strokeWidth={4} />
-                           </div>
-                         ) : null}
-                         
-                         {/* Brand Abbreviation */}
-                         <span 
-                           className="font-black text-[12px] tracking-tight select-none"
-                           style={{ color: brand.text }}
-                         >
-                           {brand.abbr}
-                         </span>
+                // Grouping Logic
+                const grouped: Record<string, { baseName: string; variations: typeof list; company: string; category: string }> = {};
+                
+                list.forEach(item => {
+                  // Basic extraction: "Coca Cola 250ml Can" -> "Coca Cola"
+                  // We can use a regex or just take everything before the first digit
+                  const nameMatch = item.name.match(/^(.*?)\s*\d/);
+                  const base = nameMatch ? nameMatch[1].trim() : item.name;
+                  
+                  if (!grouped[base]) {
+                    grouped[base] = { baseName: base, variations: [], company: item.company, category: item.category };
+                  }
+                  grouped[base].variations.push(item);
+                });
 
-                         {/* Real logo image */}
-                         {brand.logoUrl && (
-                           <img
-                             src={brand.logoUrl}
-                             alt={prod.company}
-                             className="absolute inset-0 w-full h-full object-contain p-1"
-                             onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
-                           />
-                         )}
-                       </div>
-                       <div>
-                          <h3 className="text-[14px] font-black leading-tight" style={{ color: text }}>{prod.name}</h3>
-                          <p className="text-[10px] font-bold mt-0.5" style={{ color: sub }}>{prod.company} • {prod.category}</p>
-                       </div>
-                    </div>
-                    <button 
-                      onClick={() => openProduct(prod)}
-                      className="px-4 py-2 rounded-xl text-[12px] font-black transition-colors"
-                      style={{ backgroundColor: isAdded ? '#E8F5E9' : '#0A3D24', color: isAdded ? '#00C853' : '#4BFF94' }}
+                return Object.values(grouped).map(group => {
+                  const brand = getBrandStyle(group.company);
+                  
+                  return (
+                    <div 
+                      key={group.baseName}
+                      className="p-4 rounded-[2rem] border shadow-sm transition-all"
+                      style={{ backgroundColor: card, borderColor: border }}
                     >
-                      {isAdded ? 'UPDATE' : '+ ADD'}
-                    </button>
-                  </div>
-                );
-              })}
+                      <div className="flex items-center gap-3 mb-4">
+                        <div 
+                          className="w-12 h-12 rounded-xl flex items-center justify-center relative shadow-sm border border-gray-100 dark:border-white/5"
+                          style={{ backgroundColor: brand.bg }}
+                        >
+                          <span className="font-black text-[12px]" style={{ color: brand.text }}>{brand.abbr}</span>
+                          {brand.logoUrl && (
+                            <img src={brand.logoUrl} alt="" className="absolute inset-0 w-full h-full object-contain p-1" />
+                          )}
+                        </div>
+                        <div>
+                          <h3 className="text-[15px] font-black leading-tight" style={{ color: text }}>{group.baseName}</h3>
+                          <p className="text-[10px] font-bold mt-0.5 opacity-60" style={{ color: text }}>{group.company}</p>
+                        </div>
+                      </div>
+
+                      {/* Variations List */}
+                      <div className="space-y-2">
+                        {group.variations.map(variant => {
+                          const isAdded = stock.some(s => s.name === variant.name && s.category === variant.category);
+                          return (
+                            <div key={variant.id} className="flex items-center justify-between py-2 border-t border-gray-50 dark:border-white/5">
+                              <span className="text-[13px] font-bold" style={{ color: text }}>
+                                {variant.name.replace(group.baseName, '').trim() || 'Standard'}
+                              </span>
+                              <button 
+                                onClick={() => openProduct(variant)}
+                                className="px-5 py-2 rounded-xl text-[11px] font-black transition-colors"
+                                style={{ backgroundColor: isAdded ? '#E8F5E9' : '#0A3D24', color: isAdded ? '#00C853' : '#4BFF94' }}
+                              >
+                                {isAdded ? 'UPDATE' : '+ ADD'}
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                });
+              })()}
 
               {step === 4 && searchResults.length === 0 && (
                  <div className="text-center py-10">
@@ -362,8 +395,56 @@ export const StockReceive: React.FC = () => {
                       <X size={18} style={{ color: text }} />
                     </button>
                     
-                    <h3 className="text-[18px] font-black pr-10 leading-tight" style={{ color: text }}>{selectedProduct.name}</h3>
-                    <p className="text-[12px] font-bold mt-1" style={{ color: sub }}>{selectedProduct.company} • {selectedProduct.category}</p>
+                      <h3 className="text-[18px] font-black pr-10 leading-tight" style={{ color: text }}>
+                        {selectedProduct.name}
+                        {selectedSize && <span className="text-[#00C853] ml-2">({selectedSize})</span>}
+                      </h3>
+                      <p className="text-[12px] font-bold mt-1" style={{ color: sub }}>{selectedProduct.company} • {overrideCategory}</p>
+                    </div>
+
+                    {/* CATEGORY SELECTOR */}
+                    <div className="mt-6">
+                      <p className="text-[10px] font-black uppercase tracking-widest pl-1 mb-2" style={{ color: sub }}>Category Select Karein</p>
+                      <div className="relative">
+                        <select 
+                          value={overrideCategory} 
+                          onChange={e => setOverrideCategory(e.target.value)}
+                          className="w-full p-4 rounded-2xl border outline-none font-bold text-[14px] appearance-none transition-all" 
+                          style={{ backgroundColor: inputBg, borderColor: border, color: text }}
+                        >
+                          {KIRYANA_CATEGORIES.map(c => (
+                            <option key={c.id} value={c.name}>{c.emoji} {c.name}</option>
+                          ))}
+                        </select>
+                        <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none opacity-50">
+                          <Search size={16} />
+                        </div>
+                      </div>
+                    </div>
+
+                  {/* SIZE SELECTOR */}
+                  <div className="mt-6">
+                    <p className="text-[10px] font-black uppercase tracking-widest pl-1 mb-2" style={{ color: sub }}>Select Pack Size</p>
+                    <div className="flex flex-wrap gap-2">
+                      {['50g', '100g', '200g', '250g', '400g', '500g', '800g', '1kg', '2kg', '5kg', '10kg', 'sachet', '250ml', '500ml', '800ml', '1L', '1.5L', '2.5L', '3L', '5L', '1 pcs', 'Half Doz', '1 Doz'].map(size => (
+                        <button
+                          key={size}
+                          onClick={() => setSelectedSize(selectedSize === size ? '' : size)}
+                          className={`px-4 py-2 rounded-xl text-[11px] font-black transition-all border ${
+                            selectedSize === size 
+                              ? 'bg-[#4BFF94] text-[#0A3D24] border-[#4BFF94]' 
+                              : `bg-transparent border-${border} text-${text} opacity-60`
+                          }`}
+                          style={{ 
+                            borderColor: selectedSize === size ? '#4BFF94' : border,
+                            backgroundColor: selectedSize === size ? '#4BFF94' : 'transparent',
+                            color: selectedSize === size ? '#0A3D24' : text
+                          }}
+                        >
+                          {size}
+                        </button>
+                      ))}
+                    </div>
                   </div>
 
                   <div className="mt-6 space-y-4">

@@ -6,6 +6,7 @@ import { ArrowLeft, Bell, AlertTriangle, CreditCard, Trash2, User } from 'lucide
 import { useTheme } from '../context/ThemeContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
+import { EmptyState } from '../components/EmptyState';
 
 export const Notifications: React.FC = () => {
   const { notifications, clearNotifications, contacts } = useShop();
@@ -65,16 +66,11 @@ export const Notifications: React.FC = () => {
         <div className="px-5 py-6">
           <AnimatePresence mode="popLayout">
             {notifications.length === 0 ? (
-              <motion.div 
-                initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
-                className="flex flex-col items-center justify-center py-20 opacity-40 text-center"
-              >
-                <div className="w-20 h-20 bg-gray-200 dark:bg-gray-800 rounded-full flex items-center justify-center mb-4">
-                   <Bell size={40} />
-                </div>
-                <p className="font-bold text-lg">Koi naya notification nahi he</p>
-                <p className="text-sm">Jab bhi koi update hoga, yahan dikhega.</p>
-              </motion.div>
+                <EmptyState 
+                  icon={Bell}
+                  title="Koi Notification Nahi Hai"
+                  description="Jab bhi aapki dukan mein koi khass update hoga, hum aapko yahan inform karenge."
+                />
             ) : (
               <div className="space-y-3">
                 {notifications.map((n) => (

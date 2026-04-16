@@ -7,12 +7,13 @@ import toast from 'react-hot-toast';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
 import { motion } from 'framer-motion';
 import { useTheme } from '../context/ThemeContext';
+import { formatReceipt, shareOnWhatsApp } from '../services/whatsappService';
 
 export const InvoiceDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { isDarkMode } = useTheme();
-  const { invoices, profile, deleteInvoice } = useShop();
+  const { invoices, profile, deleteInvoice, updateInvoice } = useShop();
 
   const [isEditing, setIsEditing] = React.useState(false);
   const [isDeleting, setIsDeleting] = React.useState(false);
@@ -47,6 +48,31 @@ export const InvoiceDetail: React.FC = () => {
         setIsProcessing(false);
         setIsDeleting(false);
     }
+  };
+
+  const handleSaveEdit = async () => {
+    if (!invoice || !editName.trim()) return;
+    triggerHaptic(ImpactStyle.Medium);
+    setIsProcessing(true);
+    try {
+      await updateInvoice(invoice.id, {
+        customerName: editName.trim(),
+        status: editStatus,
+      });
+      toast.success('Invoice update ho gaya!');
+      setIsEditing(false);
+    } catch (e) {
+      toast.error('Update karne mein masla hua');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleWhatsApp = () => {
+    if (!invoice) return;
+    const msg = formatReceipt(invoice, profile?.name || 'Our Shop');
+    shareOnWhatsApp(invoice.customerPhone, msg);
+    toast.success('Opening WhatsApp...');
   };
 
   if (!invoice) {
@@ -121,7 +147,7 @@ export const InvoiceDetail: React.FC = () => {
                     </button>
                 </>
             )}
-            <button className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ backgroundColor: isDarkMode ? '#252525' : '#F5F5F5' }}>
+            <button className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ backgroundColor: isDarkMode ? '#252525' : '#F5F5F5' }} onClick={handleWhatsApp}>
                 <Share2 size={16} style={{ color: sub }} />
             </button>
           </div>
@@ -191,17 +217,12 @@ export const InvoiceDetail: React.FC = () => {
                             >
                                 Cancel
                             </button>
-                            <button 
-                                onClick={() => {
-                                    triggerHaptic(ImpactStyle.Medium);
-                                    // Normally we'd call updateInvoice metadata here.
-                                    // For simplicity, let's just toast and close since actual DB edit needs more context update.
-                                    toast.success('Updates Saved (Simulation)');
-                                    setIsEditing(false);
-                                }} 
-                                className="flex-[2] py-2.5 rounded-xl bg-primary text-black font-black text-[11px] uppercase"
-                            >
-                                Save Changes
+                        <button 
+                                onClick={handleSaveEdit} 
+                                disabled={isProcessing || !editName.trim()}
+                                className="flex-[2] py-2.5 rounded-xl bg-primary text-black font-black text-[11px] uppercase disabled:opacity-50"
+                            > 
+                                {isProcessing ? 'Saving...' : 'Save Changes'}
                             </button>
                         </div>
                     </div>

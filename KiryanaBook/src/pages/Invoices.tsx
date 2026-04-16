@@ -2,10 +2,11 @@ import React, { useState, useMemo } from 'react';
 import { PageTransition } from '../components/PageTransition';
 import { useShop } from '../context/ShopContext';
 import { useNavigate } from 'react-router-dom';
-import { Search, Plus, FileText, Trash2, Menu } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { Search, Plus, FileText, Trash2, Menu, Filter, Calendar } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Sidebar } from '../components/Sidebar';
 import { useTheme } from '../context/ThemeContext';
+import { EmptyState } from '../components/EmptyState';
 import toast from 'react-hot-toast';
 
 export const Invoices: React.FC = () => {
@@ -13,6 +14,7 @@ export const Invoices: React.FC = () => {
   const { isDarkMode } = useTheme();
   const navigate = useNavigate();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
   const [search, setSearch] = useState('');
   const [minPrice, setMinPrice] = useState<string>('');
   const [maxPrice, setMaxPrice] = useState<string>('');
@@ -104,64 +106,103 @@ export const Invoices: React.FC = () => {
             <h1 className="text-white font-black text-[22px] tracking-tight">Purane Invoices</h1>
           </div>
 
-          {/* COMPACT SEARCH + PRICE FILTER */}
-          <div className="px-4 pb-2 flex gap-2">
-            <div className="relative flex-[2]">
-              <Search size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30" />
+          {/* COMPACT SEARCH + FILTER TOGGLE */}
+          <div className="px-4 pb-4 flex gap-2">
+            <div className="relative flex-1">
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40" />
               <input
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                placeholder="Search..."
-                className="w-full bg-white/5 text-white placeholder-white/30 rounded-xl py-2 pl-8 pr-3 text-[11px] font-medium outline-none border border-white/5"
+                placeholder="Search Invoices..."
+                className="w-full bg-white/10 text-white placeholder-white/30 rounded-2xl py-3 pl-10 pr-4 text-[13px] font-bold outline-none border border-white/10 focus:border-[#4BFF94]/30 transition-all"
               />
             </div>
-            <div className="flex-1 flex gap-1">
-              <input
-                type="number"
-                value={minPrice}
-                onChange={e => setMinPrice(e.target.value)}
-                placeholder="Min"
-                className="w-full bg-white/5 text-white placeholder-white/30 rounded-xl py-2 px-2 text-[10px] font-bold outline-none border border-white/5"
-              />
-              <input
-                type="number"
-                value={maxPrice}
-                onChange={e => setMaxPrice(e.target.value)}
-                placeholder="Max"
-                className="w-full bg-white/5 text-white placeholder-white/30 rounded-xl py-2 px-2 text-[10px] font-bold outline-none border border-white/5"
-              />
-            </div>
+            <button 
+                onClick={() => setShowFilters(!showFilters)}
+                className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all border ${showFilters ? 'bg-[#4BFF94] border-[#4BFF94] text-[#0A3D24]' : 'bg-white/10 border-white/10 text-white'}`}
+            >
+                <Filter size={20} />
+            </button>
           </div>
 
-          {/* COMPACT DATE RANGE FILTER */}
-          <div className="px-4 pb-4 flex items-center gap-2">
-            <div className="flex-1 flex items-center gap-2 bg-white/5 rounded-xl px-3 border border-white/5">
-                <span className="text-[7px] font-black text-white/30 uppercase">From</span>
-                <input
-                    type="date"
-                    value={dateFrom}
-                    onChange={e => setDateFrom(e.target.value)}
-                    className="flex-1 bg-transparent text-white py-1.5 text-[10px] font-bold outline-none [color-scheme:dark]"
-                />
-            </div>
-            <div className="flex-1 flex items-center gap-2 bg-white/5 rounded-xl px-3 border border-white/5">
-                <span className="text-[7px] font-black text-white/30 uppercase">To</span>
-                <input
-                    type="date"
-                    value={dateTo}
-                    onChange={e => setDateTo(e.target.value)}
-                    className="flex-1 bg-transparent text-white py-1.5 text-[10px] font-bold outline-none [color-scheme:dark]"
-                />
-            </div>
-            {(minPrice || maxPrice || dateFrom || dateTo) && (
-              <button 
-                onClick={() => { setMinPrice(''); setMaxPrice(''); setDateFrom(''); setDateTo(''); }}
-                className="h-8 w-8 bg-red-500/20 text-red-500 rounded-lg flex items-center justify-center shrink-0"
-              >
-                <Trash2 size={12} />
-              </button>
+          {/* ADVANCED FILTERS SECTION */}
+          <AnimatePresence>
+            {showFilters && (
+                <motion.div 
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    className="overflow-hidden bg-black/10"
+                >
+                    <div className="px-5 pb-5 pt-2 space-y-4">
+                        <div className="grid grid-cols-2 gap-3">
+                            <div className="space-y-1.5">
+                                <p className="text-[9px] font-black text-white/30 uppercase tracking-widest pl-1">Min Price</p>
+                                <div className="relative">
+                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] font-black text-white/30">Rs</span>
+                                    <input
+                                        type="number"
+                                        value={minPrice}
+                                        onChange={e => setMinPrice(e.target.value)}
+                                        placeholder="0"
+                                        className="w-full bg-white/5 text-white placeholder-white/20 rounded-xl py-2.5 pl-8 pr-3 text-[12px] font-bold outline-none border border-white/5"
+                                    />
+                                </div>
+                            </div>
+                            <div className="space-y-1.5">
+                                <p className="text-[9px] font-black text-white/30 uppercase tracking-widest pl-1">Max Price</p>
+                                <div className="relative">
+                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] font-black text-white/30">Rs</span>
+                                    <input
+                                        type="number"
+                                        value={maxPrice}
+                                        onChange={e => setMaxPrice(e.target.value)}
+                                        placeholder="Any"
+                                        className="w-full bg-white/5 text-white placeholder-white/20 rounded-xl py-2.5 pl-8 pr-3 text-[12px] font-bold outline-none border border-white/5"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="flex items-center gap-3">
+                            <div className="flex-1 space-y-1.5">
+                                <p className="text-[9px] font-black text-white/30 uppercase tracking-widest pl-1">Date From</p>
+                                <div className="relative">
+                                    <Calendar size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/20" />
+                                    <input
+                                        type="date"
+                                        value={dateFrom}
+                                        onChange={e => setDateFrom(e.target.value)}
+                                        className="w-full bg-white/5 text-white py-2.5 pl-9 pr-3 rounded-xl text-[11px] font-bold outline-none border border-white/5 [color-scheme:dark]"
+                                    />
+                                </div>
+                            </div>
+                            <div className="flex-1 space-y-1.5">
+                                <p className="text-[9px] font-black text-white/30 uppercase tracking-widest pl-1">Date To</p>
+                                <div className="relative">
+                                    <Calendar size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/20" />
+                                    <input
+                                        type="date"
+                                        value={dateTo}
+                                        onChange={e => setDateTo(e.target.value)}
+                                        className="w-full bg-white/5 text-white py-2.5 pl-9 pr-3 rounded-xl text-[11px] font-bold outline-none border border-white/5 [color-scheme:dark]"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        {(minPrice || maxPrice || dateFrom || dateTo) && (
+                            <button 
+                                onClick={() => { setMinPrice(''); setMaxPrice(''); setDateFrom(''); setDateTo(''); }}
+                                className="w-full py-3 bg-red-500/10 text-red-400 rounded-xl flex items-center justify-center gap-2 text-[11px] font-black uppercase tracking-widest border border-red-500/20"
+                            >
+                                <Trash2 size={14} /> Clear All Filters
+                            </button>
+                        )}
+                    </div>
+                </motion.div>
             )}
-          </div>
+          </AnimatePresence>
         </div>
 
 
@@ -169,20 +210,15 @@ export const Invoices: React.FC = () => {
         {/* INVOICE LIST */}
         <div className="px-4 pt-4 space-y-3">
           {filtered.length === 0 ? (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center pt-16">
-              <div className="w-20 h-20 rounded-3xl flex items-center justify-center mb-4" style={{ backgroundColor: card }}>
-                <FileText size={32} className="text-gray-300" />
-              </div>
-              <p className="text-[13px] font-bold" style={{ color: sub }}>Koi invoice nahi</p>
-              <div className="flex gap-2 mt-4">
-                <button
-                    onClick={() => navigate('/new-invoice')}
-                    className="bg-[#0A3D24] text-white px-5 py-2.5 rounded-2xl text-[12px] font-black"
-                >
-                    + Pehla Invoice Banao
-                </button>
-              </div>
-            </motion.div>
+            <EmptyState 
+                icon={FileText}
+                title="Koi Invoice Nahi Mila"
+                description={search || minPrice || maxPrice || dateFrom || dateTo ? "Aapke filters ke mutabiq koi invoice nahi mila. Filters change kar ke dekhein." : "Abhi tak koi invoice nahi banaya gaya."}
+                action={!(search || minPrice || maxPrice || dateFrom || dateTo) ? {
+                    label: "+ Pehla Invoice Banao",
+                    onClick: () => navigate('/new-invoice')
+                } : undefined}
+            />
           ) : (
             filtered.map((inv, idx) => (
               <motion.div
