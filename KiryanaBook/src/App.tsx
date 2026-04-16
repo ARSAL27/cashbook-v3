@@ -112,18 +112,24 @@ const SplashLoader = () => {
 
             {/* Final Target Flash at precise arc landing coordinates (270, 85) */}
             <motion.circle 
-               cx="270" cy="85"
+               cx="270" cy="85" r={15}
                fill="#ffffff"
-               initial={{ opacity: 0, r: 0 }}
-               animate={{ opacity: [0, 1, 0], r: [0, 60, 100] }}
+               initial={{ opacity: 0, scale: 0 }}
+               animate={{ 
+                  opacity: [0, 1, 0],
+                  scale: [0, 4, 6] 
+               }}
                transition={{ delay: 1.6, duration: 1.2, ease: "easeOut" }}
                style={{ filter: "blur(20px)" }}
             />
             <motion.circle 
-               cx="270" cy="85"
+               cx="270" cy="85" r={10}
                fill="#ffffff"
-               initial={{ opacity: 0, r: 0 }}
-               animate={{ opacity: [0, 1, 0], r: [0, 20, 0] }}
+               initial={{ opacity: 0, scale: 0 }}
+               animate={{ 
+                  opacity: [0, 1, 0],
+                  scale: [0, 1.5, 0]
+               }}
                transition={{ delay: 1.6, duration: 0.5, ease: "easeOut" }}
                style={{ filter: "blur(3px)" }}
             />

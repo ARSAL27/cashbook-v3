@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLocation } from 'react-router-dom';
-import { Send, UserCog, History, X, Trash2, ChevronRight, MessageCircle, Mic, Volume2, VolumeX, Sparkles } from 'lucide-react';
+import { Send, UserCog, History, X, Trash2, ChevronRight, MessageCircle, Mic, Volume2, VolumeX, Sparkles, ArrowLeft } from 'lucide-react';
 import { askLocalAgent, detectMicroAnomalies } from '../lib/localAgent';
 import { useShop } from '../context/ShopContext';
 import { SpeechRecognition } from '@capacitor-community/speech-recognition';
@@ -294,14 +294,14 @@ export const Manager: React.FC = () => {
     [shopData]
   );
   
-  const activeAlerts = useMemo(() => allAnomalies.slice(0, 2), [allAnomalies]);
+  const activeAlerts = useMemo(() => (allAnomalies || []).slice(0, 2), [allAnomalies]);
   const healthScore = useMemo(() => 
-    Math.min(100, Math.max(40, 80 + (sales.length > 5 ? 10 : 0) - (udhaars.length > 10 ? 5 : 0))),
-    [sales.length, udhaars.length]
+    Math.min(100, Math.max(40, 80 + ((sales || []).length > 5 ? 10 : 0) - ((udhaars || []).length > 10 ? 5 : 0))),
+    [sales, udhaars]
   );
   
   const liquidityStatus = useMemo(() => 
-    (sales.reduce((a,b)=>a+b.total,0) - expenses.reduce((a,b)=>a+b.amount,0)) > 0 ? 'Surplus' : 'Deficit',
+    ((sales || []).reduce((a,b)=>a+(b?.total || 0),0) - (expenses || []).reduce((a,b)=>a+(b?.amount || 0),0)) > 0 ? 'Surplus' : 'Deficit',
     [sales, expenses]
   );
 

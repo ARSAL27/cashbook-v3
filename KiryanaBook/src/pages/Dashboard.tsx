@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { PageTransition } from '../components/PageTransition';
 import { useShop } from '../context/ShopContext';
-import { Users, Plus, Minus, Bell, HandCoins, BarChart2, Filter, ArrowDownLeft, ArrowUpRight, AlertTriangle, Menu, MessageCircle, Mic } from 'lucide-react';
+import { Users, Plus, Minus, Bell, HandCoins, BarChart2, Filter, ArrowDownLeft, ArrowUpRight, AlertTriangle, Menu, MessageCircle, Mic, Sparkles, ChevronRight, ArrowRight } from 'lucide-react';
 import { Sidebar } from '../components/Sidebar';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -76,13 +76,17 @@ export const Dashboard: React.FC = () => {
 
 
   const recentActivity = useMemo(() => {
-    const s = sales.map(item => ({ ...item, _type: 'sale' as const }));
-    const e = expenses.map(item => ({ ...item, _type: 'expense' as const }));
-    const all = [...s, ...e].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    const s = (sales || []).map(item => ({ ...item, _type: 'sale' as const }));
+    const e = (expenses || []).map(item => ({ ...item, _type: 'expense' as const }));
+    const all = [...s, ...e].sort((a, b) => {
+      const db = b.date ? new Date(b.date).getTime() : 0;
+      const da = a.date ? new Date(a.date).getTime() : 0;
+      return db - da;
+    });
     
     return all.filter(item => {
-      const amount = item._type === 'sale' ? item.total : item.amount;
-      return amount >= amountRange.min && (amountRange.max === Infinity || amount <= amountRange.max);
+      const amount = item._type === 'sale' ? (item.total || 0) : (item.amount || 0);
+      return amount >= (amountRange.min || 0) && (amountRange.max === Infinity || amount <= amountRange.max);
     }).slice(0, 5);
   }, [sales, expenses, amountRange]);
 

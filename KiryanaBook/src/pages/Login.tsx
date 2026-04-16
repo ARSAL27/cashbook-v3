@@ -35,7 +35,7 @@ export const Login: React.FC = () => {
     // 1. If it's an email/password user, we're good (they already set a password)
     // 2. If it's a Google user, they MUST have hasPasswordLinked: true AND isPasswordRecorded: true to proceed to dashboard.
     if (user) {
-      const isGoogleUser = user.providerData.some(p => p.providerId === 'google.com');
+      const isGoogleUser = user?.providerData?.some(p => p.providerId === 'google.com');
       
       if (!isGoogleUser || (hasPasswordLinked && isPasswordRecorded)) {
         // Redirection happens only if we aren't already there.
