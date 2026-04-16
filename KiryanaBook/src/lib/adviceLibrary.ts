@@ -58,15 +58,20 @@ export const MASTER_ADVICE_LIBRARY: AdviceItem[] = [
   { id: 'D1', category: 'Digital', topic: 'WhatsApp Status', problem: 'Naye maal ka pta nai', solution: 'Daily subha naye stock ki photos status pe lagayen.', impact: 'High' },
   { id: 'SC1', category: 'Security', topic: 'CCTV Placement', problem: 'Galle se chori', solution: 'Ek camera hamesha cash box k upar lagayen.', impact: 'High' },
 
-  // --- 🍃 OMNI-ADVICE LOOP (Generating the remaining to reach 500+) ---
-  ...Array.from({ length: 420 }).map((_, i) => ({
-    id: `ADV-MASTER-${i}`,
-    category: ['Strategy', 'Marketing', 'Psychology', 'Layout', 'Energy', 'Digital', 'Security', 'Vendor'][Math.floor(Math.random() * 8)],
-    topic: `Golden Rule #${i + 81}`,
-    problem: `Business Scaling Challenge sequence #${i + 1}`,
-    solution: `Expert multi-layer strategic fix #${i + 1} incorporating 20,000+ data permutations for Kiryana success. Includes micro-details like lighting angles, aisle flow, and community influence.`,
-    impact: ['High', 'Medium', 'Low'][Math.floor(Math.random() * 3)] as any
-  }))
+  // --- POWER MOVES (URDU ADVICE) ---
+  { id: 'UR1', category: 'Growth', topic: 'Bundle Offer', problem: 'Sale kam ha', solution: 'Aik jaise items ka bundle banayen (e.g., Surf aur Sabun) aur Rs. 10 kam karke bechain.', impact: 'High' },
+  { id: 'UR2', category: 'Growth', topic: 'Counter Magic', problem: 'Small things notice nai hoti', solution: 'Galle (counter) ke pass Toffees aur Biscuits ka dher rakhen, 80% gahak uthayenge.', impact: 'High' },
+  { id: 'UR3', category: 'Growth', topic: 'Customer Khata', problem: 'Udhaar recovery slow', solution: 'Hamesha payment wapsi par gahak ko shabaash den ya choti toffee gift den.', impact: 'Medium' },
+  { id: 'UR4', category: 'Growth', topic: 'Stock Rotation', problem: 'Expired maal', solution: 'Purana maal aage rakhen aur itna hi mangwayen jitna 1 hafte mein bik jaye.', impact: 'High' },
+  { id: 'UR5', category: 'Growth', topic: 'Special Days', problem: 'Sunday ko sale kam', solution: 'Sunday ko "Nashta Deal" den (Anda, Bread, Doodh) aik sath display pe.', impact: 'High' },
+  { id: 'UR6', category: 'Growth', topic: 'Light & Safai', problem: 'Dukan purani lagti ha', solution: 'Entrance par bright white light lagayen, log chamakti dukan pe zyada aate hain.', impact: 'High' },
+  { id: 'UR7', category: 'Growth', topic: 'Digital Display', problem: 'Naya maal kisi ko pta nai', solution: 'Aik bara blackboard bahar lagayen jis pe "Aaj ki special deal" likhi ho.', impact: 'Medium' },
+  { id: 'UR8', category: 'Growth', topic: 'Gahak ki Izzat', problem: 'Bade customers kat rahy hain', solution: 'Gahak ka naam yaad rakhen aur unse dukan ke bare mein mashwara maangein.', impact: 'High' },
+  { id: 'UR9', category: 'Growth', topic: 'Loose Items', problem: 'Khuli cheezon pe profit kam', solution: 'Chini aur Daalon ke Rs. 50-100 wale packets pehle se bana kar rakhen.', impact: 'High' },
+  { id: 'UR10', category: 'Growth', topic: 'Evening Rush', problem: 'Shaam ko bheed zyada', solution: 'Shaam 6-8 baje ke liye helper rakhen taake koi gahak naraz ho kar na jaye.', impact: 'High' },
+  { id: 'UR11', category: 'Growth', topic: 'Festival Stock', problem: 'Eid pe stock khatam', solution: 'Eid se 10 din pehle extra ghee aur cheeni mangwa kar rakh lein.', impact: 'High' },
+  { id: 'UR12', category: 'Growth', topic: 'Kids Corner', problem: 'Bache tang karte hain', solution: 'Neche wali shelf pe saste khilone rakhen taake bache zid karein.', impact: 'Medium' },
+  { id: 'UR13', category: 'Growth', topic: 'Trust Factor', problem: 'Maal mehnga lagta ha', solution: 'Brand wale items ke sath saste (local) items bhi rakhen comparison ke liye.', impact: 'High' },
 ];
 
 export function getProAdvice(situationId: string): AdviceItem {
@@ -74,7 +79,9 @@ export function getProAdvice(situationId: string): AdviceItem {
 }
 
 export function getRandomBatch(size: number): AdviceItem[] {
-  return [...MASTER_ADVICE_LIBRARY].sort(() => 0.5 - Math.random()).slice(0, size);
+  // Sort by impact and then shuffle
+  const highImpact = MASTER_ADVICE_LIBRARY.filter(a => a.impact === 'High');
+  return [...highImpact].sort(() => 0.5 - Math.random()).slice(0, size);
 }
 
 export function searchLibrary(query: string): AdviceItem[] {
@@ -82,6 +89,7 @@ export function searchLibrary(query: string): AdviceItem[] {
   return MASTER_ADVICE_LIBRARY.filter(a => 
     a.topic.toLowerCase().includes(q) || 
     a.problem.toLowerCase().includes(q) || 
-    a.category.toLowerCase().includes(q)
+    a.category.toLowerCase().includes(q) ||
+    a.solution.toLowerCase().includes(q)
   );
 }

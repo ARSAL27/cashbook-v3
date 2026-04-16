@@ -192,6 +192,7 @@ interface ShopContextType {
   expenses: Expense[];
   udhaars: Udhaar[];
   contacts: Contact[];
+  contactsMap: Map<string, Contact>;
   invoices: Invoice[];
   staff: Staff[];
   activities: StaffActivity[];
@@ -255,6 +256,14 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [profile, setProfile] = useState<ShopProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [currentShopId, setCurrentShopId] = useState<string | null>(null);
+
+  const contactsMap = React.useMemo(() => {
+    const map = new Map<string, Contact>();
+    contacts.forEach(c => {
+      if (c.name) map.set(c.name.toLowerCase().trim(), c);
+    });
+    return map;
+  }, [contacts]);
 
   // Initialize Shop ID
   useEffect(() => {
@@ -1201,7 +1210,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   return (
     <ShopContext.Provider value={{ 
-      stock, sales, expenses, udhaars, contacts, invoices, staff, activities, notifications, categories, profile, loading, 
+      stock, sales, expenses, udhaars, contacts, contactsMap, invoices, staff, activities, notifications, categories, profile, loading, 
       currentShopId, setCurrentShopId, logAudit, updateDailyBalance,
       addSale, addExpense, addUdhaar, addUdhaarPayment, deleteUdhaar, deleteCustomer, 
       addContact, updateContact, deleteContact, toggleContactImportance, addInvoice, updateInvoice, deleteInvoice, addStaff, deleteStaff, logActivity, updateStock, updateStockItem, toggleStockItemStatus, addStockItem, deleteStockItem, updateProfile, updateRolePermissions, updateSecuritySettings, toggleUdhaarUrgency, markNotificationRead, clearNotifications, checkLimit, clearOldData, clearAllData, updateLastSync, addCategory, deleteCategory 

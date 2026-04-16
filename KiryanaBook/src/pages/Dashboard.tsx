@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { PageTransition } from '../components/PageTransition';
 import { useShop } from '../context/ShopContext';
-import { Users, Plus, Minus, Bell, HandCoins, BarChart2, Filter, ArrowDownLeft, ArrowUpRight, AlertTriangle, Menu, MessageCircle, Mic, Sparkles, ChevronRight, ArrowRight } from 'lucide-react';
+import { Users, Plus, Minus, Bell, HandCoins, BarChart2, Filter, ArrowDownLeft, ArrowUpRight, AlertTriangle, Menu, MessageCircle, Mic, Sparkles, ChevronRight } from 'lucide-react';
 import { Sidebar } from '../components/Sidebar';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -22,13 +22,28 @@ export const Dashboard: React.FC = () => {
 
   const stats = useMemo(() => {
     const today = new Date().toISOString().split('T')[0];
-    const totalToday = (sales || []).filter(s => s?.date?.startsWith(today)).reduce((a, s) => a + (s?.total || 0), 0);
-    const totalExpenses = (expenses || []).filter(e => e?.date?.startsWith(today)).reduce((a, e) => a + (e?.amount || 0), 0);
+    
+    // Convert contacts to Map for O(1) lookups
+    const contactsMap = new Map();
+    (contacts || []).forEach(c => {
+      if (c?.name) contactsMap.set(c.name.toLowerCase(), c);
+    });
+
+    let totalToday = 0;
+    (sales || []).forEach(s => {
+      if (s?.date?.startsWith(today)) totalToday += (s?.total || 0);
+    });
+
+    let totalExpenses = 0;
+    (expenses || []).forEach(e => {
+      if (e?.date?.startsWith(today)) totalExpenses += (e?.amount || 0);
+    });
     
     const customerBalances: Record<string, number> = {};
     (udhaars || []).forEach(u => {
       if (u?.customerName) {
-        customerBalances[u.customerName] = (customerBalances[u.customerName] || 0) + (u.amount || 0);
+        const name = u.customerName.trim();
+        customerBalances[name] = (customerBalances[name] || 0) + (u.amount || 0);
       }
     });
     
@@ -38,7 +53,7 @@ export const Dashboard: React.FC = () => {
     let supplierAdvance = 0;
 
     Object.entries(customerBalances).forEach(([name, bal]) => {
-      const contact = (contacts || []).find(c => c?.name?.toLowerCase() === name.toLowerCase());
+      const contact = contactsMap.get(name.toLowerCase());
       const type = contact?.type || 'customer';
       
       if (type === 'customer') {
@@ -65,19 +80,33 @@ export const Dashboard: React.FC = () => {
   const weeklyData = useMemo(() => {
     const days = [0,1,2,3,4,5,6];
     const now = new Date();
-    return days.map(d => {
-      const date = new Date(now); date.setDate(now.getDate() - (6 - d));
-      const ds = date.toISOString().split('T')[0];
-      const dayName = date.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
-      const value = (sales || []).filter(s => s?.date?.startsWith(ds)).reduce((a, s) => a + (s?.total || 0), 0);
-      return { dayName, value };
+    const last7Days = days.map(d => {
+      const date = new Date(now); 
+      date.setDate(now.getDate() - (6 - d));
+      return {
+        ds: date.toISOString().split('T')[0],
+        dayName: date.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase(),
+        value: 0
+      };
     });
+
+    // Single pass over sales instead of nested filter
+    (sales || []).forEach(s => {
+      if (!s?.date) return;
+      const saleDate = s.date.split('T')[0];
+      const dayData = last7Days.find(d => d.ds === saleDate);
+      if (dayData) {
+        dayData.value += (s.total || 0);
+      }
+    });
+
+    return last7Days.map(({ dayName, value }) => ({ dayName, value }));
   }, [sales]);
 
 
   const recentActivity = useMemo(() => {
-    const s = (sales || []).map(item => ({ ...item, _type: 'sale' as const }));
-    const e = (expenses || []).map(item => ({ ...item, _type: 'expense' as const }));
+    const s = (sales || []).slice(0, 20).map(item => ({ ...item, _type: 'sale' as const }));
+    const e = (expenses || []).slice(0, 20).map(item => ({ ...item, _type: 'expense' as const }));
     const all = [...s, ...e].sort((a, b) => {
       const db = b.date ? new Date(b.date).getTime() : 0;
       const da = a.date ? new Date(a.date).getTime() : 0;
@@ -92,28 +121,39 @@ export const Dashboard: React.FC = () => {
 
   const urgentUdhaars = useMemo(() => {
     const importantContacts = (contacts || []).filter(c => c?.isImportant);
-    const importantNames = importantContacts.map(c => c?.name || '');
+    const importantNames = new Set(importantContacts.map(c => (c?.name || '').toLowerCase()));
     
     // Group all pending balances
     const balances: Record<string, number> = {};
+    const urgentTransactionNames = new Set<string>();
+    
     (udhaars || []).forEach(u => {
       if (u?.customerName) {
-        balances[u.customerName] = (balances[u.customerName] || 0) + (u.amount || 0);
+        const name = u.customerName.trim();
+        balances[name] = (balances[name] || 0) + (u.amount || 0);
+        if (u.isUrgent) urgentTransactionNames.add(name.toLowerCase());
       }
     });
 
     // Pick customers to show: Important ones FIRST, then ones with urgent transactions
-    const urgentTransactionNames = (udhaars || []).filter(u => u?.isUrgent).map(u => u?.customerName || '');
-    const targetNames = Array.from(new Set([...importantNames, ...urgentTransactionNames])).filter(Boolean);
+    const targetNames = Array.from(new Set([
+      ...importantContacts.map(c => c.name), 
+      ...Array.from(urgentTransactionNames).map(name => {
+         // Try to find the original casing
+         const found = (udhaars || []).find(u => u.customerName?.toLowerCase() === name);
+         return found?.customerName || name;
+      })
+    ])).filter(Boolean);
 
     return targetNames
-      .filter(name => (balances[name] || 0) !== 0 || importantNames.includes(name)) // Always show starred ones
+      .filter(name => (balances[name] || 0) !== 0 || importantNames.has(name.toLowerCase())) 
       .map(name => ({
         customerName: name,
         totalBalance: balances[name] || 0,
-        isImportant: importantNames.includes(name)
+        isImportant: importantNames.has(name.toLowerCase())
       }))
-      .sort((a, b) => (a.isImportant === b.isImportant ? 0 : a.isImportant ? -1 : 1)); // Important first
+      .sort((a, b) => (a.isImportant === b.isImportant ? 0 : a.isImportant ? -1 : 1))
+      .slice(0, 10); // Limit to 10 for performance
   }, [udhaars, contacts]);
 
   const aiInsight = useMemo(() => {
@@ -139,7 +179,7 @@ export const Dashboard: React.FC = () => {
       };
     }
     return { 
-      title: "AI Munshi", 
+      title: "Business Manager", 
       msg: "Assalam-o-Alaikum! Shop ka haal jaanne ke liye mujh se poochein.",
       color: "green" 
     };
@@ -189,8 +229,8 @@ export const Dashboard: React.FC = () => {
         </div>
 
         {/* ── PREMIUM BALANCE CARD ── */}
-        <div className="px-4 -mt-1 relative z-10">
-          <div className="rounded-[2.8rem] px-7 py-8 transition-all duration-500 shadow-[0_20px_40px_rgba(26,92,56,0.15)] relative overflow-hidden" style={{ background: isDarkMode ? 'linear-gradient(145deg, #10251A, #0A0A0A)' : 'linear-gradient(145deg, #1A5C38, #0A3D24)' }}>
+        <div className="px-4 -mt-2 relative z-10">
+          <div className="rounded-[2.2rem] px-6 py-5 transition-all duration-500 shadow-[0_15px_30px_rgba(26,92,56,0.12)] relative overflow-hidden" style={{ background: isDarkMode ? 'linear-gradient(145deg, #10251A, #0A0A0A)' : 'linear-gradient(145deg, #1A5C38, #0A3D24)' }}>
             {/* Ambient Light */}
             <div className="absolute top-0 right-0 w-40 h-40 bg-white/5 rounded-full blur-3xl -mr-16 -mt-16" />
             
@@ -198,8 +238,8 @@ export const Dashboard: React.FC = () => {
               <p className="text-[10px] text-white/50 font-black uppercase tracking-[0.2em] mb-2">{t('today_balance')}</p>
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-[38px] font-black text-white leading-tight tracking-tight">
-                    <span className="text-[20px] mr-1">Rs.</span>
+                  <h2 className="text-[32px] font-black text-white leading-tight tracking-tight">
+                    <span className="text-[18px] mr-1">Rs.</span>
                     {(stats.totalToday - stats.totalExpenses).toLocaleString()}
                   </h2>
                 </div>
@@ -209,7 +249,7 @@ export const Dashboard: React.FC = () => {
               </div>
 
               {/* Action Buttons Row */}
-              <div className="flex items-center gap-3 mt-8">
+              <div className="flex items-center gap-3 mt-5">
                 <button
                   onClick={() => navigate('/cashflow?type=in')}
                   className="flex-1 bg-white/10 hover:bg-white/15 active:scale-95 transition-all rounded-2xl p-3.5 border border-white/10 flex items-center gap-3"
@@ -219,7 +259,7 @@ export const Dashboard: React.FC = () => {
                   </div>
                   <div>
                     <p className="text-[8px] text-white/40 font-black tracking-widest leading-none mb-1">CASH IN</p>
-                    <p className="text-[14px] text-white font-black leading-none">Rs. {stats.totalToday.toLocaleString()}</p>
+                    <p className="text-[12px] text-white font-black leading-none">Rs. {stats.totalToday.toLocaleString()}</p>
                   </div>
                 </button>
                 <button
@@ -231,7 +271,7 @@ export const Dashboard: React.FC = () => {
                   </div>
                   <div>
                     <p className="text-[8px] text-white/40 font-black tracking-widest leading-none mb-1">CASH OUT</p>
-                    <p className="text-[14px] text-white font-black leading-none">Rs. {stats.totalExpenses.toLocaleString()}</p>
+                    <p className="text-[12px] text-white font-black leading-none">Rs. {stats.totalExpenses.toLocaleString()}</p>
                   </div>
                 </button>
               </div>
@@ -239,13 +279,13 @@ export const Dashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* ── SMART AI MUNSHI CARD ── */}
+        {/* ── SMART BUSINESS MANAGER CARD ── */}
         <div className="px-4 mt-5">
           <motion.div 
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             onClick={() => navigate('/manager', { state: { autoStartVoice: true } })}
-            className={`group relative overflow-hidden rounded-[2.2rem] p-6 border transition-all duration-300 shadow-sm active:scale-[0.97] ${
+            className={`group relative overflow-hidden rounded-[1.8rem] p-4 border transition-all duration-300 shadow-sm active:scale-[0.97] ${
               aiInsight.color === 'red' ? 'bg-red-50/50 border-red-100 dark:bg-red-950/20 dark:border-red-900/40' :
               aiInsight.color === 'orange' ? 'bg-orange-50/50 border-orange-100 dark:bg-orange-950/20 dark:border-orange-900/40' :
               'bg-white dark:bg-[#141414] border-gray-100 dark:border-white/5 hover:border-[#00E676]/30'
@@ -295,7 +335,7 @@ export const Dashboard: React.FC = () => {
             </div>
             
             {/* Action Hint */}
-            <div className="mt-4 pt-3 border-t border-gray-100 dark:border-white/5 flex items-center justify-between">
+            <div className="mt-3 pt-2.5 border-t border-gray-100 dark:border-white/5 flex items-center justify-between">
                <p className="text-[9px] font-bold text-gray-400 uppercase">Tap to get expert advice</p>
                <ChevronRight size={14} className="text-gray-300" />
             </div>
@@ -306,7 +346,7 @@ export const Dashboard: React.FC = () => {
         <div className="px-4 mt-3">
           <button 
             onClick={() => navigate('/ledger')} 
-            className="w-full bg-white dark:bg-[#141414] rounded-[2rem] p-5 shadow-sm border border-transparent dark:border-white/5 active:scale-[0.98] transition-all text-left"
+            className="w-full bg-white dark:bg-[#141414] rounded-[1.8rem] p-4 shadow-sm border border-transparent dark:border-white/5 active:scale-[0.98] transition-all text-left"
           >
             <div className="flex items-center justify-between mb-4">
               <div>
@@ -339,7 +379,7 @@ export const Dashboard: React.FC = () => {
 
         {/* ── LOW STOCK ALERT ── */}
         {stats.lowStockItems.length > 0 && (
-          <div className="px-4 mt-4">
+          <div className="px-4 mt-3">
             <motion.div 
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
@@ -374,7 +414,7 @@ export const Dashboard: React.FC = () => {
         )}
 
         {/* ── QUICK ACTIONS GRID ── */}
-        <div className="px-4 mt-6 grid grid-cols-4 gap-4">
+        <div className="px-4 mt-4 grid grid-cols-4 gap-4">
           {[
             { icon: <Plus size={24} strokeWidth={3} className="text-[#1A5C38] dark:text-[#4BFF94]" />, label: 'SALE', path: '/add-sale', bg: '#E8F5EE', darkBg: '#1A3A25' },
             { icon: <Minus size={24} strokeWidth={3} className="text-red-500" />, label: 'EXPENSE', path: '/add-expense', bg: '#FEF2F2', darkBg: '#3A1A1A' },

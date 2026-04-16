@@ -6,6 +6,9 @@ import { Capacitor } from '@capacitor/core';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
 import toast from 'react-hot-toast';
 
+// Flag: kya native scanner abhi active hai — stopHardware ke liye
+let _nativeScannerActive = false;
+
 export type ScanMode = 'SINGLE' | 'BULK';
 export type ScanStatus = 'IDLE' | 'SCANNING' | 'PAUSED';
 
@@ -42,14 +45,25 @@ export const useScanner = (props: UseScannerProps) => {
   // ✅ FIX: Store onScan in a stable ref — prevents startCamera from recreating on every render
   const onScanRef = useStableRef(onScan);
   // ✅ FIX: Guard flag to prevent native scanner from firing twice
-  const hasScannedRef = useRef(false);
 
   // Sync ref with state for use in callbacks
   useEffect(() => { statusRef.current = status; }, [status]);
 
   const triggerHaptic = () => Haptics.impact({ style: ImpactStyle.Heavy }).catch(() => {});
 
+  const isUnmountingRef = useRef(false);
+
   const stopHardware = useCallback(() => {
+    isUnmountingRef.current = true;
+
+    // ✅ Native scanner ko properly band karo
+    if (Capacitor.isNativePlatform() && _nativeScannerActive) {
+      _nativeScannerActive = false;
+      NativeScanner.stopScan().catch(() => {});
+      isScanningRef.current = false;
+    }
+
+    // Web camera tracks band karo
     if (controlsRef.current) {
       try { controlsRef.current.stop(); } catch (e) {}
       controlsRef.current = null;
@@ -77,23 +91,42 @@ export const useScanner = (props: UseScannerProps) => {
     onScanRef.current(barcode);
   }, [mode, throttleMs]); // ✅ onScan removed from deps — no more re-creation loop
 
+  const isScanningRef = useRef(false);
+
   const startCamera = useCallback(async () => {
+    // Har baar startCamera call ho toh unmounting flag reset karo
+    isUnmountingRef.current = false;
+    setHasError(false);
+
     if (Capacitor.isNativePlatform()) {
-      // ✅ FIX: Prevent native scanner from re-opening after a scan has already happened
-      if (hasScannedRef.current) return;
+      if (isScanningRef.current && mode === 'SINGLE') return;
+      isScanningRef.current = true;
+      _nativeScannerActive = true;
+      
       try {
         const { camera } = await NativeScanner.requestPermissions();
-        if (camera !== 'granted') return toast.error('Camera permission required');
+        if (camera !== 'granted') {
+          isScanningRef.current = false;
+          _nativeScannerActive = false;
+          return toast.error('Camera permission required');
+        }
         
         const { barcodes } = await NativeScanner.scan({
           formats: [NativeFormat.Ean13, NativeFormat.Ean8, NativeFormat.Code128]
         });
+
+        isScanningRef.current = false;
+        _nativeScannerActive = false;
         if (barcodes.length > 0) {
-          hasScannedRef.current = true; // ✅ Mark as scanned — block any re-trigger
           handleBarcodeResponse(barcodes[0].displayValue);
         }
       } catch (err) {
-        setHasError(true);
+        isScanningRef.current = false;
+        _nativeScannerActive = false;
+        // ✅ FIX: Agar component intentionally band ho raha hai (back press) toh error mat dikhaao
+        if (!isUnmountingRef.current) {
+          setHasError(true);
+        }
       }
       return;
     }

@@ -46,7 +46,10 @@ export const Notifications: React.FC = () => {
             <button onClick={() => navigate(-1)} className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center text-white active:scale-90 transition-all">
               <ArrowLeft size={20} strokeWidth={2.5} />
             </button>
-            <h1 className="text-xl font-black text-white tracking-tight">Notifications</h1>
+            <div className="flex items-center gap-2">
+              <Bell size={20} className="text-white/60" fill="currentColor" />
+              <h1 className="text-xl font-black text-white tracking-tight">Notifications</h1>
+            </div>
           </div>
           {notifications.length > 0 && (
             <button 

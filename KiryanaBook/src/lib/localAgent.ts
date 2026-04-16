@@ -144,8 +144,8 @@ const INTENT_KEYWORDS: Record<Intent, string[]> = {
   PROFIT_MARGIN: ['margin', 'percentage', 'profit percent', 'kitne feesad', 'fee sad', 'bachat percentage', 'profit %'],
   SHOP_HEALTH: ['health', 'status', 'kaisa chal', 'report', 'summary', 'shop ka hal', 'performance kaisi', 'kaisa kaam hai', 'theek hai', 'shop progress'],
   SHOP_INFO: ['city', 'sheher', 'location', 'kahan hai', 'naam kya', 'owner', 'address', 'area', 'dukan ki info', 'dukan kahan he'],
-  COMPARISON: ['vs', 'muqabla', 'fark', 'behtar', 'difference', 'compare', 'muqabla', 'pichle mahine vs', 'pehle se behtar', 'pichli bar se'],
-  ADVICE: ['advice', 'mashwara', 'behtar kaise karein', 'suggestions', 'kya karna chahiye', 'future', 'sale barhao', 'growth', 'taraki', 'strategy', 'planning', 'increase', 'tips', 'karen', 'tareeka', 'tarika', 'improve', 'help', 'growth', 'mashura', 'mashwara den', 'karobar kaisa barhaun', 'sujhaav'],
+  COMPARISON: ['vs', 'muqabla', 'fark', 'behtar', 'difference', 'compare', 'pichle mahine vs', 'pehle se behtar', 'pichli bar se', 'kal vs aaj', 'sales comparison'],
+  ADVICE: ['advice', 'mashwara', 'behtar kaise karein', 'suggestions', 'kya karna chahiye', 'future', 'sale barhao', 'growth', 'taraki', 'strategy', 'planning', 'increase', 'tips', 'karen', 'tareeka', 'tarika', 'improve', 'help', 'growth', 'mashura', 'mashwara den', 'karobar kaisa barhaun', 'sujhaav', 'barhaun', 'barhana', 'izafa', 'taraqqi', 'brah', 'barh', 'brh', 'brahaye', 'barhaye'],
   DATA_AUDIT: ['anomaly', 'galat entry', 'duplicate', 'audit', 'check data', 'galti'],
   GREETING: ['salam', 'hello', 'hi', 'assalam', 'hey', 'kaise ho', 'aoa', 'kia hal he', 'kya haal hai'],
   MATH: ['hisaab', 'calculate', 'equal', 'plus', 'minus', 'times', 'divide', 'jama', 'zarb', 'taqseem', 'tafreeq'],
@@ -173,6 +173,7 @@ function normalizeText(text: string): string {
     .replace(/gh/g, 'g')
     .replace(/th/g, 't')
     .replace(/sh/g, 's')
+    .replace(/(.)\1+/g, '$1') // Collapse repeated characters (losss -> los, plzz -> plz)
     .replace(/\s+/g, ' ')
     .trim();
 }
@@ -213,10 +214,10 @@ export interface IntentResult {
 function detectIntent(query: string, data: ShopData): IntentResult {
     // 1. Pre-process: Normalization + Filler Removal
     const fillers = [
-      'yar', 'matlab', 'eh', 'umm', 'bhai', 'janab', 'sahib', 'sir', 'please', 'meherbaani', 'meherbani', 'zara', 'thora', 'karo', 'karain', 'bataen', 'bataiye', 'pucho', 'den', 'do', 'na', 
-      'yaara', 'bae', 'bro', 'buddy', 'aik', 'ek', 'ki', 'ka', 'ke', 'ko', 'mein', 'me', 'the', 'is', 'ha', 'hai', 'heen', 'hain', 'tha', 'thi', 'the', 'ho', 'ga', 'gi', 'ge', 'hi', 'to', 'ta', 'te', 'ti',
+      'yar', 'matlab', 'eh', 'umm', 'bhai', 'janab', 'sahib', 'sir', 'please', 'meherbaani', 'meherbani', 'zara', 'thora', 'karo', 'karain', 'bataen', 'bataiye', 'pucho', 'den', 'do', 'na', 'nhi', 'ni', 'nai', 'btao', 'btayn', 'btado',
+      'yaara', 'bae', 'bro', 'buddy', 'aik', 'ek', 'ki', 'ka', 'ke', 'ko', 'mein', 'me', 'the', 'is', 'ha', 'hai', 'heen', 'hain', 'tha', 'thi', 'the', 'ho', 'ga', 'gi', 'ge', 'to', 'ta', 'te', 'ti', 'hua', 'wa', 'va',
       'kuch', 'kitna', 'kitni', 'kia', 'kya', 'kyon', 'kyun', 'kab', 'kahan', 'kidher', 'kidhar', 'kaise', 'kesey', 'kese', 'kis', 'kon', 'kaun', 'wese', 'waise', 'agar', 'magar', 'lekin', 'par', 'per',
-      'sirf', 'bas', 'bss', 'bus', 'shayed', 'shayad', 'zaroor', 'zarur', 'bilkul', 'shabaash', 'shabash', 'theek', 'thik', 'acha', 'achha', 'ok', 'okay', 'ji', 'haan', 'han', 'nahi', 'nai', 'naheen'
+      'sirf', 'bas', 'bss', 'bus', 'shayed', 'shayad', 'zaroor', 'zarur', 'bilkul', 'shabaash', 'shabash', 'theek', 'thik', 'acha', 'achha', 'ok', 'okay', 'ji', 'haan', 'han', 'nahi'
     ];
     let q = normalizeText(query);
     
@@ -228,7 +229,7 @@ function detectIntent(query: string, data: ShopData): IntentResult {
 
     if (!q) return { intent: 'UNKNOWN', confidence: 0 };
   // Rule 9: Name-only query (e.g., "Ali")
-  const isName = data.contacts.some(c => q === c.name.toLowerCase() || q.includes(c.name.toLowerCase()));
+  const isName = (data.contacts || []).some(c => c?.name && (q === c.name.toLowerCase() || q.includes(c.name.toLowerCase())));
   if (isName && q.split(' ').length <= 2) return { intent: 'CUSTOMER_UDHAAR', confidence: 0.95 };
 
   // Rule 5: One-word time references
@@ -257,24 +258,23 @@ function detectIntent(query: string, data: ShopData): IntentResult {
   const confidence = Math.min(0.9, topScore / 10); 
 
   // Context Overrides (Priority mapping for conversational words)
+  if (/^salam|^hi|^hello|^hey|^aoa|^assalam/.test(q)) return { intent: 'GREETING', confidence: 1 };
   if (/theek|masla|tension|khush|haal|hal|status|health|report|summary|kaisa/.test(q)) return { intent: 'SHOP_HEALTH', confidence: 0.9 };
-  if (/kesay|kaise|kese|kesei|mashwara|advice|kya karoon|kya karna|kya karen|karain|karaen|barhaun|barhana|barhao|strategy|tips|increase|improve|growth|help|mashura/.test(q)) return { intent: 'ADVICE', confidence: 1 };
-  if (/kaha|kahan|location|sheher|city|address|area/.test(q)) return { intent: 'SHOP_INFO', confidence: 0.95 };
-  if (/kon hai wo|kon he vo|kon he wo|naam batao|kis kis se|list batao|debtors list|bande/.test(q)) return { intent: 'TOP_DEBTORS', confidence: 0.95 };
-  if (/sabse zyada kharcha|bara kharcha|top kharch|biggest expense/i.test(q)) return { intent: 'TOP_EXPENSE', confidence: 0.95 };
-  if (/nahi bik raha|rakha hua|slow stock|dead stock|fuzool stock|dead/i.test(q)) return { intent: 'SLOW_STOCK', confidence: 0.95 };
-  if (/galla|galle|gullay|cash kitna|paisa kitna|hath mein/i.test(q)) return { intent: 'CASH_HAND', confidence: 0.95 };
-  if (/worth|value|asasa|malik|dukan kitne ki/i.test(q)) return { intent: 'NET_WORTH', confidence: 0.95 };
-  if (/nuqsan|ghata|loss|red/i.test(q)) return { intent: 'LOSS_MAKING', confidence: 0.95 };
+  if (/recovery|wapsi|pese lene|phasay hue/.test(q)) return { intent: 'RECOVERY_CHASE', confidence: 1 };
+  if (/vs|muqabla|fark|difference|compare|pichle/.test(q)) return { intent: 'COMPARISON', confidence: 0.95 };
+  if (/kesay|kaise|kese|kesei|mashwara|advice|kya karoon|kya karna|kya karen|karain|karaen|barhaun|barhana|barhao|strategy|tips|increase|improve|growth|help|mashura|brah|barh|izafa/.test(q)) return { intent: 'ADVICE', confidence: 1 };
+  
+  if (/sale|kamai|aamdan|bikri/.test(q) && !(q.includes('loss') || q.includes('profit') || q.includes('vs'))) return { intent: 'TODAY_SALES', confidence: 0.9 };
+  if (/stock|maal|item|quantity|invent/.test(q)) return { intent: 'LOW_STOCK', confidence: 0.8 };
 
   // Specific Udhaar
   if (q.includes('udhaar') || q.includes('udhar') || q.includes('baaki') || q.includes('ka kitna')) {
-    if (data.contacts.some(c => q.includes(c.name.toLowerCase()))) return { intent: 'CUSTOMER_UDHAAR', confidence: 0.98 };
+    if ((data.contacts || []).some(c => c?.name && q.includes(c.name.toLowerCase()))) return { intent: 'CUSTOMER_UDHAAR', confidence: 0.98 };
     if (topIntent !== 'OVERDUE' && topIntent !== 'TOP_DEBTORS') return { intent: 'TOTAL_UDHAAR', confidence: 0.95 };
   }
   
   // Specific Item Check
-  const mentionedStock = data.stock.find(s => q.includes(s.name.toLowerCase()) && s.name.length > 2);
+  const mentionedStock = (data.stock || []).find(s => s?.name && s.name.length > 2 && q.includes(s.name.toLowerCase()));
   if (mentionedStock && (q.includes('kitna') || q.includes('hai kya') || q.includes('bacha'))) return { intent: 'ITEM_STOCK', confidence: 0.98 };
 
   // Generic Disambiguation (Triggered only for ambiguous queries like "sale")
@@ -288,8 +288,8 @@ function detectIntent(query: string, data: ShopData): IntentResult {
   const hasToday = /aaj|today|ajj|aj|ajh|aje/i.test(q);
 
   // 🧪 Strategic Intent Detection (Phase 16)
-  const hasStrategic = /improve|increase|barhane|barhao|tips|advice|mashwara|izafa|behtar|hal|better|growth|khona|nuqsan/.test(q);
-  if (hasStrategic && !/kitni|amount|paisa|hisab|hisaab/.test(q)) return { intent: 'UNKNOWN', confidence: 0 }; 
+  const hasStrategic = /improve|increase|barhane|barhao|tips|advice|mashwara|izafa|behtar|better|growth|mashura/.test(q);
+  if (hasStrategic) return { intent: 'ADVICE', confidence: 0.95 }; 
 
   const isGeneric = topIntent === 'UNKNOWN' || topIntent.includes('SALES') || topIntent.includes('PROFIT') || topIntent.includes('EXPENSE');
   
@@ -353,15 +353,16 @@ function getDates() {
 // ─── RESPONSE GENERATORS ──────────────────────────────────────────────────────
 
 function getSalesText(d: ShopData, filter: (s: any) => boolean, title: string): string {
-  const s = d.sales.filter(filter);
-  const total = s.reduce((a, x) => a + x.total, 0);
+  const allSales = d.sales || [];
+  const s = allSales.filter(filter);
+  const total = s.reduce((a, x) => a + (x?.total || 0), 0);
   
   // Logic: Compare with historical average per day
-  const historyTotal = d.sales.reduce((a, x) => a + x.total, 0);
-  const avgPerSale = historyTotal / (d.sales.length || 1);
+  const historyTotal = allSales.reduce((a, x) => a + (x?.total || 0), 0);
+  const avgPerSale = historyTotal / (allSales.length || 1);
   const performance = total > (avgPerSale * 0.8) ? "✅ Sales stable hain." : "⚠️ Sales thori kam hain aaj.";
 
-  if (s.length === 0) return `📊 **${title}**\n\nAbhi tak koi sale nahi hui. ${d.sales.length > 0 ? "Purana record check karein?" : ""}`;
+  if (s.length === 0) return `📊 **${title}**\n\nAbhi tak koi sale nahi hui. ${allSales.length > 0 ? "Purana record check karein?" : ""}`;
 
   return `📊 **${title}**\n\n` +
     `Total: **${fmt(total)}**\n` +
@@ -371,14 +372,17 @@ function getSalesText(d: ShopData, filter: (s: any) => boolean, title: string): 
 }
 
 function getProfitText(d: ShopData, filter: (s: any) => boolean, title: string): string {
-  const s = d.sales.filter(filter);
-  const revenue = s.reduce((a, x) => a + x.total, 0);
-  const expense = d.expenses.filter(filter).reduce((a, x) => a + x.amount, 0);
+  const allSales = d.sales || [];
+  const allExpenses = d.expenses || [];
+  const allStock = d.stock || [];
+  const s = allSales.filter(filter);
+  const revenue = s.reduce((a, x) => a + (x?.total || 0), 0);
+  const expense = allExpenses.filter(filter).reduce((a, x) => a + (x?.amount || 0), 0);
   
   let cogs = 0;
-  s.forEach(sale => sale.items?.forEach(i => {
-    const item = d.stock.find(st => st.id === i.itemId);
-    cogs += (item?.buyingPrice || 0) * i.qty;
+  s.forEach(sale => (sale?.items || []).forEach((i: any) => {
+    const item = allStock.find(st => st?.id === i?.itemId);
+    cogs += (item?.buyingPrice || 0) * (i?.qty || 0);
   }));
 
   const profit = revenue - cogs - expense;
@@ -399,32 +403,36 @@ function getProfitText(d: ShopData, filter: (s: any) => boolean, title: string):
 }
 
 function customerUdhaar(query: string, d: ShopData): string {
-  const q = query.toLowerCase();
+  const q = (query || '').toLowerCase();
+  const allContacts = d.contacts || [];
+  const allUdhaars = d.udhaars || [];
   // Guess customer if only name is given or name with keywords
-  let customer = d.contacts.find(c => q.includes(c.name.toLowerCase()));
+  let customer = allContacts.find(c => c?.name && q.includes(c.name.toLowerCase()));
   if (!customer && q.split(' ').length <= 2) {
-    customer = d.contacts.find(c => c.name.toLowerCase().includes(q));
+    customer = allContacts.find(c => c?.name && c.name.toLowerCase().includes(q));
   }
   
   if (!customer) return `👤 Customer mil nahi raha. Meherbaani karke sahi naam likhein ya contact check karein.`;
   
-  const bal = d.udhaars.filter(u => u.customerName === customer.name).reduce((a, x) => a + x.amount, 0);
+  const bal = allUdhaars.filter(u => u?.customerName === customer!.name).reduce((a, x) => a + (x?.amount || 0), 0);
   
   return `👤 **${customer.name}**\n\nBalance: **${fmt(bal)}**\nLast History: Aaj koi transaction nahi. ${bal > 0 ? "\n⚠️ In se paise lene hain." : ""}`;
 }
 
 function itemStockCheck(query: string, d: ShopData): string {
-  const name = query.replace(/kitna bacha|stock check|hai kya|available|item/g, '').trim();
-  const item = d.stock.find(s => s.name.toLowerCase().includes(name.toLowerCase()));
+  const name = (query || '').replace(/kitna bacha|stock check|hai kya|available|item/g, '').trim();
+  const allStock = d.stock || [];
+  const item = allStock.find(s => s?.name && s.name.toLowerCase().includes(name.toLowerCase()));
   if (!item) return `❌ Item "${name}" stock mein nahi mila.`;
   
-  return `📦 **${item.name}**\n\nStock: **${item.quantity} ${item.unit}**\nStatus: ${item.quantity <= item.minThreshold ? '🔴 LOW' : '✅ OK'}\nPrice: ${fmt(item.price)}`;
+  return `📦 **${item.name}**\n\nStock: **${item.quantity} ${item.unit}**\nStatus: ${(item.quantity || 0) <= (item.minThreshold || 5) ? '🔴 LOW' : '✅ OK'}\nPrice: ${fmt(item.price)}`;
 }
 
 function getComparison(d: ShopData): string {
   const { today, yesterday } = getDates();
-  const tSales = d.sales.filter(s => s.date.startsWith(today)).reduce((a, x) => a + x.total, 0);
-  const ySales = d.sales.filter(s => s.date.startsWith(yesterday)).reduce((a, x) => a + x.total, 0);
+  const allSales = d.sales || [];
+  const tSales = allSales.filter(s => s?.date?.startsWith(today)).reduce((a, x) => a + (x?.total || 0), 0);
+  const ySales = allSales.filter(s => s?.date?.startsWith(yesterday)).reduce((a, x) => a + (x?.total || 0), 0);
   
   const diff = tSales - ySales;
   const p = ySales > 0 ? ((diff / ySales) * 100).toFixed(0) : '100';
@@ -434,17 +442,40 @@ function getComparison(d: ShopData): string {
 
 // ─── MAIN AGENT FUNCTION ──────────────────────────────────────────────────────
 
-// ─── STATEFUL CONTEXT (Last used timeframe) ──────────────────────────────────
+// ─── STATEFUL CONTEXT (Last used timeframe & Intent) ─────────────────────────
 let lastTimeframe: 'TODAY' | 'YESTERDAY' | 'WEEK' | 'MONTH' | 'YEAR' = 'TODAY';
+let lastIntent: Intent = 'GREETING';
 
 export function askLocalAgent(query: string, data: ShopData): string {
+  // Top-level crash guard — no error should ever reach the UI
+  try {
+    return _askLocalAgentInternal(query, data);
+  } catch (e) {
+    console.error('[askLocalAgent] Unexpected crash:', e);
+    return `🤔 Kuch masla aa gaya. Dobara try karein ya app refresh karein.`;
+  }
+}
+
+function _askLocalAgentInternal(query: string, data: ShopData): string {
   const result = detectIntent(query, data);
   let { intent, confidence } = result;
   
   const q = normalizeText(query);
 
-  // CONTEXT HANDOVER: If query is purely "aur munafa?" or "aur kharcha?"
-  if (confidence < 0.6 && (q.includes('aur') || q.includes('and') || q.length < 10)) {
+  // 🗣️ CONVERSATIONAL STOP (Humorous handling)
+  if (q.includes('chup') || q.includes('bas') || q.includes('stop') || q.includes('khatam')) {
+    return "Theek hai bhai, Munshi ab chup hai. Jab zaroorat ho awaaz de dijiyega! 🤐";
+  }
+
+  // 👋 GOODBYE HANDLING
+  if (q === 'bye' || q === 'allah hafiz' || q === 'khuda hafiz' || q === 'tata') {
+    return "Allah Hafiz! Apna aur apni dukan ka khayal rakhen. Phir milenge! 👋✨";
+  }
+
+  // 🧠 CONTEXT MEMORY: If query is "aur?", "next?", "kuch aur?"
+  const isFollowUp = (q.includes('aur') || q.includes('and') || q.includes('next') || q.includes('more') || q.includes('phir') || (q.length < 8 && !['hi', 'hiii', 'bye', 'ok'].includes(q)));
+  
+  if (confidence < 0.5 && isFollowUp) {
     if (q.includes('munafa') || q.includes('profit')) {
       intent = `${lastTimeframe}_PROFIT` as Intent;
       confidence = 0.9;
@@ -454,10 +485,15 @@ export function askLocalAgent(query: string, data: ShopData): string {
     } else if (q.includes('sale') || q.includes('kamai')) {
       intent = `${lastTimeframe}_SALES` as Intent;
       confidence = 0.9;
+    } else {
+      // General follow-up: carry over last intent
+      intent = lastIntent;
+      confidence = 0.9;
     }
   }
 
-  // Update lastTimeframe for next query
+  // Update context for next query
+  if (intent !== 'UNKNOWN') lastIntent = intent;
   if (intent.includes('YESTERDAY')) lastTimeframe = 'YESTERDAY';
   else if (intent.includes('WEEK')) lastTimeframe = 'WEEK';
   else if (intent.includes('MONTH')) lastTimeframe = 'MONTH';
@@ -468,32 +504,33 @@ export function askLocalAgent(query: string, data: ShopData): string {
   const category = INTENT_TO_CATEGORY[intent];
   
   if (category === 'irrelevant' || confidence < 0.4) {
-    return "I can only help with your shop cashbook and financial records.";
+    return "I can only help with your shop cashbook and financial records. Karobar ke hawale se kuch poochein.";
   }
 
   const { today, yesterday, weekStart, monthStart, yearStart } = getDates();
   let response = "";
 
   switch (intent) {
-    case 'TODAY_SALES': response = getSalesText(data, s => s.date.startsWith(today), 'Aaj Ki Sale'); break;
-    case 'YESTERDAY_SALES': response = getSalesText(data, s => s.date.startsWith(yesterday), 'Kal Ki Sale'); break;
-    case 'WEEK_SALES': response = getSalesText(data, s => s.date >= weekStart, 'Is Hafte Ki Sale'); break;
-    case 'MONTH_SALES': response = getSalesText(data, s => s.date >= monthStart, 'Is Mahine Ki Sale'); break;
-    case 'YEAR_SALES': response = getSalesText(data, s => s.date >= yearStart, 'Is Saal Ki Sale'); break;
+    case 'TODAY_SALES': response = getSalesText(data, s => s?.date?.startsWith(today) ?? false, 'Aaj Ki Sale'); break;
+    case 'YESTERDAY_SALES': response = getSalesText(data, s => s?.date?.startsWith(yesterday) ?? false, 'Kal Ki Sale'); break;
+    case 'WEEK_SALES': response = getSalesText(data, s => s?.date != null && s.date >= weekStart, 'Is Hafte Ki Sale'); break;
+    case 'MONTH_SALES': response = getSalesText(data, s => s?.date != null && s.date >= monthStart, 'Is Mahine Ki Sale'); break;
+    case 'YEAR_SALES': response = getSalesText(data, s => s?.date != null && s.date >= yearStart, 'Is Saal Ki Sale'); break;
     
-    case 'TODAY_PROFIT': response = getProfitText(data, s => s.date.startsWith(today), 'Aaj Ka Profit'); break;
-    case 'YESTERDAY_PROFIT': response = getProfitText(data, s => s.date.startsWith(yesterday), 'Kal Ka Profit'); break;
-    case 'WEEK_PROFIT': response = getProfitText(data, s => s.date >= weekStart, 'Is Hafte Ka Profit'); break;
-    case 'MONTH_PROFIT': response = getProfitText(data, s => s.date >= monthStart, 'Is Mahine Ka Profit'); break;
+    case 'TODAY_PROFIT': response = getProfitText(data, s => s?.date?.startsWith(today) ?? false, 'Aaj Ka Profit'); break;
+    case 'YESTERDAY_PROFIT': response = getProfitText(data, s => s?.date?.startsWith(yesterday) ?? false, 'Kal Ka Profit'); break;
+    case 'WEEK_PROFIT': response = getProfitText(data, s => s?.date != null && s.date >= weekStart, 'Is Hafte Ka Profit'); break;
+    case 'MONTH_PROFIT': response = getProfitText(data, s => s?.date != null && s.date >= monthStart, 'Is Mahine Ka Profit'); break;
     
-    case 'TODAY_EXPENSE': response = `💸 **Aaj ka Kharcha:** ${fmt(data.expenses.filter(e => e.date.startsWith(today)).reduce((a, x) => a + x.amount, 0))}`; break;
-    case 'YESTERDAY_EXPENSE': response = `💸 **Kal ka Kharcha:** ${fmt(data.expenses.filter(e => e.date.startsWith(yesterday)).reduce((a, x) => a + x.amount, 0))}`; break;
+    case 'TODAY_EXPENSE': response = `💸 **Aaj ka Kharcha:** ${fmt((data.expenses || []).filter(e => e?.date?.startsWith(today)).reduce((a, x) => a + (x?.amount || 0), 0))}`; break;
+    case 'YESTERDAY_EXPENSE': response = `💸 **Kal ka Kharcha:** ${fmt((data.expenses || []).filter(e => e?.date?.startsWith(yesterday)).reduce((a, x) => a + (x?.amount || 0), 0))}`; break;
     
     case 'EXPENSE_BREAKDOWN': {
       const breakdown: Record<string, number> = {};
-      data.expenses.forEach(e => {
+      (data.expenses || []).forEach(e => {
+        if (!e) return;
         const cat = e.category || 'Deegar';
-        breakdown[cat] = (breakdown[cat] || 0) + e.amount;
+        breakdown[cat] = (breakdown[cat] || 0) + (e.amount || 0);
       });
       const top = Object.entries(breakdown).sort(([,a], [,b]) => b - a).slice(0, 5);
       if (top.length === 0) response = "💸 Abhi tak koi kharcha darj nahi hai.";
@@ -502,18 +539,21 @@ export function askLocalAgent(query: string, data: ShopData): string {
     }
 
     case 'TOP_EXPENSE': {
-      if (data.expenses.length === 0) return "✅ Koi kharcha darj nahi hai.";
-      const topE = [...data.expenses].sort((a, b) => b.amount - a.amount)[0];
-      return `💸 **Sabse Bara Kharcha:**\n\n**${topE.description || topE.category || 'Unknown'}** par **${fmt(topE.amount)}** kharch hue thay (${topE.date.substring(0,10)}).`;
+      const safeExp = data.expenses || [];
+      if (safeExp.length === 0) return "✅ Koi kharcha darj nahi hai.";
+      const topE = [...safeExp].sort((a, b) => (b?.amount || 0) - (a?.amount || 0))[0];
+      if (!topE) return "✅ Koi kharcha darj nahi hai.";
+      return `💸 **Sabse Bara Kharcha:**\n\n**${topE.description || topE.category || 'Unknown'}** par **${fmt(topE.amount || 0)}** kharch hue thay (${(topE.date || '').substring(0,10)}).`;
     }
 
     case 'PROFIT_MARGIN': {
-      const s = data.sales.filter(s => s.date.startsWith(today));
-      const revenue = s.reduce((a, x) => a + x.total, 0);
+      const s = (data.sales || []).filter(s => s?.date?.startsWith(today));
+      const revenue = s.reduce((a, x) => a + (x?.total || 0), 0);
       let cogs = 0;
-      s.forEach(sale => sale.items?.forEach(i => {
-        const item = data.stock.find(st => st.id === i.itemId);
-        cogs += (item?.buyingPrice || 0) * i.qty;
+      s.forEach(sale => (sale?.items || []).forEach((i: any) => {
+        if (!i) return;
+        const item = (data.stock || []).find(st => st?.id === i?.itemId);
+        cogs += (item?.buyingPrice || 0) * (i?.qty || 0);
       }));
       if (revenue === 0) return "📊 Aaj abhi tak koi sale nahi hui calculation ke liye.";
       const margin = ((revenue - cogs) / revenue) * 100;
@@ -522,10 +562,10 @@ export function askLocalAgent(query: string, data: ShopData): string {
     
     case 'CUSTOMER_UDHAAR': return customerUdhaar(query, data);
     case 'CUSTOMER_PAYMENT': {
-      const payments = data.udhaars.filter(u => u.isPayment || u.amount < 0).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      const payments = (data.udhaars || []).filter(u => u?.isPayment || (u?.amount || 0) < 0).sort((a, b) => new Date(b?.date || 0).getTime() - new Date(a?.date || 0).getTime());
       if (payments.length === 0) return "⏳ Abhi tak udhaar ki koi wapsi darj nahi hui.";
       const recent = payments.slice(0, 3);
-      return `💰 **Haaliya Payments (Wapsi):**\n\n${recent.map(p => `• **${p.customerName}** ne **${fmt(Math.abs(p.amount))}** diye (${p.date.substring(0,10)}).`).join('\n')}`;
+      return `💰 **Haaliya Payments (Wapsi):**\n\n${recent.map(p => `• **${p?.customerName || 'Unknown'}** ne **${fmt(Math.abs(p?.amount || 0))}** diye (${(p?.date || '').substring(0,10)}).`).join('\n')}`;
     }
     case 'ITEM_STOCK': return itemStockCheck(query, data);
     case 'COMPARISON': return getComparison(data);
@@ -557,11 +597,24 @@ export function askLocalAgent(query: string, data: ShopData): string {
       return `👥 **Top 5 Udhaar Wale:**\n\n${top.map(([n, a], i) => `${i+1}. ${n}: **${fmt(a)}**`).join('\n')}`;
     }
 
+    case 'RECOVERY_CHASE':
+    case 'OVERDUE': {
+      const balances: Record<string, number> = {};
+      data.udhaars.forEach(u => { balances[u.customerName] = (balances[u.customerName] || 0) + u.amount; });
+      const overdue = Object.entries(balances)
+        .filter(([, b]) => b > 500)
+        .sort(([, a], [, b]) => b - a)
+        .slice(0, 5);
+      if (overdue.length === 0) return "✅ Bohat purana ya bada udhaar kisi ka baqi nahi hai. Recovery stable hai.";
+      return `⏳ **Purani Recovery / Overdue:**\n\nIn logon se jald wasooli ki zaroorat hai:\n\n${overdue.map(([n, a]) => `• ${n}: **${fmt(a)}**`).join('\n')}\n\n💡 **Tip:** Inhein WhatsApp par reminder bhejein.`;
+    }
+
     case 'BEST_SELLING': {
       const itemSales: Record<string, { name: string; qty: number }> = {};
-      data.sales.forEach(s => s.items?.forEach(i => {
-        if (!itemSales[i.itemId]) itemSales[i.itemId] = { name: i.name, qty: 0 };
-        itemSales[i.itemId].qty += i.qty;
+      (data.sales || []).forEach(s => (s?.items || []).forEach((i: any) => {
+        if (!i?.itemId) return;
+        if (!itemSales[i.itemId]) itemSales[i.itemId] = { name: i.name || 'Unknown', qty: 0 };
+        itemSales[i.itemId].qty += (i.qty || 0);
       }));
       const best = Object.values(itemSales).sort((a, b) => b.qty - a.qty)[0];
       if (!best) return "📊 Abhi koi sale nahi hui.";
@@ -569,38 +622,38 @@ export function askLocalAgent(query: string, data: ShopData): string {
     }
 
     case 'LOW_STOCK': {
-      const low = data.stock.filter(s => s.quantity <= s.minThreshold);
+      const low = (data.stock || []).filter(s => s?.quantity != null && s.quantity <= (s.minThreshold || 5));
       if (low.length === 0) return "✅ Stock full hai! Koi item kam nahi.";
-      return `⚠️ **Low Stock Alert (${low.length} items):**\n\n${low.slice(0, 5).map(s => `• ${s.name}: **${s.quantity} ${s.unit}**`).join('\n')}`;
+      return `⚠️ **Low Stock Alert (${low.length} items):**\n\n${low.slice(0, 5).map(s => `• ${s?.name || 'Item'}: **${s?.quantity ?? 0} ${s?.unit || ''}**`).join('\n')}`;
     }
 
     case 'SLOW_STOCK': {
       const soldItemIds = new Set<string>();
-      data.sales.forEach(s => s.items?.forEach(i => soldItemIds.add(i.itemId)));
-      const slow = data.stock.filter(s => !soldItemIds.has(s.id));
+      (data.sales || []).forEach(s => (s?.items || []).forEach((i: any) => { if (i?.itemId) soldItemIds.add(i.itemId); }));
+      const slow = (data.stock || []).filter(s => s?.id && !soldItemIds.has(s.id));
       if (slow.length === 0) return "✅ Aapka tamam stock bik raha hai, koi dead item nahi!";
-      return `🐢 **Slow / Dead Stock:**\n\n**${slow.length}** items aisey hain jo ab tak nahi bikay.\nMisaal ke tor par:\n${slow.slice(0, 3).map(s => `• ${s.name} (${s.quantity} ${s.unit})`).join('\n')}`;
+      return `🐢 **Slow / Dead Stock:**\n\n**${slow.length}** items aisey hain jo ab tak nahi bikay.\nMisaal ke tor par:\n${slow.slice(0, 3).map(s => `• ${s?.name || 'Item'} (${s?.quantity ?? 0} ${s?.unit || ''})`).join('\n')}`;
     }
 
     case 'STOCK_VALUE': {
-      const val = data.stock.reduce((a, s) => a + (s.buyingPrice * s.quantity), 0);
-      const retailVal = data.stock.reduce((a, s) => a + (s.price * s.quantity), 0);
+      const val = (data.stock || []).reduce((a, s) => a + ((s.buyingPrice || 0) * (s.quantity || 0)), 0);
+      const retailVal = (data.stock || []).reduce((a, s) => a + ((s.price || 0) * (s.quantity || 0)), 0);
       return `📦 **Stock Summary:**\n\nInvestment: ${fmt(val)}\nRetail Value: ${fmt(retailVal)}\nPotential Profit: **${fmt(retailVal - val)}**`;
     }
 
-    case 'STOCK_COUNT': return `📦 Total **${data.stock.length}** types ke items stock mein hain.`;
-    case 'CUSTOMER_COUNT': return `👥 Aapke paas total **${data.contacts.length}** customers/contacts saved hain.`;
+    case 'STOCK_COUNT': return `📦 Total **${(data.stock || []).length}** types ke items stock mein hain.`;
+    case 'CUSTOMER_COUNT': return `👥 Aapke paas total **${(data.contacts || []).length}** customers/contacts saved hain.`;
 
     case 'CUSTOMER_HISTORY': {
       const name = query.replace(/hisaab batao|history|kab aya|kya kharida|visit kab thi/g, '').trim();
-      const customer = data.contacts.find(c => c.name.toLowerCase().includes(name.toLowerCase()));
+      const customer = (data.contacts || []).find(c => c.name.toLowerCase().includes(name.toLowerCase()));
       if (!customer) return `❌ Customer "${name}" nahi mila.`;
-      const visits = data.sales.filter(s => s.items?.some(i => i.name === customer.name) || s.id.includes(customer.id)); // Simple match
-      return `📜 **History for ${customer.name}**\n\nVisits: ${visits.length}\nLast Payment: ${data.udhaars.find(u => u.customerName === customer.name)?.date || 'N/A'}\nStatus: Regular Customer`;
+      const visits = (data.sales || []).filter(s => s.items?.some(i => i.name === customer.name) || s.id.includes(customer.id)); // Simple match
+      return `📜 **History for ${customer.name}**\n\nVisits: ${visits.length}\nLast Payment: ${(data.udhaars || []).find(u => u.customerName === customer.name)?.date || 'N/A'}\nStatus: Regular Customer`;
     }
 
     case 'STAFF_OVERVIEW': {
-      const staffList = data.contacts.filter(c => c.type?.toLowerCase() === 'staff' || c.type?.toLowerCase() === 'employee');
+      const staffList = (data.contacts || []).filter(c => c.type?.toLowerCase() === 'staff' || c.type?.toLowerCase() === 'employee');
       if (staffList.length === 0) return "👥 Staff ka data abhi contacts mein saved nahi hai. Staff ko as 'Staff' contact save karein.";
       return `👥 **Staff Overview:**\n\nTotal: ${staffList.length}\nActive Aaj: ${staffList.length} (Assuming all present)`;
     }
@@ -612,9 +665,9 @@ export function askLocalAgent(query: string, data: ShopData): string {
 
     case 'FORECAST_REVENUE': {
       const { today } = getDates();
-      const monthSales = data.sales.filter(s => s.date.startsWith(today.substring(0, 7))).reduce((a, x) => a + x.total, 0);
+      const monthSales = (data.sales || []).filter(s => s?.date?.startsWith(today.substring(0, 7))).reduce((a, x) => a + (x?.total || 0), 0);
       const dayOfMonth = new Date().getDate();
-      const projection = (monthSales / dayOfMonth) * 30;
+      const projection = (monthSales / Math.max(1, dayOfMonth)) * 30;
       return `🔮 **Sales Forecast:**\n\nIs mahine ab tak: ${fmt(monthSales)}\nProjected Total (Month End): **${fmt(projection)}**\nTrend: ${projection > monthSales ? "📈 Charao par hai" : "📊 Stable hai"}`;
     }
 
@@ -623,18 +676,47 @@ export function askLocalAgent(query: string, data: ShopData): string {
     case 'COMPARISON': response = getComparison(data); break;
     
     case 'CASH_HAND': {
-      const totalSales = data.sales.reduce((a, x) => a + x.total, 0);
-      const totalExp = data.expenses.reduce((a, x) => a + x.amount, 0);
-      const netUdhaar = data.udhaars.reduce((a, x) => a + x.amount, 0);
+      const totalSales = (data.sales || []).reduce((a, x) => a + (x.total || 0), 0);
+      const totalExp = (data.expenses || []).reduce((a, x) => a + (x.amount || 0), 0);
+      const netUdhaar = (data.udhaars || []).reduce((a, x) => a + (x.amount || 0), 0);
       const cash = totalSales - totalExp - netUdhaar;
       response = `💵 **Gulla Cash:** Aapke pass lag bhag **${fmt(cash)}** hona chahiye.`;
       break;
     }
 
     case 'NET_WORTH': {
-      const stockVal = data.stock.reduce((a, s) => a + ((s.buyingPrice || 0) * s.quantity), 0);
-      const receivables = data.udhaars.reduce((a, x) => a + x.amount, 0);
+      const stockVal = (data.stock || []).reduce((a, s) => a + ((s.buyingPrice || 0) * (s.quantity || 0)), 0);
+      const receivables = (data.udhaars || []).reduce((a, x) => a + (x.amount || 0), 0);
       response = `🏦 **Net Worth:** Kul asasa **${fmt(stockVal + receivables)}** hai (Stock + Udhaar).`;
+      break;
+    }
+
+    case 'SHOP_HEALTH': {
+      const { today } = getDates();
+      const s = (data.sales || []).filter(x => x?.date?.startsWith(today)).length;
+      const h = s > 5 ? "Zabardast" : s > 1 ? "Stable" : "Thora slow";
+      const totalUdhaar = (data.udhaars || []).reduce((a,x) => a + (x?.amount || 0), 0);
+      response = `🏥 **Shop Health Report:**\n\nStatus: **${h}**\nAaj ki Sales: ${s}\nUdhaar Risk: ${totalUdhaar > 10000 ? "⚠️ High" : "✅ Low"}\n\nApp bilkul theek chal rahi hai masha'Allah!`;
+      break;
+    }
+
+    case 'LOSS_MAKING': {
+      const totalSales = (data.sales || []).reduce((a, x) => a + (x.total || 0), 0);
+      const totalExp = (data.expenses || []).reduce((a, x) => a + (x.amount || 0), 0);
+      const loss = totalExp - totalSales;
+      if (loss <= 0) response = "✅ Masha'Allah, abhi tak koi loss (nuqsan) nahi hua. Karobar munafa mein hai!";
+      else response = `⚠️ **Loss Alert:**\n\nAbhi tak ka kul nuqsan lag bhag **${fmt(loss)}** hai. Kharchay control karein aur sale barhayein.`;
+      break;
+    }
+
+    case 'SHOP_INFO': {
+      response = `ℹ️ **Shop Info:**\n\nNaam: **${data.profile?.name || 'KiryanaBook'}**\nSheher: ${data.profile?.city || 'Not set'}\nCurrency: ${data.profile?.currency || 'PKR'}\nPlan: ${data.profile?.plan || 'Free'}`;
+      break;
+    }
+
+    case 'ADVICE': {
+      const topBatch = getRandomBatch(3);
+      response = `💡 **AI Munshi Business Advice:**\n\n${topBatch.map((a, i) => `${i+1}. **${a.topic}**\n${a.solution}`).join('\n\n')}\n\nKarobar barhane ke liye in pe amal karein!`;
       break;
     }
 
@@ -705,41 +787,57 @@ export function generateDeepBusinessAudit(data: ShopData): string {
  */
 export function detectMicroAnomalies(data: ShopData): string[] {
   const anomalies: string[] = [];
-  if (!data.sales || !data.stock) return [];
-
-  // 1. Optimized Customer Churn (O(N) instead of O(N*M))
-  const last7Days = new Date(); last7Days.setDate(last7Days.getDate() - 7);
-  const lastActivityMap = new Map<string, string>();
+  // Guard: return empty if data is missing or malformed
+  if (!data) return [];
   
-  // Single pass through udhaars to find last activity for everyone
-  data.udhaars.forEach(u => {
-    const existing = lastActivityMap.get(u.customerName);
-    if (!existing || u.date > existing) {
-      lastActivityMap.set(u.customerName, u.date);
-    }
-  });
+  const safeUdhaars = Array.isArray(data.udhaars) ? data.udhaars : [];
+  const safeContacts = Array.isArray(data.contacts) ? data.contacts : [];
+  const safeStock = Array.isArray(data.stock) ? data.stock : [];
+  const safeExpenses = Array.isArray(data.expenses) ? data.expenses : [];
 
-  data.contacts.slice(0, 50).forEach(c => { // Limit to first 50 contacts for speed
-    const lastDate = lastActivityMap.get(c.name);
-    if (lastDate && new Date(lastDate) < last7Days) {
-      anomalies.push(`Gahak **${c.name}** 1 hafte se nahi aya, recovery slow ho sakti hai.`);
-    }
-  });
+  try {
+    // 1. Customer Churn Detection (O(N) pass)
+    const last7Days = new Date(); last7Days.setDate(last7Days.getDate() - 7);
+    const lastActivityMap = new Map<string, string>();
+    
+    safeUdhaars.forEach(u => {
+      if (!u?.customerName || !u?.date) return;
+      const existing = lastActivityMap.get(u.customerName);
+      if (!existing || u.date > existing) {
+        lastActivityMap.set(u.customerName, u.date);
+      }
+    });
 
-  // 2. Margin Check
-  data.stock.slice(0, 100).forEach(s => {
-    if (s.price > 0 && s.price <= (s.buyingPrice || 0)) {
-      anomalies.push(`**${s.name}** nuqsan mein bik raha hai! Cost: ${s.buyingPrice}, Sale: ${s.price}`);
-    }
-  });
+    safeContacts.slice(0, 50).forEach(c => {
+      if (!c?.name) return;
+      const lastDate = lastActivityMap.get(c.name);
+      if (lastDate) {
+        try {
+          if (new Date(lastDate) < last7Days) {
+            anomalies.push(`Gahak **${c.name}** 1 hafte se nahi aya, recovery slow ho sakti hai.`);
+          }
+        } catch { /* skip invalid dates */ }
+      }
+    });
 
-  // 3. Small Money Leak (Only check last 100 expenses)
-  const smallExpCount = data.expenses.slice(0, 100).filter(e => e.amount > 0 && e.amount < 150).length;
-  if (smallExpCount > 10) {
-    anomalies.push(`Gullak se chotay kharchay (chai/biscuit) kafi zyada ho rahe hain.`);
+    // 2. Margin Check
+    safeStock.slice(0, 100).forEach(s => {
+      if (!s?.name) return;
+      if ((s.price || 0) > 0 && (s.price || 0) <= (s.buyingPrice || 0)) {
+        anomalies.push(`**${s.name}** nuqsan mein bik raha hai! Cost: ${s.buyingPrice}, Sale: ${s.price}`);
+      }
+    });
+
+    // 3. Small Money Leak
+    const smallExpCount = safeExpenses.slice(0, 100).filter(e => (e?.amount || 0) > 0 && (e?.amount || 0) < 150).length;
+    if (smallExpCount > 10) {
+      anomalies.push(`Gullak se chotay kharchay (chai/biscuit) kafi zyada ho rahe hain.`);
+    }
+  } catch (e) {
+    console.error('detectMicroAnomalies error:', e);
   }
 
-  return anomalies.slice(0, 5); // Return only top 5 most critical
+  return anomalies.slice(0, 5);
 }
 
 /**
@@ -747,13 +845,13 @@ export function detectMicroAnomalies(data: ShopData): string[] {
  * Ensures Gemini gets DIFFERENT context every time to avoid repetitive advice.
  */
 export function generateRandomDataSummary(data: ShopData): string {
-  const allAnomalies = detectMicroAnomalies(data);
-  // Pick 2 random anomalies to focus on
+  if (!data) return "Dukan ka data available nahi hai.";
+  const allAnomalies = (detectMicroAnomalies(data) || []);
   const shuffled = [...allAnomalies].sort(() => 0.5 - Math.random()).slice(0, 2);
   
-  const totalSales = data.sales.reduce((a, x) => a + x.total, 0);
-  const totalExp = data.expenses.reduce((a, x) => a + x.amount, 0);
-  const totalUdhaar = data.udhaars.reduce((a, x) => a + (x.amount * (x.isPayment ? -1 : 1)), 0);
+  const totalSales = (data.sales || []).reduce((a, x) => a + (x?.total || 0), 0);
+  const totalExp = (data.expenses || []).reduce((a, x) => a + (x?.amount || 0), 0);
+  const totalUdhaar = (data.udhaars || []).reduce((a, x) => a + ((x?.amount || 0) * (x?.isPayment ? -1 : 1)), 0);
 
   return `
     Shop Status:
@@ -765,8 +863,8 @@ export function generateRandomDataSummary(data: ShopData): string {
     ${shuffled.length > 0 ? shuffled.map(a => `- ${a}`).join('\n') : '- Sab theek hai, growth pe focus karein.'}
     
     Item Context:
-    - Most Stock: ${data.stock.sort((a,b) => b.quantity - a.quantity)[0]?.name || 'N/A'}
-    - Low Stock: ${data.stock.filter(s => s.quantity < s.minThreshold).length} items short.
+    - Most Stock: ${(data.stock || []).sort((a,b) => (b?.quantity || 0) - (a?.quantity || 0))[0]?.name || 'N/A'}
+    - Low Stock: ${(data.stock || []).filter(s => (s?.quantity || 0) < (s?.minThreshold || 0)).length} items short.
     
     🛠️ STRATEGIC ACTIONS (FROM 500+ MASTER LIBRARY):
     ${getRandomBatch(15).map(a => `- [${a.category}] ${a.topic}: ${a.solution}`).join('\n')}

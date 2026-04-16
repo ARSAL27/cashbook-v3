@@ -12,6 +12,7 @@ export const Customers: React.FC = () => {
   const { isDarkMode } = useTheme();
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
+  const deferredSearch = React.useDeferredValue(search);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [minAmount, setMinAmount] = useState<string>('');
   const [maxAmount, setMaxAmount] = useState<string>('');
@@ -23,9 +24,10 @@ export const Customers: React.FC = () => {
   // Compute balance per contact from udhaar entries
   const balanceMap = useMemo(() => {
     const map = new Map<string, number>();
-    udhaars.forEach(u => {
+    (udhaars || []).forEach(u => {
       if (u.customerName) {
-        map.set(u.customerName.trim(), (map.get(u.customerName.trim()) || 0) + u.amount);
+        const name = u.customerName.trim().toLowerCase();
+        map.set(name, (map.get(name) || 0) + u.amount);
       }
     });
     return map;
@@ -33,47 +35,50 @@ export const Customers: React.FC = () => {
 
   // Get contacts for the active tab, merged with udhaar balances
   const filteredContacts = useMemo(() => {
+    const s = deferredSearch.toLowerCase();
+    
     // DEDUPLICATION: Ensure unique names in the list
-    const uniqueContacts = Array.from(new Map(contacts.map(c => [(c.name?.toLowerCase() || ''), c])).values());
+    const uniqueContacts = contacts.filter(c => c.type === (activeTab === 'suppliers' ? 'supplier' : 'customer'));
 
-    const base = uniqueContacts
-      .filter(c => c.type === (activeTab === 'suppliers' ? 'supplier' : 'customer'))
-      .map(c => ({
+    const base = uniqueContacts.map(c => ({
         ...c,
-        balance: balanceMap.get(c.name) || 0
-      }));
+        balance: balanceMap.get(c.name.toLowerCase().trim()) || 0
+    }));
 
     // Also include legacy udhaar-only people (no contact record) for customers tab
     if (activeTab === 'customers') {
-      const contactNames = new Set(uniqueContacts.map(c => c.name?.toLowerCase() || ''));
-      udhaars
-        .filter(u => u.customerName && !contactNames.has(u.customerName.toLowerCase()))
-        .forEach(u => {
-          if (!base.find(f => f.name?.toLowerCase() === u.customerName.toLowerCase())) {
-            base.push({
+      const contactNames = new Set(contacts.filter(c => c.type === 'customer').map(c => c.name?.toLowerCase().trim()));
+      
+      const legacyMap = new Map<string, any>();
+      (udhaars || []).forEach(u => {
+        if (!u.customerName) return;
+        const nameLow = u.customerName.toLowerCase().trim();
+        if (!contactNames.has(nameLow) && !legacyMap.has(nameLow)) {
+            legacyMap.set(nameLow, {
               id: 'legacy-' + u.customerName,
               name: u.customerName,
               phone: '',
               type: 'customer',
               initialBalance: 0,
               createdAt: u.date,
-              balance: balanceMap.get(u.customerName) || 0
+              balance: balanceMap.get(nameLow) || 0
             });
-          }
-        });
+        }
+      });
+      base.push(...Array.from(legacyMap.values()));
     }
 
     const min = parseFloat(minAmount) || 0;
     const max = parseFloat(maxAmount) || Infinity;
 
     return base
-      .filter(c => search ? (c.name.toLowerCase().includes(search.toLowerCase()) || c.phone?.includes(search)) : true)
+      .filter(c => s ? (c.name.toLowerCase().includes(s) || c.phone?.includes(s)) : true)
       .filter(c => {
         const bal = Math.abs(c.balance);
         return bal >= min && bal <= max;
       })
       .sort((a, b) => a.name.localeCompare(b.name));
-  }, [contacts, udhaars, balanceMap, search, activeTab, minAmount, maxAmount]);
+  }, [contacts, udhaars, balanceMap, deferredSearch, activeTab, minAmount, maxAmount]);
 
   // Alphabetical groups
   const grouped = useMemo(() => {

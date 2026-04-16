@@ -13,6 +13,7 @@ export const Stock: React.FC = () => {
   const { isDarkMode } = useTheme();
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
+  const deferredSearch = React.useDeferredValue(search);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [activeCategory, setActiveCategory] = useState('All Items');
   const [showFilter, setShowFilter] = useState(false);
@@ -20,21 +21,32 @@ export const Stock: React.FC = () => {
   const [isFABOpen, setIsFABOpen] = useState(false);
 
   const stats = useMemo(() => {
-    const totalItems = stock.reduce((acc, item) => acc + item.quantity, 0);
-    const totalValue = stock.reduce((acc, item) => acc + (item.quantity * item.price), 0);
-    const lowStockCount = stock.filter(item => item.quantity <= (item.minThreshold || 5)).length;
+    let totalItems = 0;
+    let totalValue = 0;
+    let lowStockCount = 0;
+    
+    (stock || []).forEach(item => {
+      totalItems += (item.quantity || 0);
+      totalValue += (item.quantity || 0) * (item.price || 0);
+      if ((item.quantity || 0) <= (item.minThreshold || 5)) lowStockCount++;
+    });
+
     return { totalItems, totalValue, lowStockCount };
   }, [stock]);
 
   const uniqueBrands = useMemo(() => {
-    const brands = Array.from(new Set(stock.map(s => s.company).filter(Boolean)));
-    return brands as string[];
+    const brands = new Set();
+    (stock || []).forEach(s => {
+      if (s.company) brands.add(s.company);
+    });
+    return Array.from(brands) as string[];
   }, [stock]);
 
   const filteredStock = useMemo(() => {
-    return stock.filter(item => {
-      const matchSearch = item.name.toLowerCase().includes(search.toLowerCase()) || 
-                          item.sku?.toLowerCase().includes(search.toLowerCase());
+    const s = deferredSearch.toLowerCase();
+    return (stock || []).filter(item => {
+      const matchSearch = item.name.toLowerCase().includes(s) || 
+                          item.sku?.toLowerCase().includes(s);
       const matchCat = activeCategory === 'All Items' || item.category === activeCategory;
       
       let matchFilter = true;
@@ -43,7 +55,7 @@ export const Stock: React.FC = () => {
 
       return matchSearch && matchCat && matchFilter;
     });
-  }, [stock, search, activeCategory, filterType]);
+  }, [stock, deferredSearch, activeCategory, filterType]);
 
   const bg = isDarkMode ? '#0A0A0A' : '#FAFAFA';
   const card = isDarkMode ? '#141414' : '#FFFFFF';
@@ -260,9 +272,9 @@ export const Stock: React.FC = () => {
            {filteredStock.map((item, i) => (
              <motion.div
                key={item.id}
-               initial={{ opacity: 0, x: -10 }}
-               animate={{ opacity: 1, x: 0 }}
-               transition={{ delay: i * 0.04 }}
+               initial={i < 15 ? { opacity: 0, x: -10 } : false}
+               animate={i < 15 ? { opacity: 1, x: 0 } : false}
+               transition={{ delay: i < 15 ? i * 0.04 : 0 }}
                onClick={() => navigate(`/stock/${item.id}`)}
                className="rounded-2xl p-3 border flex flex-col gap-1.5 relative overflow-hidden transition-all active:scale-[0.98]"
                style={{ backgroundColor: card, borderColor: border }}

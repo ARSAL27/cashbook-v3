@@ -59,7 +59,7 @@ const SplashLoader = () => {
       <motion.div 
         initial={{ scale: 1.15 }}
         animate={{ scale: 1 }}
-        transition={{ duration: 3.5, ease: "easeOut" }}
+        transition={{ duration: 1.2, ease: "easeOut" }}
         className="relative flex items-center justify-center w-full max-w-lg h-64"
       >
         
@@ -67,7 +67,7 @@ const SplashLoader = () => {
         <motion.div
            initial={{ opacity: 0, scale: 0.95 }}
            animate={{ opacity: 1, scale: 1 }}
-           transition={{ duration: 1.2, ease: "easeOut", delay: 1.0 }}
+           transition={{ duration: 0.6, ease: "easeOut", delay: 0.3 }}
            className="relative z-10 flex flex-col items-center"
            style={{ fontFamily: "'Outfit', sans-serif" }}
         >
@@ -77,7 +77,7 @@ const SplashLoader = () => {
           <motion.div 
              initial={{ opacity: 0 }}
              animate={{ opacity: 0.8 }}
-             transition={{ delay: 1.8, duration: 1 }}
+             transition={{ delay: 0.8, duration: 0.5 }}
              className="flex items-center space-x-3 w-full justify-center"
           >
              <div className="w-8 h-[2px] bg-gradient-to-r from-transparent to-[#00E676] rounded-full" />
@@ -97,7 +97,7 @@ const SplashLoader = () => {
                 strokeLinecap="round"
                 initial={{ pathLength: 0 }}
                 animate={{ pathLength: 1 }}
-                transition={{ duration: 1.4, ease: "easeIn", delay: 0.2 }}
+                transition={{ duration: 0.8, ease: "easeIn", delay: 0.1 }}
                 style={{ filter: "drop-shadow(0 0 8px rgba(0,230,118,0.6))" }}
             />
             {/* Custom Green Arc Gradient */}
@@ -119,7 +119,7 @@ const SplashLoader = () => {
                   opacity: [0, 1, 0],
                   scale: [0, 4, 6] 
                }}
-               transition={{ delay: 1.6, duration: 1.2, ease: "easeOut" }}
+               transition={{ delay: 0.9, duration: 0.6, ease: "easeOut" }}
                style={{ filter: "blur(20px)" }}
             />
             <motion.circle 
@@ -130,7 +130,7 @@ const SplashLoader = () => {
                   opacity: [0, 1, 0],
                   scale: [0, 1.5, 0]
                }}
-               transition={{ delay: 1.6, duration: 0.5, ease: "easeOut" }}
+               transition={{ delay: 0.9, duration: 0.3, ease: "easeOut" }}
                style={{ filter: "blur(3px)" }}
             />
         </svg>
@@ -211,7 +211,7 @@ function AppRoutes() {
 
     const timer = setTimeout(() => {
       setInitialSplash(false);
-    }, 800);
+    }, 400); // Faster initial transition
     return () => {
         clearTimeout(timer);
         if (Capacitor.isNativePlatform()) LocalNotifications.removeAllListeners();

@@ -1,12 +1,14 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useLocation } from 'react-router-dom';
-import { Send, UserCog, History, X, Trash2, ChevronRight, MessageCircle, Mic, Volume2, VolumeX, Sparkles, ArrowLeft } from 'lucide-react';
-import { askLocalAgent, detectMicroAnomalies } from '../lib/localAgent';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { Send, UserCog, History, X, Trash2, ChevronRight, MessageCircle, Mic, Volume2, VolumeX, Sparkles, ArrowLeft, Share2 } from 'lucide-react';
+import { askLocalAgent, detectMicroAnomalies, generateRandomDataSummary } from '../lib/localAgent';
+import { analyzeBusinessQuery, generateBusinessResponse } from '../lib/gemini';
 import { useShop } from '../context/ShopContext';
 import { SpeechRecognition } from '@capacitor-community/speech-recognition';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
 import { Share } from '@capacitor/share';
+import { Capacitor } from '@capacitor/core';
 import toast from 'react-hot-toast';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -43,7 +45,7 @@ function saveSessions(sessions: ChatSession[]) {
 function makeWelcomeMessage(): Message {
   return {
     id: `b-welcome`,
-    text: `🌟 **Assalam-o-Alaikum!**\n\nMain aapka **AI Munshi** hoon.`,
+    text: `🌟 **Assalam-o-Alaikum!**\n\nMain aapka **Business Manager** hoon.`,
     isBot: true,
     time: new Date().toISOString(),
     isWelcome: true // New flag for dynamic rendering
@@ -151,6 +153,7 @@ function renderBotMessage(text: string, isWelcome?: boolean, anomalies?: string[
       
       {isWelcome && (
         <div className="pt-4 border-t border-gray-100 dark:border-white/5 mt-3 space-y-3">
+           <StressMeter score={Math.min(100, Math.max(40, 80 + (anomalies?.length ? -anomalies.length * 10 : 10)))} />
            <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] px-1">Shop Insights</p>
           {anomalies && anomalies.length > 0 ? (
             <div className="bg-red-50 dark:bg-red-500/5 p-4 rounded-2xl border border-red-100 dark:border-red-500/10">
@@ -281,28 +284,26 @@ function HistoryPanel({
 // ─── Main Component ───────────────────────────────────────────────────────────
 export const Manager: React.FC = () => {
   const { sales, expenses, udhaars, stock, contacts, profile } = useShop();
-  const shopData = { sales, expenses, udhaars, stock, contacts, profile };
+  // Null-safe: always pass arrays to avoid crashes in localAgent / detectMicroAnomalies
+  const shopData = {
+    sales: Array.isArray(sales) ? sales : [],
+    expenses: Array.isArray(expenses) ? expenses : [],
+    udhaars: Array.isArray(udhaars) ? udhaars : [],
+    stock: Array.isArray(stock) ? stock : [],
+    contacts: Array.isArray(contacts) ? contacts : [],
+    profile: profile || null,
+  };
   const location = useLocation();
+  const navigate = useNavigate();
 
 
   const [sessions, setSessions] = useState<ChatSession[]>(loadSessions);
   const [currentSessionId, setCurrentSessionId] = useState<string>(() => `s-${Date.now()}`);
   
-  // 🧪 Memoized Live Vitals (Phase 13 & 14)
+  // 🧪 Memoized Live Vitals
   const allAnomalies = useMemo(() => 
     detectMicroAnomalies(shopData).filter(x => x && !x.includes('Masha\'Allah')),
     [shopData]
-  );
-  
-  const activeAlerts = useMemo(() => (allAnomalies || []).slice(0, 2), [allAnomalies]);
-  const healthScore = useMemo(() => 
-    Math.min(100, Math.max(40, 80 + ((sales || []).length > 5 ? 10 : 0) - ((udhaars || []).length > 10 ? 5 : 0))),
-    [sales, udhaars]
-  );
-  
-  const liquidityStatus = useMemo(() => 
-    ((sales || []).reduce((a,b)=>a+(b?.total || 0),0) - (expenses || []).reduce((a,b)=>a+(b?.amount || 0),0)) > 0 ? 'Surplus' : 'Deficit',
-    [sales, expenses]
   );
 
   const [messages, setMessages] = useState<Message[]>([makeWelcomeMessage()]);
@@ -321,9 +322,10 @@ export const Manager: React.FC = () => {
   // Auto-start voice if requested from Dashboard
   useEffect(() => {
     if ((location.state as any)?.autoStartVoice) {
-      setTimeout(() => {
-        startListening();
-      }, 500);
+      const timer = setTimeout(() => {
+        startListening(true);
+      }, 1200);
+      return () => clearTimeout(timer);
     }
   }, []);
 
@@ -355,7 +357,7 @@ export const Manager: React.FC = () => {
 
     try {
       // Format messages into a nice summary
-      let summary = `*AI Munshi Report - ${shopData.profile?.name || 'KiryanaBook'}*\n`;
+      let summary = `*Business Manager Report - ${shopData.profile?.name || 'KiryanaBook'}*\n`;
       summary += `📅 _${new Date().toLocaleDateString()}_\n\n`;
       
       // Get the last bot message primarily, or the whole conversation
@@ -364,10 +366,10 @@ export const Manager: React.FC = () => {
         summary += `*Summary:*\n${lastBotMsg.text.replace(/\*\*/g, '*').replace(/─+/g, '')}\n\n`;
       }
       
-      summary += `_Hisaab-o-Kitaab, KiryanaBook AI Munshi se_`;
+      summary += `_Hisaab-o-Kitaab, KiryanaBook Business Manager se_`;
 
       await Share.share({
-        title: 'AI Munshi Report',
+        title: 'Business Manager Report',
         text: summary,
         dialogTitle: 'WhatsApp Summary Share',
       });
@@ -379,17 +381,58 @@ export const Manager: React.FC = () => {
     }
   };
 
-  const startListening = async () => {
+  const startListening = async (silent = false) => {
+    // 🌐 WEB SPEECH API FALLBACK (Reliable for Browsers)
+    const WebSpeech = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    
+    if (WebSpeech && !Capacitor.isNativePlatform()) {
+      try {
+        const recognition = new WebSpeech();
+        recognition.lang = 'ur-PK';
+        recognition.interimResults = true;
+        recognition.continuous = false;
+
+        recognition.onstart = () => {
+          setIsListening(true);
+          Haptics.impact({ style: ImpactStyle.Heavy }).catch(() => {});
+        };
+
+        recognition.onresult = (event: any) => {
+          const transcript = Array.from(event.results)
+            .map((result: any) => result[0].transcript)
+            .join('');
+          setInput(transcript);
+        };
+
+        recognition.onend = () => {
+          setIsListening(false);
+          // Auto-send if we have enough text
+          if (input.trim().length > 2) {
+            handleSend();
+          }
+        };
+
+        recognition.onerror = () => {
+          setIsListening(false);
+          if (!silent) toast.error('Mic access denied or error');
+        };
+
+        recognition.start();
+        return;
+      } catch (e) {
+        console.error("Web Speech Error:", e);
+      }
+    }
+
+    // 📱 NATIVE CAPACITOR IMPLEMENTATION
     try {
       const { available } = await SpeechRecognition.available();
       if (!available) {
-        toast.error('Speech recognition not available');
+        if (!silent) toast.error('Speech recognition not available');
         return;
       }
 
       await SpeechRecognition.requestPermissions();
-      
-      Haptics.impact({ style: ImpactStyle.Heavy }).catch(() => {});
       setIsListening(true);
       
       SpeechRecognition.start({
@@ -398,18 +441,14 @@ export const Manager: React.FC = () => {
         popup: true,
       });
 
-      SpeechRecognition.addListener('partialResults', (data) => {
+      SpeechRecognition.addListener('partialResults', (data: any) => {
         if (data.matches && data.matches.length > 0) {
           setInput(data.matches[0]);
         }
       });
-
-      // Simple timeout/auto-stop simulation for better UX if needed
-      // but 'popup: true' handles it on most Android devices.
     } catch (e) {
-      console.error(e);
       setIsListening(false);
-      toast.error('Could not start mic');
+      if (!silent) toast.error('Could not start mic');
     }
   };
 
@@ -418,20 +457,21 @@ export const Manager: React.FC = () => {
     let handle: any;
     
     const setupListener = async () => {
-      handle = await SpeechRecognition.addListener('listeningState', (state) => {
+      handle = await SpeechRecognition.addListener('listeningState', (state: any) => {
         if (state.status === 'stopped') {
           setIsListening(false);
+          // Auto-send if we are on Native and mic stopped
+          if (input.trim().length > 2) handleSend();
         }
       });
     };
-
-    setupListener();
+    if (Capacitor.isNativePlatform()) setupListener();
 
     return () => {
       if (handle) handle.remove();
       window.speechSynthesis.cancel();
     };
-  }, []);
+  }, [input]);
 
   // Auto-save session whenever messages change (if more than 1 message)
   useEffect(() => {
@@ -467,12 +507,31 @@ export const Manager: React.FC = () => {
     setInput('');
     setIsTyping(true);
 
-    // 1. Full Offline Agent (No APIs)
-    await new Promise(r => setTimeout(r, 700)); // Artificial thinking delay for UX
-    const finalResponse = askLocalAgent(text.trim(), shopData);
+    // 1. Try Gemini AI (Smart Brain)
+    let finalResponse = '';
+    let isSmart = false;
     
-    // Flag if it's considered "smart" (e.g. contains a generated tip instead of raw data)
-    let isSmart = finalResponse.includes('💡') || finalResponse.includes('⚠️');
+    try {
+      const dataSummary = generateRandomDataSummary(shopData);
+      const intent = await analyzeBusinessQuery(text.trim());
+      
+      // If Gemini gives a valid intent or response, use it
+      if (intent && intent !== 'HEALTH_CHECK' && intent !== 'UNKNOWN') {
+        const aiResponse = await generateBusinessResponse(text.trim(), dataSummary, intent);
+        if (aiResponse && !aiResponse.includes('Error:') && !aiResponse.includes('API Key')) {
+          finalResponse = aiResponse;
+          isSmart = true;
+        }
+      }
+    } catch (e) {
+      console.error("Gemini AI failed, falling back to local:", e);
+    }
+
+    // 2. Fallback to Local Agent (Offline Brain)
+    if (!finalResponse) {
+      finalResponse = askLocalAgent(text.trim(), shopData);
+      isSmart = finalResponse.includes('💡') || finalResponse.includes('⚠️');
+    }
 
     setIsTyping(false);
     setMessages(prev => [...prev, { 
@@ -480,7 +539,7 @@ export const Manager: React.FC = () => {
       text: finalResponse, 
       isBot: true, 
       time: new Date().toISOString(),
-      isSparkle: isSmart // For custom UI indicator
+      isSparkle: isSmart
     }]);
     speak(finalResponse);
   };
@@ -501,40 +560,47 @@ export const Manager: React.FC = () => {
   };
 
   return (
-    <div className="fixed inset-0 w-full max-w-md mx-auto pb-[calc(105px+env(safe-area-inset-bottom,0px))] flex flex-col bg-[#F9F9FB] dark:bg-[#0A0A0A] overflow-hidden z-[40]">
+    <div className="w-full max-w-md mx-auto h-[calc(100vh-90px)] flex flex-col bg-[#F9F9FB] dark:bg-[#0A0A0A] relative overflow-hidden">
 
       {/* ── Header ─────────────────────────────────────────────────────────── */}
-      <div className="shrink-0 bg-gradient-to-br from-[#00E676] to-[#00A846] px-5 pt-12 pb-7 shadow-[0_10px_30px_rgba(0,168,70,0.15)] rounded-b-[2.8rem] relative overflow-hidden">
+      <div className="shrink-0 bg-gradient-to-br from-[#00E676] to-[#00A846] px-5 pt-[calc(3rem+env(safe-area-inset-top,0px))] pb-5 shadow-[0_10px_30px_rgba(0,168,70,0.15)] rounded-b-[2.8rem] relative overflow-hidden">
         {/* Glow effect */}
         <div className="absolute top-0 right-0 w-32 h-32 bg-white/20 rounded-full blur-3xl -mr-10 -mt-10" />
         <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/10 rounded-full blur-2xl -ml-5 -mb-5" />
         
         <div className="flex items-center justify-between relative z-10">
           <div className="flex items-center gap-4">
-            <button onClick={() => navigate(-1)} className="w-10 h-10 rounded-2xl bg-white/10 flex items-center justify-center text-white active:scale-90 transition-all backdrop-blur-md border border-white/20">
-                <ArrowLeft size={20} strokeWidth={3} />
+            <button onClick={() => navigate(-1)} className="w-9 h-9 rounded-2xl bg-white/10 flex items-center justify-center text-white active:scale-90 transition-all backdrop-blur-md border border-white/20">
+                <ArrowLeft size={18} strokeWidth={3} />
             </button>
             <div className="flex-1">
-              <h1 className="text-[20px] font-black text-white leading-none mb-1 tracking-tight">AI Munshi</h1>
+              <h1 className="text-[18px] font-black text-white leading-none mb-1 tracking-tight">Business Manager</h1>
               <div className="flex items-center gap-1.5">
-                <div className="w-2 h-2 rounded-full bg-[#4BFF94] animate-pulse shadow-[0_0_8px_#4BFF94]" />
-                <p className="text-[10px] font-black text-white/80 uppercase tracking-[0.2em]">Munafa Advisor</p>
+                <div className="w-1.5 h-1.5 rounded-full bg-[#4BFF94] animate-pulse shadow-[0_0_8px_#4BFF94]" />
+                <p className="text-[9px] font-black text-white/80 uppercase tracking-[0.2em]">Strategy Advisor</p>
               </div>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <button
-               onClick={startNewChat}
-               className="w-11 h-11 bg-white/15 rounded-[1.2rem] flex items-center justify-center text-white active:scale-90 transition-all border border-white/10"
-               title="New Chat"
+               onClick={handleShareSummary}
+               className="w-10 h-10 bg-white/15 rounded-[1.2rem] flex items-center justify-center text-white active:scale-90 transition-all border border-white/10"
+               title="Share Report"
             >
-              <History size={19} strokeWidth={2.5} />
+              <Share2 size={17} strokeWidth={2.5} />
+            </button>
+            <button
+               onClick={() => setShowHistory(true)}
+               className="w-10 h-10 bg-white/15 rounded-[1.2rem] flex items-center justify-center text-white active:scale-90 transition-all border border-white/10"
+               title="History"
+            >
+              <History size={17} strokeWidth={2.5} />
             </button>
             <button
               onClick={toggleSpeaker}
-              className={`w-11 h-11 ${isSpeakerOn ? 'bg-white/15' : 'bg-red-500/30'} rounded-[1.2rem] flex items-center justify-center active:scale-90 transition-all border border-white/10`}
+              className={`w-10 h-10 ${isSpeakerOn ? 'bg-white/15' : 'bg-red-500/30'} rounded-[1.2rem] flex items-center justify-center active:scale-90 transition-all border border-white/10`}
             >
-              {isSpeakerOn ? <Volume2 size={19} strokeWidth={2.5} className="text-white" /> : <VolumeX size={19} strokeWidth={2.5} className="text-white" />}
+              {isSpeakerOn ? <Volume2 size={17} strokeWidth={2.5} className="text-white" /> : <VolumeX size={17} strokeWidth={2.5} className="text-white" />}
             </button>
           </div>
         </div>
@@ -613,7 +679,7 @@ export const Manager: React.FC = () => {
       </div>
 
       {/* ── Input ──────────────────────────────────────────────────────────── */}
-      <div className="shrink-0 px-5 py-5 pb-[calc(20px+env(safe-area-inset-bottom,0px))] bg-white dark:bg-[#0A0A0A] border-t border-gray-100 dark:border-white/5 shadow-[0_-15px_40px_rgba(0,0,0,0.04)] z-50">
+      <div className="shrink-0 px-5 py-3 bg-white dark:bg-[#0A0A0A] border-t border-gray-100 dark:border-white/5 shadow-[0_-15px_40px_rgba(0,0,0,0.04)] z-50">
         <div className="flex gap-3 items-center">
           <div className="relative flex-1">
              <input
@@ -621,11 +687,11 @@ export const Manager: React.FC = () => {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-              placeholder="Munshi se poochein..."
+              placeholder="Manager se poochein..."
               className="w-full bg-[#F5F7F9] dark:bg-[#141414] text-gray-900 dark:text-white rounded-[1.8rem] py-5 pl-7 pr-16 font-black text-sm placeholder-gray-400/80 focus:outline-none focus:ring-4 focus:ring-[#00E676]/15 border-2 border-transparent focus:border-[#00E676]/30 transition-all shadow-inner"
             />
             <button 
-              onClick={startListening}
+              onClick={() => startListening()}
               className={`absolute right-2 top-1/2 -translate-y-1/2 w-12 h-12 rounded-[1.2rem] flex items-center justify-center transition-all ${
                 isListening ? 'bg-red-500 text-white shadow-[0_0_20px_rgba(239,68,68,0.4)]' : 'text-gray-400 hover:text-[#00E676] bg-transparent'
               }`}

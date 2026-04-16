@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  X, LogOut, LayoutDashboard, Package, FileText, Users, Settings, CreditCard, HelpCircle, ShieldCheck
+  X, LogOut, LayoutDashboard, Package, FileText, Users, Settings, CreditCard, HelpCircle, ShieldCheck, Bell
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useShop } from '../context/ShopContext';
@@ -22,9 +22,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
     { label: 'Dashboard', icon: LayoutDashboard, path: '/', color: '#4BFF94' },
     { label: 'Customers', icon: Users, path: '/customers', color: '#448AFF' },
     { label: 'Inventory', icon: Package, path: '/stock', color: '#FCD34D' },
-    { label: 'Invoices', icon: FileText, path: '/invoices', color: '#FF5252' },
+    { label: 'Invoices', icon: FileText, path: '/invoices', color: '#B0B0B0' },
     { label: 'Staff Management', icon: ShieldCheck, path: '/staff', color: '#00C853' },
-    { label: 'Settings', icon: Settings, path: '/settings', color: '#B0B0B0' },
+    { label: 'Notifications', icon: Bell, path: '/notifications', color: '#FF5252' }, // Added Notifications
+    { label: 'Settings', icon: Settings, path: '/settings', color: '#6366F1' },
   ];
 
   const secondaryItems = [
