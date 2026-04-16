@@ -60,7 +60,7 @@ const SplashLoader = () => {
         initial={{ scale: 1.15 }}
         animate={{ scale: 1 }}
         transition={{ duration: 3.5, ease: "easeOut" }}
-        className="relative flex items-center justify-center w-full max-w-sm h-48"
+        className="relative flex items-center justify-center w-full max-w-lg h-64"
       >
         
         {/* Main Text: KiryanaBook */}
@@ -71,7 +71,7 @@ const SplashLoader = () => {
            className="relative z-10 flex flex-col items-center"
            style={{ fontFamily: "'Outfit', sans-serif" }}
         >
-          <span className="text-[42px] font-black text-white tracking-tight leading-none mb-1">
+          <span className="text-[48px] font-black text-white tracking-tight leading-none mb-1">
             KiryanaBook
           </span>
           <motion.div 
@@ -80,14 +80,14 @@ const SplashLoader = () => {
              transition={{ delay: 1.8, duration: 1 }}
              className="flex items-center space-x-3 w-full justify-center"
           >
-             <div className="w-6 h-[2px] bg-gradient-to-r from-transparent to-[#00E676] rounded-full" />
-             <p className="text-[8px] font-black text-[#00E676] uppercase tracking-[0.4em] drop-shadow-[0_0_4px_rgba(0,230,118,0.5)]">Secure Ledger</p>
-             <div className="w-6 h-[2px] bg-gradient-to-l from-transparent to-[#00E676] rounded-full" />
+             <div className="w-8 h-[2px] bg-gradient-to-r from-transparent to-[#00E676] rounded-full" />
+             <p className="text-[10px] font-black text-[#00E676] uppercase tracking-[0.4em] drop-shadow-[0_0_4px_rgba(0,230,118,0.5)]">Secure Ledger</p>
+             <div className="w-8 h-[2px] bg-gradient-to-l from-transparent to-[#00E676] rounded-full" />
           </motion.div>
         </motion.div>
 
         {/* The Exact Disney Swoosh Arc (Stays Visible as a Rainbow/Glow) */}
-        <svg className="absolute inset-0 w-full h-full pointer-events-none z-20" viewBox="0 0 300 150">
+        <svg className="absolute inset-0 w-full h-full pointer-events-none z-20 overflow-visible" viewBox="0 0 300 150">
             {/* The Trail left behind by the comet (Stays visible!) */}
             <motion.path 
                 d="M 30,85 C 80,-5 220,-5 270,85" 
@@ -115,17 +115,17 @@ const SplashLoader = () => {
                cx="270" cy="85"
                fill="#ffffff"
                initial={{ opacity: 0, r: 0 }}
-               animate={{ opacity: [0, 1, 0], r: [0, 50, 80] }}
+               animate={{ opacity: [0, 1, 0], r: [0, 60, 100] }}
                transition={{ delay: 1.6, duration: 1.2, ease: "easeOut" }}
-               style={{ filter: "blur(15px)" }}
+               style={{ filter: "blur(20px)" }}
             />
             <motion.circle 
                cx="270" cy="85"
                fill="#ffffff"
                initial={{ opacity: 0, r: 0 }}
-               animate={{ opacity: [0, 1, 0], r: [0, 15, 0] }}
+               animate={{ opacity: [0, 1, 0], r: [0, 20, 0] }}
                transition={{ delay: 1.6, duration: 0.5, ease: "easeOut" }}
-               style={{ filter: "blur(2px)" }}
+               style={{ filter: "blur(3px)" }}
             />
         </svg>
 

@@ -75,94 +75,96 @@ function StressMeter({ score }: { score: number }) {
 
 // ─── Message Renderer ─────────────────────────────────────────────────────────
 function renderBotMessage(text: string, isWelcome?: boolean, anomalies?: string[], onAction?: (a: string) => void) {
-  const lines = text.split('\n');
+  const lines = (text || '').split('\n');
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
       {lines.map((line, i) => {
-        const trimmed = line.trim();
-        if (!trimmed) return <div key={i} className="h-1" />;
+        const trimmed = (line || '').trim();
+        if (!trimmed) return <div key={i} className="h-2" />;
 
         // [ACTION: Label] Detection
         const actionMatch = trimmed.match(/\[ACTION:\s*(.*?)\]/);
-        if (actionMatch) {
+        if (actionMatch && actionMatch[1]) {
           return (
             <button 
               key={i}
               onClick={() => onAction?.(actionMatch[1])}
-              className="w-full flex items-center justify-between p-3 bg-[#00E676]/10 hover:bg-[#00E676]/20 border border-[#00E676]/30 rounded-xl transition-all group active:scale-95 mb-1"
+              className="w-full flex items-center justify-between p-4 bg-[#00E676]/5 hover:bg-[#00E676]/10 border border-[#00E676]/20 rounded-2xl transition-all group active:scale-[0.97] mb-1"
             >
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-[#00E676] flex items-center justify-center text-[#0A0A0A]">
-                  <Sparkles size={16} />
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-[#00E676]/20 flex items-center justify-center text-[#00A846]">
+                  <Sparkles size={18} strokeWidth={2.5} />
                 </div>
-                <span className="text-sm font-bold text-[#00A846]">{actionMatch[1]}</span>
+                <span className="text-[14px] font-black text-[#00A846]">{actionMatch[1]}</span>
               </div>
-              <ChevronRight size={16} className="text-[#00A846] group-hover:translate-x-1 transition-transform" />
+              <ChevronRight size={18} className="text-[#00A846] opacity-50 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
             </button>
           );
         }
 
         if (/^─+$/.test(trimmed))
-          return <hr key={i} className="border-gray-200 dark:border-white/10 my-1" />;
+          return <hr key={i} className="border-gray-100 dark:border-white/5 my-2" />;
 
         const headingMatch = trimmed.match(/^(\p{Emoji_Presentation}|\p{Emoji}\uFE0F)\s*\*\*(.*?)\*\*$/u);
-        if (headingMatch)
+        if (headingMatch && headingMatch[2]) {
           return (
-            <div key={i} className="flex items-center gap-2 pb-1">
-              <span className="text-xl">{headingMatch[1]}</span>
-              <span className="text-base font-black text-gray-900 dark:text-white leading-snug">{headingMatch[2]}</span>
+            <div key={i} className="flex items-center gap-2 pt-2 pb-1">
+              <span className="text-xl drop-shadow-sm">{headingMatch[1] || ''}</span>
+              <span className="text-[15px] font-black text-gray-900 dark:text-white tracking-tight">{headingMatch[2]}</span>
             </div>
           );
+        }
 
         const amountMatch = trimmed.match(/^(.+?):\s*(-?)?(Rs\.[\d,]+|[\d,]+)(.*)$/);
         if (amountMatch && !trimmed.startsWith('•')) {
-          const label = amountMatch[1].replace(/\*\*/g, '');
+          const label = (amountMatch[1] || '').replace(/\*\*/g, '');
           const isNegative = trimmed.includes('-') || label.toLowerCase().includes('cogs') || label.toLowerCase().includes('expense');
           const isProfit = label.includes('Profit') || label.includes('profit') || label.includes('Munafa');
-          const amount = (amountMatch[2] || '') + amountMatch[3];
+          const amountValue = (amountMatch[2] || '') + (amountMatch[3] || '');
           return (
-            <div key={i} className={`flex items-center justify-between gap-3 py-2 px-3 rounded-xl ${isProfit ? 'bg-[#00E676]/10 border border-[#00E676]/20' : 'bg-gray-50 dark:bg-white/5'}`}>
-              <span className="text-sm font-semibold text-gray-500 dark:text-gray-400">{label}</span>
-              <span className={`text-lg font-black tabular-nums ${isProfit ? 'text-[#00C853]' : isNegative ? 'text-red-500' : 'text-gray-900 dark:text-white'}`}>{amount}{amountMatch[4]}</span>
+            <div key={i} className={`flex items-center justify-between gap-4 p-4 rounded-2xl ${isProfit ? 'bg-[#00E676]/10 border border-[#00E676]/20' : 'bg-gray-50 dark:bg-white/5 border border-transparent'}`}>
+              <span className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{label}</span>
+              <span className={`text-lg font-black tabular-nums ${isProfit ? 'text-[#00C853]' : isNegative ? 'text-red-500' : 'text-gray-900 dark:text-white'}`}>{amountValue}{amountMatch[4] || ''}</span>
             </div>
           );
         }
 
         if (trimmed.startsWith('•'))
           return (
-            <div key={i} className="flex items-start gap-2 text-sm text-gray-700 dark:text-gray-300">
-              <span className="mt-1 text-[#00C853] font-black text-xs">●</span>
-              <span className="leading-relaxed">{renderInlineBold(trimmed.slice(1).trim())}</span>
+            <div key={i} className="flex items-start gap-3 text-[14px] text-gray-700 dark:text-gray-300 px-1">
+              <div className="w-1.5 h-1.5 rounded-full bg-[#00E676] mt-1.5 shrink-0" />
+              <span className="leading-relaxed font-bold">{renderInlineBold(trimmed.slice(1).trim())}</span>
             </div>
           );
 
         const numMatch = trimmed.match(/^(\d+)\.\s+(.*)$/);
-        if (numMatch)
+        if (numMatch && numMatch[2])
           return (
-            <div key={i} className="flex items-start gap-2.5 text-sm text-gray-700 dark:text-gray-300">
-              <span className="min-w-[22px] h-[22px] flex items-center justify-center bg-[#00E676]/20 text-[#00A846] dark:text-[#00E676] font-black text-xs rounded-full mt-0.5">{numMatch[1]}</span>
-              <span className="leading-relaxed flex-1">{renderInlineBold(numMatch[2])}</span>
+            <div key={i} className="flex items-start gap-3.5 text-[14px] text-gray-700 dark:text-gray-300">
+              <span className="min-w-[24px] h-[24px] flex items-center justify-center bg-[#00E676]/10 text-[#00A846] dark:text-[#00E676] font-black text-[10px] rounded-lg mt-0.5">{numMatch[1]}</span>
+              <span className="leading-relaxed flex-1 font-bold">{renderInlineBold(numMatch[2])}</span>
             </div>
           );
 
-        return <p key={i} className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">{renderInlineBold(trimmed)}</p>;
+        return <p key={i} className="text-[14px] text-gray-700 dark:text-gray-300 font-bold leading-relaxed px-1">{renderInlineBold(trimmed)}</p>;
       })}
       
       {isWelcome && (
-        <div className="pt-2 border-t border-gray-100 dark:border-white/5 mt-2">
+        <div className="pt-4 border-t border-gray-100 dark:border-white/5 mt-3 space-y-3">
+           <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] px-1">Shop Insights</p>
           {anomalies && anomalies.length > 0 ? (
-            <div className="bg-red-50 dark:bg-red-500/10 p-2.5 rounded-xl border border-red-100 dark:border-red-500/20">
-              <p className="text-[11px] font-black text-red-600 dark:text-red-400 uppercase flex items-center gap-1.5 mb-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+            <div className="bg-red-50 dark:bg-red-500/5 p-4 rounded-2xl border border-red-100 dark:border-red-500/10">
+              <p className="text-[11px] font-black text-red-600 dark:text-red-400 uppercase flex items-center gap-2 mb-2">
+                <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.5)]" />
                 Live Alert
               </p>
-              <p className="text-xs font-bold text-gray-800 dark:text-gray-200">{anomalies[0].replace(/\*\*/g, '')}</p>
+              <p className="text-[13px] font-bold text-gray-800 dark:text-gray-200 leading-snug">{anomalies[0].replace(/\*\*/g, '')}</p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-2">
-               <div className="text-[11px] font-bold text-gray-500">• 📊 Hisaab</div>
-               <div className="text-[11px] font-bold text-gray-500">• 🚨 Masail</div>
-            </div>
+             <div className="flex items-center gap-3 p-3 rounded-xl bg-green-50/50 dark:bg-[#00E676]/5 border border-green-100/50 dark:border-[#00E676]/10">
+                <div className="w-2 h-2 rounded-full bg-[#00C853]" />
+                <p className="text-[11px] font-black text-[#00A846] uppercase">Safe Analysis Mode Active</p>
+             </div>
           )}
         </div>
       )}
@@ -499,158 +501,93 @@ export const Manager: React.FC = () => {
   };
 
   return (
-    <div className="fixed inset-0 w-full max-w-md mx-auto pb-[calc(90px+env(safe-area-inset-bottom,0px))] flex flex-col bg-slate-50 dark:bg-[#0A0A0A] overflow-hidden z-[40]">
+    <div className="fixed inset-0 w-full max-w-md mx-auto pb-[calc(105px+env(safe-area-inset-bottom,0px))] flex flex-col bg-[#F9F9FB] dark:bg-[#0A0A0A] overflow-hidden z-[40]">
 
       {/* ── Header ─────────────────────────────────────────────────────────── */}
-      <div className="shrink-0 bg-gradient-to-br from-[#00E676] to-[#00A846] px-4 pt-12 pb-5 shadow-lg">
-        <div className="flex items-center gap-3">
-          <div className="w-11 h-11 rounded-2xl bg-white/20 flex items-center justify-center">
-            <UserCog size={22} className="text-white" />
+      <div className="shrink-0 bg-gradient-to-br from-[#00E676] to-[#00A846] px-5 pt-12 pb-7 shadow-[0_10px_30px_rgba(0,168,70,0.15)] rounded-b-[2.8rem] relative overflow-hidden">
+        {/* Glow effect */}
+        <div className="absolute top-0 right-0 w-32 h-32 bg-white/20 rounded-full blur-3xl -mr-10 -mt-10" />
+        <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/10 rounded-full blur-2xl -ml-5 -mb-5" />
+        
+        <div className="flex items-center justify-between relative z-10">
+          <div className="flex items-center gap-4">
+            <button onClick={() => navigate(-1)} className="w-10 h-10 rounded-2xl bg-white/10 flex items-center justify-center text-white active:scale-90 transition-all backdrop-blur-md border border-white/20">
+                <ArrowLeft size={20} strokeWidth={3} />
+            </button>
+            <div className="flex-1">
+              <h1 className="text-[20px] font-black text-white leading-none mb-1 tracking-tight">AI Munshi</h1>
+              <div className="flex items-center gap-1.5">
+                <div className="w-2 h-2 rounded-full bg-[#4BFF94] animate-pulse shadow-[0_0_8px_#4BFF94]" />
+                <p className="text-[10px] font-black text-white/80 uppercase tracking-[0.2em]">Munafa Advisor</p>
+              </div>
+            </div>
           </div>
-          <div className="flex-1">
-            <h1 className="text-xl font-black text-white" style={{ fontFamily: "'Outfit', sans-serif" }}>Shop Manager</h1>
-            <p className="text-xs font-semibold text-white/80">Aapka Munshi · CA · Advisor</p>
+          <div className="flex items-center gap-2">
+            <button
+               onClick={startNewChat}
+               className="w-11 h-11 bg-white/15 rounded-[1.2rem] flex items-center justify-center text-white active:scale-90 transition-all border border-white/10"
+               title="New Chat"
+            >
+              <History size={19} strokeWidth={2.5} />
+            </button>
+            <button
+              onClick={toggleSpeaker}
+              className={`w-11 h-11 ${isSpeakerOn ? 'bg-white/15' : 'bg-red-500/30'} rounded-[1.2rem] flex items-center justify-center active:scale-90 transition-all border border-white/10`}
+            >
+              {isSpeakerOn ? <Volume2 size={19} strokeWidth={2.5} className="text-white" /> : <VolumeX size={19} strokeWidth={2.5} className="text-white" />}
+            </button>
           </div>
-          {/* New Chat */}
-          <button
-            onClick={startNewChat}
-            className="bg-white/20 text-white text-xs font-bold px-3 py-1.5 rounded-full active:scale-90 transition-transform border border-white/20"
-          >
-            + Naya Chat
-          </button>
-          {/* WhatsApp Share */}
-          <button
-            onClick={handleShareSummary}
-            className="w-10 h-10 bg-[#25D366]/20 rounded-full flex items-center justify-center active:scale-90 transition-all border border-[#25D366]/30"
-            title="WhatsApp Summary"
-          >
-            <MessageCircle size={18} className="text-[#25D366]" />
-          </button>
-
-          {/* Speaker Toggle */}
-          <button
-            onClick={toggleSpeaker}
-            className={`w-10 h-10 ${isSpeakerOn ? 'bg-white/20' : 'bg-red-500/30'} rounded-full flex items-center justify-center active:scale-90 transition-all border border-white/20`}
-          >
-            {isSpeakerOn ? <Volume2 size={18} className="text-white" /> : <VolumeX size={18} className="text-white" />}
-          </button>
-          
-          {/* History */}
-          <button
-            onClick={() => setShowHistory(true)}
-            className="relative w-10 h-10 bg-white/20 rounded-full flex items-center justify-center active:scale-90 transition-transform border border-white/20"
-          >
-            <History size={18} className="text-white" />
-            {sessions.length > 0 && (
-              <span className="absolute -top-1 -right-1 w-4 h-4 bg-white text-[#00A846] text-[9px] font-black rounded-full flex items-center justify-center">
-                {sessions.length > 9 ? '9+' : sessions.length}
-              </span>
-            )}
-          </button>
         </div>
       </div>
 
-      {/* ── Messages ───────────────────────────────────────────────────────── */}
-      <div className="flex-1 overflow-y-auto px-3 py-4 space-y-3">
-        {/* SHOP VITALS DASHBOARD (Phase 13) */}
-        {messages.length === 1 && (
-          <motion.div 
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="p-4 bg-white dark:bg-white/5 border border-gray-100 dark:border-white/10 rounded-2xl shadow-sm mb-6 mx-1"
-          >
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xs font-black text-gray-900 dark:text-white flex items-center gap-2">
-                <Sparkles size={14} className="text-[#00E676]" />
-                Dukan ki Health (Vitals)
-              </h3>
-              <span className="px-2 py-0.5 rounded-full bg-[#00E676]/10 text-[#00A846] text-[9px] font-black uppercase tracking-wider">Masha'Allah</span>
-            </div>
-            
-            <div className="grid grid-cols-2 gap-3 mb-3">
-              <div className="p-3 bg-gray-50 dark:bg-white/5 rounded-xl border border-gray-100 dark:border-white/5">
-                <p className="text-[9px] text-gray-400 font-bold uppercase mb-1">Growth Score</p>
-                <div className="flex items-end gap-1">
-                  <span className="text-lg font-black text-gray-900 dark:text-white tracking-tighter">{healthScore}%</span>
-                  <span className={`text-[9px] font-bold pb-1 underline ${healthScore > 80 ? 'text-[#00C853]' : 'text-orange-500'}`}>
-                    {healthScore > 80 ? 'Fit' : 'Checkup'}
-                  </span>
-                </div>
-              </div>
-              <div className="p-3 bg-gray-50 dark:bg-white/5 rounded-xl border border-gray-100 dark:border-white/5">
-                <p className="text-[9px] text-gray-400 font-bold uppercase mb-1">Liquidity</p>
-                <div className="flex items-end gap-1">
-                  <span className="text-lg font-black text-gray-900 dark:text-white tracking-tighter">{liquidityStatus}</span>
-                </div>
-              </div>
-            </div>
-
-            <StressMeter score={healthScore} />
-
-            <div className="mt-4 pt-3 border-t border-gray-100/50 dark:border-white/5">
-              <p className="text-[9px] text-gray-400 font-bold uppercase mb-2">Munshi's Alerts</p>
-              <div className="space-y-1.5">
-                {activeAlerts.length > 0 ? activeAlerts.map((alert: string, i: number) => (
-                  <div key={i} className="flex items-center gap-2 text-[11px] font-semibold text-gray-600 dark:text-gray-400">
-                    <div className={`w-1.5 h-1.5 rounded-full ${i === 0 ? 'bg-red-400 animate-pulse' : 'bg-orange-400'}`} />
-                    {alert}
-                  </div>
-                )) : (
-                  <div className="flex items-center gap-2 text-[11px] font-semibold text-[#00A846]">
-                    <div className="w-1.5 h-1.5 rounded-full bg-[#00E676]" />
-                    Sub fit hai, koi bara masla nahi!
-                  </div>
-                )}
-              </div>
-            </div>
-          </motion.div>
-        )}
-
-        {messages.map((msg) => (
+      {/* ── Chat Messages ── */}
+      <div className="flex-1 overflow-y-auto px-4 py-6 space-y-6">
+        {(messages || []).map((msg) => (
           <motion.div
-            key={msg.id}
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.22 }}
-            className={`flex items-end gap-2 ${msg.isBot ? 'justify-start' : 'justify-end'}`}
+            key={msg?.id || Math.random()}
+            initial={{ opacity: 0, y: 15, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ duration: 0.25 }}
+            className={`flex items-start gap-3 ${msg?.isBot ? 'justify-start pr-8' : 'justify-end pl-8'}`}
           >
-            {msg.isBot && (
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#00E676] to-[#00A846] flex items-center justify-center shrink-0 mb-0.5 shadow">
-                <UserCog size={14} className="text-white" />
+            {msg?.isBot && (
+              <div className="w-9 h-9 rounded-[1.1rem] bg-white dark:bg-[#1A1A1A] flex items-center justify-center shrink-0 shadow-[0_4px_12px_rgba(0,0,0,0.05)] border border-gray-100 dark:border-white/5 mt-0.5">
+                <UserCog size={18} className="text-[#00C853]" strokeWidth={2.5} />
               </div>
             )}
-            <div className={`max-w-[84%] rounded-2xl px-4 py-3 relative ${msg.isBot
-              ? 'bg-white dark:bg-[#181818] shadow-[0_2px_12px_rgba(0,0,0,0.06)] border border-gray-100 dark:border-white/5 rounded-bl-sm'
-              : 'bg-[#00E676] rounded-br-sm shadow-md'}`}
+            <div className={`max-w-full rounded-[1.8rem] px-5 py-4 relative shadow-[0_8px_25px_rgba(0,0,0,0.03)] ${msg?.isBot
+              ? 'bg-white dark:bg-[#141414] border border-gray-100 dark:border-white/5 rounded-tl-none'
+              : 'bg-[#00E676] text-[#0A0A0A] rounded-tr-none'}`}
             >
-              {msg.isSparkle && (
-                <div className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-gradient-to-br from-blue-400 to-indigo-600 rounded-full flex items-center justify-center shadow-sm border border-white dark:border-gray-800">
-                  <Sparkles size={10} className="text-white" />
+              {msg?.isSparkle && (
+                <div className="absolute -top-2.5 -left-2.5 w-7 h-7 bg-gradient-to-br from-indigo-500 to-indigo-700 rounded-xl flex items-center justify-center shadow-lg transform rotate-[-12deg] border-2 border-white dark:border-[#141414]">
+                  <Sparkles size={12} className="text-white" />
                 </div>
               )}
-              {msg.isBot 
-                ? renderBotMessage(msg.text, msg.isWelcome, allAnomalies, (action) => handleSend(`${action} ke baray mein batao`)) 
-                : <p className="text-[14px] font-semibold text-[#0A0A0A]">{msg.text}</p>
+              {msg?.isBot 
+                ? renderBotMessage(msg?.text || '', msg?.isWelcome, allAnomalies, (action) => handleSend(`${action} ke baray mein batao`)) 
+                : <p className="text-[15px] font-black tracking-tight leading-relaxed">{(msg?.text || '')}</p>
               }
-              <p className={`text-[10px] mt-1.5 ${msg.isBot ? 'text-gray-400' : 'text-black/50'}`}>
-                {new Date(msg.time).toLocaleTimeString('ur-PK', { hour: '2-digit', minute: '2-digit' })}
-              </p>
+              <div className={`flex items-center gap-1 mt-2.5 ${msg?.isBot ? 'justify-start' : 'justify-end'}`}>
+                <span className={`text-[9px] font-black uppercase tracking-widest ${msg?.isBot ? 'text-gray-400' : 'text-black/40'}`}>
+                   {msg?.time ? new Date(msg.time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '--:--'}
+                </span>
+              </div>
             </div>
           </motion.div>
         ))}
 
-        {/* Typing dots */}
         {isTyping && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-end gap-2">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#00E676] to-[#00A846] flex items-center justify-center shrink-0">
-              <UserCog size={14} className="text-white" />
-            </div>
-            <div className="bg-white dark:bg-[#181818] border border-gray-100 dark:border-white/5 rounded-2xl rounded-bl-sm px-4 py-3 shadow">
-              <div className="flex gap-1 items-center h-4">
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-start gap-3">
+             <div className="w-9 h-9 rounded-[1.1rem] bg-white dark:bg-[#1A1A1A] flex items-center justify-center shrink-0 shadow-sm border border-gray-100 dark:border-white/5">
+                <UserCog size={18} className="text-[#00C853]" />
+              </div>
+            <div className="bg-white dark:bg-[#141414] border border-gray-100 dark:border-white/5 rounded-2xl rounded-tl-none px-5 py-4 shadow-sm">
+              <div className="flex gap-1.5 items-center h-5">
                 {[0, 1, 2].map(i => (
-                  <motion.span key={i} className="w-2 h-2 bg-[#00C853] rounded-full"
-                    animate={{ y: [0, -5, 0] }}
-                    transition={{ duration: 0.6, repeat: Infinity, delay: i * 0.15 }}
+                  <motion.span key={i} className="w-2 h-2 bg-[#00E676] rounded-full"
+                    animate={{ scale: [1, 1.5, 1], opacity: [0.4, 1, 0.4] }}
+                    transition={{ duration: 0.8, repeat: Infinity, delay: i * 0.2 }}
                   />
                 ))}
               </div>
@@ -658,14 +595,13 @@ export const Manager: React.FC = () => {
           </motion.div>
         )}
 
-        {/* Quick chips */}
         {messages.length === 1 && !isTyping && (
           <div className="pt-2 px-1">
-            <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2">Jaldi Poochein</p>
+            <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-3 ml-2">Quick Commands</p>
             <div className="flex flex-wrap gap-2">
               {QUICK_CHIPS.map((chip, i) => (
                 <button key={i} onClick={() => handleSend(chip)}
-                  className="bg-white dark:bg-[#1A1A1A] border border-gray-200 dark:border-white/10 text-gray-700 dark:text-gray-300 text-[13px] font-semibold py-2 px-3.5 rounded-full shadow-sm active:scale-95 transition-transform">
+                  className="bg-white dark:bg-[#141414] border border-gray-100 dark:border-white/5 text-gray-800 dark:text-gray-200 text-[13px] font-black py-3 px-5 rounded-[1.3rem] shadow-sm transform hover:translate-y-[-2px] active:scale-95 transition-all">
                   {chip}
                 </button>
               ))}
@@ -673,43 +609,39 @@ export const Manager: React.FC = () => {
           </div>
         )}
 
-        <div ref={messagesEndRef} className="h-2" />
+        <div ref={messagesEndRef} className="h-6" />
       </div>
 
       {/* ── Input ──────────────────────────────────────────────────────────── */}
-      <div className="shrink-0 px-3 py-3 pb-[calc(12px+env(safe-area-inset-bottom,0px))] bg-white dark:bg-[#111] border-t border-gray-100 dark:border-white/5 shadow-[0_-8px_24px_rgba(0,0,0,0.04)]">
-        <div className="flex gap-2 items-center">
-          <button 
-            onClick={startListening}
-            className={`w-12 h-12 rounded-2xl flex items-center justify-center active:scale-90 transition-all shadow-md shrink-0 relative overflow-hidden ${
-              isListening ? 'bg-red-500 text-white' : 'bg-slate-100 dark:bg-[#1A1A1A] text-gray-400'
-            }`}
-          >
-            {isListening ? (
-              <>
-                <Mic size={20} className="z-10" />
-                <motion.div 
-                  initial={{ scale: 1, opacity: 0.5 }}
-                  animate={{ scale: 2.2, opacity: 0 }}
-                  transition={{ duration: 1, repeat: Infinity }}
-                  className="absolute inset-0 bg-red-400 rounded-full"
-                />
-              </>
-            ) : (
-              <Mic size={20} />
-            )}
-          </button>
-          <input
-            type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-            placeholder="Kuch bhi poochein…"
-            className="flex-1 bg-slate-50 dark:bg-[#1A1A1A] text-gray-900 dark:text-white rounded-2xl py-3 px-4 font-medium text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#00E676]/30 border border-gray-200 dark:border-white/10 transition-all"
-          />
+      <div className="shrink-0 px-5 py-5 pb-[calc(20px+env(safe-area-inset-bottom,0px))] bg-white dark:bg-[#0A0A0A] border-t border-gray-100 dark:border-white/5 shadow-[0_-15px_40px_rgba(0,0,0,0.04)] z-50">
+        <div className="flex gap-3 items-center">
+          <div className="relative flex-1">
+             <input
+              type="text"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+              placeholder="Munshi se poochein..."
+              className="w-full bg-[#F5F7F9] dark:bg-[#141414] text-gray-900 dark:text-white rounded-[1.8rem] py-5 pl-7 pr-16 font-black text-sm placeholder-gray-400/80 focus:outline-none focus:ring-4 focus:ring-[#00E676]/15 border-2 border-transparent focus:border-[#00E676]/30 transition-all shadow-inner"
+            />
+            <button 
+              onClick={startListening}
+              className={`absolute right-2 top-1/2 -translate-y-1/2 w-12 h-12 rounded-[1.2rem] flex items-center justify-center transition-all ${
+                isListening ? 'bg-red-500 text-white shadow-[0_0_20px_rgba(239,68,68,0.4)]' : 'text-gray-400 hover:text-[#00E676] bg-transparent'
+              }`}
+            >
+              {isListening ? (
+                <div className="relative">
+                  <Mic size={22} strokeWidth={2.5} />
+                  <motion.span className="absolute -inset-3 bg-red-500/20 rounded-full" animate={{ scale: [1, 1.6, 1], opacity: [1, 0, 1] }} transition={{ repeat: Infinity, duration: 1.2 }} />
+                </div>
+              ) : <Mic size={22} strokeWidth={2.5} />}
+            </button>
+          </div>
+
           <button onClick={() => handleSend()} disabled={!input.trim()}
-            className="w-12 h-12 rounded-2xl bg-[#00E676] flex items-center justify-center disabled:opacity-40 active:scale-90 transition-all shadow-md shrink-0">
-            <Send size={18} className="text-[#0A0A0A] translate-x-[1px]" />
+            className="w-16 h-16 rounded-[1.8rem] bg-[#00E676] text-[#0A0A0A] flex items-center justify-center disabled:opacity-20 disabled:grayscale active:scale-90 transition-all shadow-[0_12px_28px_rgba(0,230,118,0.25)] shrink-0 group">
+            <Send size={24} strokeWidth={4} className="translate-x-[2px] transform transition-transform group-hover:translate-x-[4px] group-hover:-translate-y-[2px]" />
           </button>
         </div>
       </div>
