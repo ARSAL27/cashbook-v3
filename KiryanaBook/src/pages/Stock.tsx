@@ -95,7 +95,7 @@ export const Stock: React.FC = () => {
         
          <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
          
-         <div className="px-5 pt-8 pb-4 flex items-center justify-between sticky top-0 z-50 transition-all duration-300" style={{ backgroundColor: bg + 'CC', backdropFilter: 'blur(10px)' }}>
+         <div className="px-5 pt-3 pb-2 flex items-center justify-between sticky top-0 z-50 transition-all duration-300" style={{ backgroundColor: bg + 'CC', backdropFilter: 'blur(10px)' }}>
           <div className="flex items-center gap-3">
             <button 
               onClick={() => setIsSidebarOpen(true)}

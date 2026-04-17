@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">ulooo</string>
-    <string name="title_activity_main">ulooo</string>
+    <string name="app_name">zulkifil</string>
+    <string name="title_activity_main">zulkifil</string>
     <string name="package_name">com.kiryanabook.app</string>
     <string name="custom_url_scheme">com.kiryanabook.app</string>
 </resources>

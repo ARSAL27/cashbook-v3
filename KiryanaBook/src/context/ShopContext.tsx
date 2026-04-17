@@ -936,38 +936,42 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const shopRef = doc(db, 'shops', user.uid);
     const itemRef = doc(shopRef, 'stock', id);
 
+    const currentItem = stock.find(s => s.id === id);
+    if (!currentItem) {
+      toast.error("Item found nahi hua locally");
+      return;
+    }
+
     try {
-      await runTransaction(db, async (transaction) => {
-        const itemSnap = await transaction.get(itemRef);
-        if (!itemSnap.exists()) throw new Error("Item not found");
-        
-        const currentData = itemSnap.data();
-        const diff = newQuantity - currentData.quantity;
-        const historyEntry: StockHistory = {
-          id: Math.random().toString(36).substring(7),
-          type,
-          quantity: diff,
-          date: new Date().toISOString(),
-          note: note || (diff > 0 ? 'Stock Refilled' : 'Manual Adjustment')
-        };
+      const diff = newQuantity - currentItem.quantity;
+      const historyEntry: StockHistory = {
+        id: Math.random().toString(36).substring(7),
+        type,
+        quantity: diff,
+        date: new Date().toISOString(),
+        note: note || (diff > 0 ? 'Stock Refilled' : 'Manual Adjustment')
+      };
 
-        transaction.update(itemRef, { 
-          quantity: newQuantity,
-          history: arrayUnion(historyEntry),
-          updatedAt: serverTimestamp()
-        });
+      const batch = writeBatch(db);
 
-        transaction.set(doc(collection(shopRef, 'activities')), {
-          staffName: profile?.owner || 'Owner',
-          action: type === 'restock' ? 'Stock Refill' : 'Stock Adjustment',
-          details: `${currentData.name}: ${currentData.quantity} -> ${newQuantity}`,
-          type: 'stock',
-          date: new Date().toISOString()
-        });
+      batch.update(itemRef, { 
+        quantity: newQuantity,
+        history: arrayUnion(historyEntry),
+        updatedAt: serverTimestamp()
       });
-      await updateLastSync();
+
+      batch.set(doc(collection(shopRef, 'activities')), {
+        staffName: profile?.owner || 'Owner',
+        action: type === 'restock' ? 'Stock Refill' : 'Stock Adjustment',
+        details: `${currentItem.name}: ${currentItem.quantity} -> ${newQuantity}`,
+        type: 'stock',
+        date: new Date().toISOString()
+      });
+
+      await batch.commit();
+      updateLastSync().catch(()=>console.log('offline sync later'));
     } catch (e: any) {
-      toast.error('Stock Update Failed');
+      toast.error('Sync delayed: You may be offline.');
     }
   };
 

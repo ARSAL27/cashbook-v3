@@ -68,8 +68,8 @@ export const MainLayout: React.FC = () => {
       </main>
 
       {/* FLOATING PREMIUM BOTTOM NAVIGATION */}
-      <div className="fixed bottom-6 inset-x-5 z-[150] max-w-md mx-auto">
-        <nav className="glass-card bg-white/80 dark:bg-black/40 backdrop-blur-2xl border border-white/40 dark:border-white/5 rounded-[2rem] px-4 py-3 shadow-[0_20px_50px_rgba(0,0,0,0.15)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.4)] flex items-center justify-between">
+      <div className="fixed bottom-3 inset-x-5 z-[150] max-w-md mx-auto">
+        <nav className="glass-card bg-white/80 dark:bg-black/40 backdrop-blur-2xl border border-white/40 dark:border-white/5 rounded-[1.5rem] px-4 py-2 shadow-[0_20px_50px_rgba(0,0,0,0.15)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.4)] flex items-center justify-between">
           
           {navItems.map((item) => {
             const isActive = location.pathname === item.to || (item.to !== '/' && location.pathname.startsWith(item.to));

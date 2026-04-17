@@ -99,7 +99,7 @@ export const StockDetail: React.FC = () => {
               
               {/* Decorative Brand Accent */}
               <div className="absolute top-0 right-0 p-8 opacity-10 rotate-12">
-                  <Package size={120} strokeWidth={1} style={{ color: brandStyle.text }} />
+                  <Package size={80} strokeWidth={1.5} style={{ color: brandStyle.text }} />
               </div>
 
               <div className="flex items-center gap-2 mb-4 relative z-10">
@@ -131,7 +131,7 @@ export const StockDetail: React.FC = () => {
                     </p>
                   </div>
                   {item.imageUrl && (
-                    <div className="w-24 h-24 rounded-[2rem] overflow-hidden border-4 border-white/20 shadow-2xl">
+                    <div className="w-16 h-16 rounded-[1.2rem] overflow-hidden border-2 border-white/20 shadow-xl">
                         <img src={item.imageUrl} alt="" className="w-full h-full object-cover" />
                     </div>
                   )}
@@ -362,12 +362,15 @@ export const StockDetail: React.FC = () => {
                                         }
                                     });
 
-                                    await updateStockItem(item.id, updateData);
+                                    // Instantly close and show feedback
                                     setShowEdit(false);
                                     toast.success('Tabdeeli save ho gayi!');
                                     triggerHaptic(ImpactStyle.Medium);
+
+                                    // Then sync (Offline-friendly)
+                                    await updateStockItem(item.id, updateData);
                                 } catch (e) {
-                                    toast.error('Galti hui, check karein');
+                                    console.log('Syncing in background / error');
                                 }
                             }}
                             className="flex-[2] py-4 rounded-2xl font-black text-[14px] bg-[#4BFF94] text-[#0A3D24]"
@@ -434,12 +437,15 @@ export const StockDetail: React.FC = () => {
                         <button 
                             onClick={async () => {
                                 try {
-                                    await updateStock(item.id, adjustQty);
+                                    // Instantly close and feedback
                                     setShowAdjust(false);
                                     toast.success('Stock updated!');
                                     triggerHaptic(ImpactStyle.Medium);
+                                    
+                                    // Sync in background (offline-friendly)
+                                    await updateStock(item.id, adjustQty);
                                 } catch (e) {
-                                    toast.error('Failed to update stock');
+                                    console.log('Sync delayed');
                                 }
                             }}
                             className="flex-[2] py-4 rounded-2xl font-black text-[14px] bg-[#0A3D24] text-[#4BFF94]"
