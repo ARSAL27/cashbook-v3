@@ -15,6 +15,14 @@ export const Reports: React.FC = () => {
     const [activeTab, setActiveTab] = useState('Today');
     const [customRange, setCustomRange] = useState({ start: '', end: '' });
     const [showCustom, setShowCustom] = useState(false);
+    const [chartWidth, setChartWidth] = useState(window.innerWidth - 40);
+
+    React.useEffect(() => {
+        const handleResize = () => setChartWidth(Math.min(window.innerWidth - 40, 400));
+        handleResize();
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
 
   const colors = {
     bg: isDarkMode ? '#0A0A0A' : '#FAFAFA',
@@ -339,16 +347,14 @@ export const Reports: React.FC = () => {
                     <div className="flex items-center gap-1"><div className="w-2 h-2 bg-red-500 rounded-sm" /><span className="text-[9px] font-bold" style={{ color: colors.sub }}>Expense</span></div>
                 </div>
             </div>
-            <div className="h-44 w-full relative" style={{ width: '100%', height: 176 }}>
-                <ResponsiveContainer width="99%" height="100%">
-                    <LineChart data={flowData} margin={{ top: 5, right: 0, left: -20, bottom: 0 }}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDarkMode ? '#222' : '#f0f0f0'} />
-                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: colors.sub, fontWeight: 'bold' }} />
-                        <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: colors.sub, fontWeight: 'bold' }} tickFormatter={(val) => val === 0 ? '' : val >= 1000 ? `${val / 1000}K` : val} />
-                        <Line type="monotone" dataKey="income" stroke="#4BFF94" strokeWidth={3} dot={false} />
-                        <Line type="monotone" dataKey="expense" stroke="#ef4444" strokeWidth={3} dot={false} strokeDasharray="5 5" />
-                    </LineChart>
-                </ResponsiveContainer>
+            <div className="h-44 w-full relative flex justify-center">
+                <LineChart width={chartWidth} height={176} data={flowData} margin={{ top: 5, right: 0, left: -20, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDarkMode ? '#222' : '#f0f0f0'} />
+                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: colors.sub, fontWeight: 'bold' }} />
+                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: colors.sub, fontWeight: 'bold' }} tickFormatter={(val) => val === 0 ? '' : val >= 1000 ? `${val / 1000}K` : val} />
+                    <Line type="monotone" dataKey="income" stroke="#4BFF94" strokeWidth={3} dot={false} />
+                    <Line type="monotone" dataKey="expense" stroke="#ef4444" strokeWidth={3} dot={false} strokeDasharray="5 5" />
+                </LineChart>
             </div>
         </div>
 

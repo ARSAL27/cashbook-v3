@@ -19,6 +19,14 @@ export const Dashboard: React.FC = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [amountRange, setAmountRange] = useState({ min: 0, max: Infinity });
   const [showFilter, setShowFilter] = useState(false);
+  const [chartWidth, setChartWidth] = useState(window.innerWidth - 40);
+
+  React.useEffect(() => {
+    const handleResize = () => setChartWidth(Math.min(window.innerWidth - 40, 400));
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const stats = useMemo(() => {
     const today = new Date().toISOString().split('T')[0];
@@ -450,20 +458,18 @@ export const Dashboard: React.FC = () => {
               <p className="text-[14px] font-black text-gray-800 dark:text-white">Hisaab Ka Graph</p>
               <p className="text-[11px] text-gray-400 dark:text-[#B0B0B0] font-semibold">Last 7 Days</p>
             </div>
-            <div className="h-32 w-full mt-2" style={{ width: '100%', height: 128 }}>
-              <ResponsiveContainer width="99%" height="100%">
-                <AreaChart data={weeklyData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor={isDarkMode ? '#00E676' : '#1A5C38'} stopOpacity={0.2}/>
-                      <stop offset="95%" stopColor={isDarkMode ? '#00E676' : '#1A5C38'} stopOpacity={0}/>
-                    </linearGradient>
-                  </defs>
-                  <Area type="monotone" dataKey="value" stroke={isDarkMode ? '#00E676' : '#1A5C38'} strokeWidth={3} fillOpacity={1} fill="url(#colorValue)" />
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDarkMode ? '#2A2A2A' : '#F3F4F6'} />
-                  <XAxis dataKey="dayName" axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: isDarkMode ? '#555' : '#9ca3af', fontWeight: 'bold' }} />
-                </AreaChart>
-              </ResponsiveContainer>
+            <div className="h-32 w-full mt-2 flex justify-center">
+              <AreaChart width={chartWidth} height={128} data={weeklyData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor={isDarkMode ? '#00E676' : '#1A5C38'} stopOpacity={0.2}/>
+                    <stop offset="95%" stopColor={isDarkMode ? '#00E676' : '#1A5C38'} stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <Area type="monotone" dataKey="value" stroke={isDarkMode ? '#00E676' : '#1A5C38'} strokeWidth={3} fillOpacity={1} fill="url(#colorValue)" />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDarkMode ? '#2A2A2A' : '#F3F4F6'} />
+                <XAxis dataKey="dayName" axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: isDarkMode ? '#555' : '#9ca3af', fontWeight: 'bold' }} />
+              </AreaChart>
             </div>
           </motion.div>
         </div>
