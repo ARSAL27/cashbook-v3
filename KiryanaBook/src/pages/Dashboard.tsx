@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { PageTransition } from '../components/PageTransition';
 import { useShop } from '../context/ShopContext';
-import { Users, Plus, Minus, Bell, HandCoins, BarChart2, Filter, ArrowDownLeft, ArrowUpRight, AlertTriangle, Menu, MessageCircle, Mic, Sparkles, ChevronRight } from 'lucide-react';
+import { Users, Plus, Minus, Bell, HandCoins, BarChart2, Filter, ArrowDownLeft, ArrowUpRight, Menu, MessageCircle, Mic } from 'lucide-react';
 import { Sidebar } from '../components/Sidebar';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -198,88 +198,87 @@ export const Dashboard: React.FC = () => {
       <div className="w-full bg-[#F2F2F7] dark:bg-[#0A0A0A] font-outfit max-w-md mx-auto pb-8 transition-colors duration-300">
 
         {/* ── STICKY HEADER ── */}
-        <div className="sticky top-0 z-50 px-5 pt-12 pb-5 border-b transition-all duration-300 dark:border-white/5 shadow-sm" style={{ backgroundColor: isDarkMode ? '#0A0A0A' : '#1A5C38' }}>
+        <div className="sticky top-0 z-50 px-5 pt-8 pb-4 border-b transition-all duration-300 dark:border-white/5 shadow-sm" style={{ backgroundColor: isDarkMode ? '#0A0A0A' : '#1A5C38' }}>
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
               <button 
                 onClick={() => setIsSidebarOpen(true)}
-                className="w-11 h-11 bg-white/10 dark:bg-white/5 rounded-2xl flex items-center justify-center border border-white/10 active:scale-90 transition-all shadow-sm"
+                className="w-10 h-10 bg-white/10 dark:bg-white/5 rounded-xl flex items-center justify-center border border-white/10 active:scale-90 transition-all shadow-sm"
               >
-                <Menu size={22} className="text-white" strokeWidth={2.5} />
+                <Menu size={20} className="text-white" strokeWidth={2.5} />
               </button>
               <div>
-                <p className="text-[10px] text-white/60 font-black uppercase tracking-[0.2em] leading-none mb-1.5">
-                  {new Date().toLocaleDateString('ur-PK', { weekday: 'long' })} · {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                <p className="text-[9px] text-white/50 font-black uppercase tracking-[0.2em] leading-none mb-1">
+                  {new Date().toLocaleDateString('ur-PK', { weekday: 'short' })} · {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                 </p>
                 <div className="flex items-center gap-1.5">
-                   <h1 className="text-[20px] text-white font-black leading-tight tracking-tight">{profile?.name || 'KiryanaBook'}</h1>
+                   <h1 className="text-[17px] text-white font-black leading-tight tracking-tight">{profile?.name || 'KiryanaBook'}</h1>
                    <div className="w-1.5 h-1.5 rounded-full bg-[#4BFF94] shadow-[0_0_8px_#4BFF94]" />
                 </div>
               </div>
             </div>
-            <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-2">
               <button 
                 onClick={() => navigate('/notifications')}
-                className="relative w-10 h-10 bg-white/10 dark:bg-white/5 rounded-2xl flex items-center justify-center border border-white/10 active:scale-90 transition-all"
+                className="relative w-9 h-9 bg-white/10 dark:bg-white/5 rounded-xl flex items-center justify-center border border-white/10 active:scale-90 transition-all"
               >
-                <Bell size={20} className="text-white" strokeWidth={2.5} />
+                <Bell size={18} className="text-white" strokeWidth={2.5} />
                 {notifications.some(n => !n.read) && (
-                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full border-2 border-[#1A5C38] dark:border-[#0A0A0A] text-[9px] text-white flex items-center justify-center font-black">
+                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full border-2 border-[#1A5C38] dark:border-[#0A0A0A] text-[8px] text-white flex items-center justify-center font-black">
                     {notifications.filter(n => !n.read).length}
                   </span>
                 )}
               </button>
-              <button onClick={() => navigate('/settings')} className="w-11 h-11 rounded-full overflow-hidden border-2 border-white/20 dark:border-white/10 shadow-lg shadow-black/10">
+              <button onClick={() => navigate('/settings')} className="w-9 h-9 rounded-full overflow-hidden border-2 border-white/20 dark:border-white/10 shadow-lg shadow-black/10">
                 <img src={profile?.logoUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${profile?.name || 'U'}&backgroundColor=34d399`} alt="Avatar" className="w-full h-full object-cover" />
               </button>
             </div>
           </div>
-        </div>
+        </div> 
 
         {/* ── PREMIUM BALANCE CARD ── */}
         <div className="px-4 -mt-2 relative z-10">
-          <div className="rounded-[2.2rem] px-6 py-5 transition-all duration-500 shadow-[0_15px_30px_rgba(26,92,56,0.12)] relative overflow-hidden" style={{ background: isDarkMode ? 'linear-gradient(145deg, #10251A, #0A0A0A)' : 'linear-gradient(145deg, #1A5C38, #0A3D24)' }}>
-            {/* Ambient Light */}
-            <div className="absolute top-0 right-0 w-40 h-40 bg-white/5 rounded-full blur-3xl -mr-16 -mt-16" />
+          <div className="rounded-[1.8rem] px-5 py-4 transition-all duration-500 shadow-[0_12px_25px_rgba(26,92,56,0.12)] relative overflow-hidden" style={{ background: isDarkMode ? 'linear-gradient(145deg, #10251A, #0A0A0A)' : 'linear-gradient(145deg, #1A5C38, #0A3D24)' }}>
+            <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-2xl -mr-12 -mt-12" />
             
             <div className="relative z-10">
-              <p className="text-[10px] text-white/50 font-black uppercase tracking-[0.2em] mb-2">{t('today_balance')}</p>
+              <p className="text-[9px] text-white/40 font-black uppercase tracking-[0.2em] mb-1">{t('today_balance')}</p>
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-[32px] font-black text-white leading-tight tracking-tight">
-                    <span className="text-[18px] mr-1">Rs.</span>
+                  <h2 className="text-[28px] font-black text-white leading-tight tracking-tight">
+                    <span className="text-[16px] mr-1 opacity-70">Rs.</span>
                     {(stats.totalToday - stats.totalExpenses).toLocaleString()}
                   </h2>
                 </div>
-                <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center backdrop-blur-md border border-white/10 shadow-inner">
-                   <HandCoins className="text-white" size={24} strokeWidth={2.5} />
+                <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center backdrop-blur-md border border-white/10">
+                   <HandCoins className="text-white" size={20} strokeWidth={2.5} />
                 </div>
               </div>
 
               {/* Action Buttons Row */}
-              <div className="flex items-center gap-3 mt-5">
+              <div className="flex items-center gap-2.5 mt-4">
                 <button
                   onClick={() => navigate('/cashflow?type=in')}
-                  className="flex-1 bg-white/10 hover:bg-white/15 active:scale-95 transition-all rounded-2xl p-3.5 border border-white/10 flex items-center gap-3"
+                  className="flex-1 bg-white/10 hover:bg-white/15 active:scale-95 transition-all rounded-xl p-3 border border-white/5 flex items-center gap-2.5"
                 >
-                  <div className="w-9 h-9 bg-green-400/20 rounded-xl flex items-center justify-center shadow-lg shadow-green-500/20">
-                    <ArrowDownLeft size={18} className="text-[#4BFF94]" strokeWidth={3} />
+                  <div className="w-8 h-8 bg-green-400/20 rounded-lg flex items-center justify-center shadow-lg">
+                    <ArrowDownLeft size={16} className="text-[#4BFF94]" strokeWidth={3} />
                   </div>
                   <div>
-                    <p className="text-[8px] text-white/40 font-black tracking-widest leading-none mb-1">CASH IN</p>
-                    <p className="text-[12px] text-white font-black leading-none">Rs. {stats.totalToday.toLocaleString()}</p>
+                    <p className="text-[7.5px] text-white/40 font-black tracking-widest leading-none mb-1 uppercase">CASH IN</p>
+                    <p className="text-[11px] text-white font-black leading-none">{stats.totalToday.toLocaleString()}</p>
                   </div>
                 </button>
                 <button
                   onClick={() => navigate('/cashflow?type=out')}
-                  className="flex-1 bg-white/10 hover:bg-white/15 active:scale-95 transition-all rounded-2xl p-3.5 border border-white/10 flex items-center gap-3"
+                  className="flex-1 bg-white/10 hover:bg-white/15 active:scale-95 transition-all rounded-xl p-3 border border-white/5 flex items-center gap-2.5"
                 >
-                  <div className="w-9 h-9 bg-red-400/20 rounded-xl flex items-center justify-center shadow-lg shadow-red-500/20">
-                    <ArrowUpRight size={18} className="text-[#FF5252]" strokeWidth={3} />
+                  <div className="w-8 h-8 bg-red-400/20 rounded-lg flex items-center justify-center shadow-lg">
+                    <ArrowUpRight size={16} className="text-[#FF5252]" strokeWidth={3} />
                   </div>
                   <div>
-                    <p className="text-[8px] text-white/40 font-black tracking-widest leading-none mb-1">CASH OUT</p>
-                    <p className="text-[12px] text-white font-black leading-none">Rs. {stats.totalExpenses.toLocaleString()}</p>
+                    <p className="text-[7.5px] text-white/40 font-black tracking-widest leading-none mb-1 uppercase">CASH OUT</p>
+                    <p className="text-[11px] text-white font-black leading-none">{stats.totalExpenses.toLocaleString()}</p>
                   </div>
                 </button>
               </div>
@@ -288,64 +287,48 @@ export const Dashboard: React.FC = () => {
         </div>
 
         {/* ── SMART BUSINESS MANAGER CARD ── */}
-        <div className="px-4 mt-5">
+        <div className="px-4 mt-4">
           <motion.div 
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             onClick={() => navigate('/manager', { state: { autoStartVoice: true } })}
-            className={`group relative overflow-hidden rounded-[1.8rem] p-4 border transition-all duration-300 shadow-sm active:scale-[0.97] ${
+            className={`group relative overflow-hidden rounded-[1.5rem] p-3.5 border transition-all duration-300 shadow-sm active:scale-[0.97] ${
               aiInsight.color === 'red' ? 'bg-red-50/50 border-red-100 dark:bg-red-950/20 dark:border-red-900/40' :
               aiInsight.color === 'orange' ? 'bg-orange-50/50 border-orange-100 dark:bg-orange-950/20 dark:border-orange-900/40' :
               'bg-white dark:bg-[#141414] border-gray-100 dark:border-white/5 hover:border-[#00E676]/30'
             }`}
           >
-            <div className="flex items-start gap-4 relative z-10">
+            <div className="flex items-center gap-3.5 relative z-10">
               <div className="relative">
-                <div className={`w-14 h-14 rounded-[1.2rem] flex items-center justify-center shadow-lg transition-transform group-hover:rotate-[-6deg] ${
+                <div className={`w-12 h-12 rounded-xl flex items-center justify-center shadow-md transition-transform group-hover:rotate-[-6deg] ${
                   aiInsight.color === 'red' ? 'bg-red-500' :
                   aiInsight.color === 'orange' ? 'bg-orange-500' :
                   'bg-[#00E676]'
                 }`}>
-                  <MessageCircle className="text-[#0A0A0A]" size={28} strokeWidth={2.5} />
-                </div>
-                <div className={`absolute -bottom-1 -right-1 w-6 h-6 rounded-lg bg-white dark:bg-[#1A1A1A] flex items-center justify-center shadow-md border-2 ${
-                  aiInsight.color === 'red' ? 'border-red-50' : 'border-white dark:border-[#141414]'
-                }`}>
-                   <Sparkles size={12} className={aiInsight.color === 'red' ? 'text-red-500' : 'text-[#00C853]'} strokeWidth={3} />
+                  <MessageCircle className="text-[#0A0A0A]" size={22} strokeWidth={2.5} />
                 </div>
               </div>
               
               <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between mb-1.5">
+                <div className="flex items-center justify-between mb-1">
                    <div className="flex items-center gap-1.5">
-                      <span className={`text-[10px] font-black uppercase tracking-[0.2em] ${
+                      <span className={`text-[9px] font-black uppercase tracking-[0.2em] ${
                         aiInsight.color === 'red' ? 'text-red-600' :
                         aiInsight.color === 'orange' ? 'text-orange-600' :
                         'text-[#00A846]'
                       }`}>
                         {aiInsight.title}
                       </span>
-                      <div className={`w-1.5 h-1.5 rounded-full animate-pulse shadow-[0_0_8px_currentColor] ${
-                        aiInsight.color === 'red' ? 'text-red-500 bg-red-500' :
-                        aiInsight.color === 'orange' ? 'text-orange-500 bg-orange-500' :
-                        'text-[#00E676] bg-[#00E676]'
-                      }`} />
                    </div>
-                   <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-100 dark:bg-white/5">
-                      <Mic size={10} className="text-gray-400" />
-                      <span className="text-[8px] font-black text-gray-400 uppercase tracking-tighter">Live Munshi</span>
+                   <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-slate-100 dark:bg-white/5">
+                      <Mic size={9} className="text-gray-400" />
+                      <span className="text-[7.5px] font-black text-gray-400 uppercase tracking-tighter">Live Munshi</span>
                    </div>
                 </div>
-                <p className="text-[16px] font-black text-gray-900 dark:text-gray-100 leading-snug tracking-tight">
+                <p className="text-[14px] font-black text-gray-900 dark:text-gray-100 leading-tight tracking-tight">
                   {aiInsight.msg}
                 </p>
               </div>
-            </div>
-            
-            {/* Action Hint */}
-            <div className="mt-3 pt-2.5 border-t border-gray-100 dark:border-white/5 flex items-center justify-between">
-               <p className="text-[9px] font-bold text-gray-400 uppercase">Tap to get expert advice</p>
-               <ChevronRight size={14} className="text-gray-300" />
             </div>
           </motion.div>
         </div>
@@ -354,72 +337,38 @@ export const Dashboard: React.FC = () => {
         <div className="px-4 mt-3">
           <button 
             onClick={() => navigate('/ledger')} 
-            className="w-full bg-white dark:bg-[#141414] rounded-[1.8rem] p-4 shadow-sm border border-transparent dark:border-white/5 active:scale-[0.98] transition-all text-left"
+            className="w-full bg-white dark:bg-[#141414] rounded-[1.5rem] p-3.5 shadow-sm border border-transparent dark:border-white/5 active:scale-[0.98] transition-all text-left"
           >
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between mb-3">
               <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 dark:text-[#B0B0B0]/60 mb-1">Shop Khata</p>
-                <h2 className="text-[18px] font-black text-[#0A3D24] dark:text-[#4BFF94]">Cash Flow Statement</h2>
+                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-gray-400 dark:text-[#B0B0B0]/60 mb-0.5">Shop Khata</p>
+                <h2 className="text-[16px] font-black text-[#0A3D24] dark:text-[#4BFF94]">Cash Flow Statement</h2>
               </div>
-              <div className="w-12 h-12 bg-[#0A3D24]/5 dark:bg-[#4BFF94]/5 rounded-2xl flex items-center justify-center">
-                <BarChart2 className="text-[#0A3D24] dark:text-[#4BFF94]" size={22} />
+              <div className="w-9 h-9 bg-[#0A3D24]/5 dark:bg-[#4BFF94]/5 rounded-xl flex items-center justify-center">
+                <BarChart2 className="text-[#0A3D24] dark:text-[#4BFF94]" size={18} />
               </div>
             </div>
             
-            <div className="flex items-center gap-4 pt-4 border-t border-gray-50 dark:border-white/5">
+            <div className="flex items-center gap-3 pt-3 border-t border-gray-50 dark:border-white/5">
                 <div className="flex-1">
-                    <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1">Lena Hai</p>
-                    <p className="text-[14px] font-black text-green-600 truncate">Rs. {stats.receivable.toLocaleString()}</p>
+                    <p className="text-[7.5px] font-black text-gray-400 uppercase tracking-widest mb-0.5">Lena Hai</p>
+                    <p className="text-[13px] font-black text-green-600 truncate">Rs. {stats.receivable.toLocaleString()}</p>
                 </div>
-                <div className="w-px h-8 bg-gray-100 dark:border-white/5" />
+                <div className="w-px h-6 bg-gray-100 dark:border-white/5" />
                 <div className="flex-1 px-1">
-                    <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1">Dena Hai</p>
-                    <p className="text-[14px] font-black text-red-500 truncate">Rs. {stats.payable.toLocaleString()}</p>
+                    <p className="text-[7.5px] font-black text-gray-400 uppercase tracking-widest mb-0.5">Dena Hai</p>
+                    <p className="text-[13px] font-black text-red-500 truncate">{stats.payable.toLocaleString()}</p>
                 </div>
-                <div className="w-px h-8 bg-gray-100 dark:border-white/5" />
+                <div className="w-px h-6 bg-gray-100 dark:border-white/5" />
                 <div className="flex-1">
-                    <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1">Advances</p>
-                    <p className="text-[14px] font-black text-blue-500 truncate">Rs. {(stats.customerAdvance + stats.supplierAdvance).toLocaleString()}</p>
+                    <p className="text-[7.5px] font-black text-gray-400 uppercase tracking-widest mb-0.5">Advances</p>
+                    <p className="text-[13px] font-black text-blue-500 truncate">{(stats.customerAdvance + stats.supplierAdvance).toLocaleString()}</p>
                 </div>
             </div>
           </button>
         </div>
 
-        {/* ── LOW STOCK ALERT ── */}
-        {stats.lowStockItems.length > 0 && (
-          <div className="px-4 mt-3">
-            <motion.div 
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              onClick={() => navigate('/stock')}
-              className="bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-900/40 rounded-3xl p-4 flex items-center justify-between cursor-pointer active:scale-[0.98] transition-all"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-orange-500 rounded-xl flex items-center justify-center text-white shadow-lg shadow-orange-500/20">
-                  <AlertTriangle size={20} />
-                </div>
-                <div>
-                  <p className="text-[13px] font-black text-orange-900 dark:text-orange-200 leading-tight">
-                    {stats.lowStockItems.length} Items Low Stock
-                  </p>
-                  <p className="text-[10px] text-orange-700/60 dark:text-orange-400/50 font-bold uppercase tracking-wider">
-                    Jald Restock Karein
-                  </p>
-                </div>
-              </div>
-              <div className="flex -space-x-2">
-                {stats.lowStockItems.slice(0, 3).map((item, i) => (
-                  <div key={i} className="w-8 h-8 rounded-full border-2 border-white dark:border-black bg-white dark:bg-[#141414] overflow-hidden">
-                    <img 
-                      src={item.imageUrl || `https://api.dicebear.com/7.x/shapes/svg?seed=${item.name}`} 
-                      alt="" className="w-full h-full object-cover" 
-                    />
-                  </div>
-                ))}
-              </div>
-            </motion.div>
-          </div>
-        )}
+
 
         {/* ── QUICK ACTIONS GRID ── */}
         <div className="px-4 mt-4 grid grid-cols-4 gap-4">
