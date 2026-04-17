@@ -36,24 +36,28 @@ export const AddItem: React.FC = () => {
   const cameraInputRef = React.useRef<HTMLInputElement>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
+  const initialCheckDone = React.useRef(false);
+
   // ─── BARCODE INTEGRATION ───
   React.useEffect(() => {
     const barcode = searchParams.get('barcode');
-    if (!barcode) return;
+    if (!barcode || initialCheckDone.current) return;
 
     setSku(barcode);
     
-    // 1. Check local stock first
-    const existing = stock.find(s => String(s.sku) === barcode || String(s.id) === barcode);
+    // 1. Check local stock first (ONLY ONCE ON MOUNT)
+    const existing = stock.find(s => barcode && (String(s.sku) === barcode || String(s.id) === barcode));
     if (existing) {
-       toast.error('Yeh item pehle se stock mein hai! Details load kar raha hoon...', { id: 'exists-check' });
-       // Redirect to Stock Detail for editing instead of staying on Add Item
+       initialCheckDone.current = true;
+       toast.error('Yeh item pehle se stock mein hai!', { id: 'exists-check' });
        navigate(`/stock/${existing.id}`, { replace: true });
        return;
     }
 
+    initialCheckDone.current = true;
+    
     // 2. Search master database
-    const master = KIRYANA_DATABASE.find(item => item.name.toLowerCase().includes(barcode.toLowerCase())); // Mock lookup or exact if available
+    const master = KIRYANA_DATABASE.find(item => item.name.toLowerCase().includes(barcode.toLowerCase()));
     if (master) {
        setName(master.name);
        if (master.category) setCategory(master.category);

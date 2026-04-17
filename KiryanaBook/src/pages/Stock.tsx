@@ -42,6 +42,12 @@ export const Stock: React.FC = () => {
     return Array.from(brands) as string[];
   }, [stock]);
 
+  // Dynamic categories: Only show those that actually have products in stock
+  const dynamicCategories = useMemo(() => {
+    const activeCats = new Set((stock || []).map(item => item.category));
+    return (categories || []).filter(cat => activeCats.has(cat));
+  }, [categories, stock]);
+
   const filteredStock = useMemo(() => {
     const s = deferredSearch.toLowerCase();
     const filtered = (stock || []).filter(item => {
@@ -56,12 +62,22 @@ export const Stock: React.FC = () => {
       return matchSearch && matchCat && matchFilter;
     });
 
-    // Sort by createdAt (newest first), fallback to name
     return [...filtered].sort((a, b) => {
-        // Strict newest first
-        const timeA = a.createdAt ? (typeof a.createdAt === 'string' ? new Date(a.createdAt).getTime() : ((a.createdAt as any).seconds ?? 0) * 1000 + ((a.createdAt as any).nanoseconds ?? 0) / 1000000) : 0;
-        const timeB = b.createdAt ? (typeof b.createdAt === 'string' ? new Date(b.createdAt).getTime() : ((b.createdAt as any).seconds ?? 0) * 1000 + ((b.createdAt as any).nanoseconds ?? 0) / 1000000) : 0;
+        const getTs = (item: any) => {
+            if (!item.createdAt) return 0;
+            // Native ISO or Firestore Timestamp
+            if (typeof item.createdAt === 'string') return new Date(item.createdAt).getTime();
+            if ((item.createdAt as any).seconds) return (item.createdAt as any).seconds * 1000 + ((item.createdAt as any).nanoseconds / 1000000);
+            return 0;
+        };
         
+        const timeA = getTs(a);
+        const timeB = getTs(b);
+        
+        // Priority to items with 0 timestamp (newly added in current session)
+        if (timeA === 0 && timeB !== 0) return -1;
+        if (timeB === 0 && timeA !== 0) return 1;
+
         if (timeB !== timeA) return timeB - timeA;
         return a.name.localeCompare(b.name);
     });
@@ -185,7 +201,6 @@ export const Stock: React.FC = () => {
            </button>
         </div>
 
-        {/* ── FILTER OPTIONS ── */}
         <AnimatePresence>
           {showFilter && (
             <motion.div 
@@ -246,7 +261,7 @@ export const Stock: React.FC = () => {
               All Items
            </button>
 
-           {categories.map(c => (
+           {dynamicCategories.map(c => (
               <div key={c} className="relative group flex items-center">
                 <button
                     onClick={() => setActiveCategory(c)}

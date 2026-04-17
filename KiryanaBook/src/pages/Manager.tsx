@@ -609,6 +609,7 @@ export const Manager: React.FC = () => {
       isSmart = finalResponse.includes('💡') || finalResponse.includes('⚠️');
     }
 
+    if (!isMounted.current) return;
     setIsTyping(false);
     setMessages(prev => [...prev, { 
       id: `b-${Date.now()}`, 
