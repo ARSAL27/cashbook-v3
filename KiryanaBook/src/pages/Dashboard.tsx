@@ -451,7 +451,7 @@ export const Dashboard: React.FC = () => {
               <p className="text-[11px] text-gray-400 dark:text-[#B0B0B0] font-semibold">Last 7 Days</p>
             </div>
             <div className="h-32 w-full mt-2">
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                 <AreaChart data={weeklyData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
                   <defs>
                     <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">

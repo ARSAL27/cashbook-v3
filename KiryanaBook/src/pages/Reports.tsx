@@ -340,7 +340,7 @@ export const Reports: React.FC = () => {
                 </div>
             </div>
             <div className="h-44 w-full relative">
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                     <LineChart data={flowData} margin={{ top: 5, right: 0, left: -20, bottom: 0 }}>
                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDarkMode ? '#222' : '#f0f0f0'} />
                         <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: colors.sub, fontWeight: 'bold' }} />

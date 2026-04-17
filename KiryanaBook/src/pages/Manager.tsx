@@ -283,6 +283,8 @@ function HistoryPanel({
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 export const Manager: React.FC = () => {
+  const { sales, expenses, udhaars, stock, contacts, profile } = useShop();
+
   // 🧪 Memoize shopData to prevent unnecessary re-calculates on every keystroke
   const shopData = useMemo(() => ({
     sales: Array.isArray(sales) ? sales : [],

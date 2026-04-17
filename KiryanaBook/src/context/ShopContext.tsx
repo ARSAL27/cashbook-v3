@@ -35,6 +35,7 @@ export interface Stock {
   imageUrl?: string;
   packSize?: string;
   status: 'active' | 'inactive';
+  createdAt?: string;
   isDeleted?: boolean;
 }
 

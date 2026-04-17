@@ -18,7 +18,7 @@ import { Share } from '@capacitor/share';
 
 export const Settings: React.FC = () => {
   const navigate = useNavigate();
-  const { userPin, resetPin, autoLockTimer, saveAutoLockTimer } = useAuth();
+  const { resetPin, saveAutoLockTimer } = useAuth();
   const { profile, sales, expenses, stock, contacts, invoices } = useShop();
   const { setMode, isDarkMode } = useTheme();
   const { language, setLanguage, t } = useLanguage();
@@ -335,8 +335,6 @@ export const Settings: React.FC = () => {
 
             {/* SETTINGS GROUPS */}
             <div className="space-y-4">
-  </div>
-
                 {/* ── DATA & EXPORTS ── */}
                 <h3 className="text-[11px] font-black text-text-muted uppercase tracking-[0.2em] ml-2 mt-8 opacity-50">Data & Backup</h3>
                 <div className="bg-card border border-border/60 rounded-[2.5rem] p-5 space-y-4 shadow-sm">
@@ -350,7 +348,6 @@ export const Settings: React.FC = () => {
                             <span className="text-[10px] font-black uppercase tracking-widest">PDF Audit</span>
                         </button>
                     </div>
-                    
                 </div>
 
                 {/* ── PREFERENCES ── */}

@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">Cash Book</string>
-    <string name="title_activity_main">Cash Book</string>
+    <string name="app_name">faaaaa</string>
+    <string name="title_activity_main">faaaaa</string>
     <string name="package_name">com.kiryanabook.app</string>
     <string name="custom_url_scheme">com.kiryanabook.app</string>
 </resources>
