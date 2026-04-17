@@ -71,9 +71,10 @@ function StressMeter({ score }: { score: number }) {
   );
 }
 
-// ─── Message Renderer (Simplified) ──────────────────────────────────────────
+// ─── Message Renderer (Simplified & Ultra-Safe) ──────────────────────────
 function renderBotMessage(text: string, isWelcome?: boolean, anomalies?: string[], onAction?: (a: string) => void) {
-  const lines = (text || '').split('\n');
+  const safeText = text || '';
+  const lines = safeText.split('\n');
   return (
     <div className="space-y-2">
       {lines.map((line, i) => {
@@ -138,7 +139,7 @@ function renderBotMessage(text: string, isWelcome?: boolean, anomalies?: string[
            <StressMeter score={Math.min(100, Math.max(40, 80 + (anomalies?.length ? -anomalies.length * 10 : 10)))} />
           {anomalies && anomalies.length > 0 ? (
             <div className="bg-red-50 dark:bg-red-500/5 p-3 rounded-xl border border-red-100 dark:border-red-500/10">
-              <p className="text-[12px] font-bold text-red-600 dark:text-red-400 leading-snug">⚠️ {anomalies[0].replace(/\*\*/g, '')}</p>
+              <p className="text-[12px] font-bold text-red-600 dark:text-red-400 leading-snug">⚠️ {(anomalies[0] || '').replace(/\*\*/g, '')}</p>
             </div>
           ) : (
              <div className="flex items-center gap-2 px-1">
@@ -153,7 +154,8 @@ function renderBotMessage(text: string, isWelcome?: boolean, anomalies?: string[
 }
 
 function renderInlineBold(text: string): React.ReactNode {
-  return text.split(/\*\*(.*?)\*\*/g).map((part, i) =>
+  const safeText = text || '';
+  return safeText.split(/\*\*(.*?)\*\*/g).map((part, i) =>
     i % 2 === 1 ? <strong key={i} className="font-black text-gray-900 dark:text-white">{part}</strong> : part
   );
 }
@@ -337,21 +339,27 @@ export const Manager: React.FC = () => {
 
   // TTS Helper
   const speak = (text: string) => {
-    if (!isSpeakerOn) return;
-    window.speechSynthesis.cancel();
-    // Clean text for speech (remove markdown, emoji symbols, and divider lines)
-    const cleanText = text
-       .replace(/\*\*(.*?)\*\*/g, '$1') // remove ** but keep text
-       .replace(/─+/g, '')
-       .replace(/•/g, '')
-       .replace(/[🚀💰📊🚨⏳📈📦🌟🌟]/g, '') // remove common UI emojis for cleaner speech
-       .replace(/\[ACTION:.*?\]/g, ''); // hide action buttons from speech
+    try {
+      if (!isSpeakerOn) return;
+      window.speechSynthesis.cancel();
+      // Clean text for speech (remove markdown, emoji symbols, and divider lines)
+      const cleanText = (text || '')
+         .replace(/\*\*(.*?)\*\*/g, '$1') // remove ** but keep text
+         .replace(/─+/g, '')
+         .replace(/•/g, '')
+         .replace(/[🚀💰📊🚨⏳📈📦🌟🌟]/g, '') // remove common UI emojis for cleaner speech
+         .replace(/\[ACTION:.*?\]/g, ''); // hide action buttons from speech
 
-    const utterance = new SpeechSynthesisUtterance(cleanText);
-    utterance.lang = 'ur-PK'; 
-    utterance.pitch = 1.1; // Slightly more natural pitch
-    utterance.rate = 1.0;
-    window.speechSynthesis.speak(utterance);
+      if (!cleanText.trim()) return;
+
+      const utterance = new SpeechSynthesisUtterance(cleanText);
+      utterance.lang = 'ur-PK'; 
+      utterance.pitch = 1.1; 
+      utterance.rate = 1.0;
+      window.speechSynthesis.speak(utterance);
+    } catch (e) {
+      console.error("SpeechSynthesis failed:", e);
+    }
   };
 
   const toggleSpeaker = () => {
@@ -439,11 +447,11 @@ export const Manager: React.FC = () => {
       });
 
       const partialHandle = await SpeechRecognition.addListener('partialResults', (data: any) => {
-        if (isMounted.current && data.matches && data.matches.length > 0) {
-          setInput(data.matches[0]);
+        if (isMounted.current && data && data.matches && data.matches.length > 0) {
+          setInput(data.matches[0] || '');
         }
       });
-      listenersRef.current.push(partialHandle);
+      if (partialHandle) listenersRef.current.push(partialHandle);
     } catch (e) {
       setIsListening(false);
       if (!silent) toast.error('Could not start mic');
@@ -457,11 +465,13 @@ export const Manager: React.FC = () => {
     let stopHandle: any;
     const setupListener = async () => {
       try {
+        if (!SpeechRecognition) return;
+        
         stopHandle = await SpeechRecognition.addListener('listeningState', async (state: any) => {
-          if (isMounted.current && state.status === 'stopped') {
+          if (isMounted.current && state && state.status === 'stopped') {
             setIsListening(false);
             
-            const currentInput = inputRef.current;
+            const currentInput = inputRef.current || '';
             if (/[\u0600-\u06FF]/.test(currentInput)) {
                 toast.loading("Converting to Roman Urdu...", { id: 'trans-loading' });
                 const roman = await transliterateToRoman(currentInput);
@@ -475,7 +485,7 @@ export const Manager: React.FC = () => {
             }
           }
         });
-        listenersRef.current.push(stopHandle);
+        if (stopHandle) listenersRef.current.push(stopHandle);
       } catch (e) {
         console.error("Failed to setup SpeechRecognition listener", e);
       }
