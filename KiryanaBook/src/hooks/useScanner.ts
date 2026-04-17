@@ -136,8 +136,18 @@ export const useScanner = (props: UseScannerProps) => {
       return;
     }
 
-    if (!videoRef.current) return;
     setHasError(false);
+    if (!videoRef.current) return;
+
+    // ✅ FIX: Stop any existing stream before starting a new one to prevent AbortError
+    if (controlsRef.current) {
+      try { controlsRef.current.stop(); } catch (e) {}
+      controlsRef.current = null;
+    }
+    if (streamRef.current) {
+      try { streamRef.current.getTracks().forEach(t => t.stop()); } catch (e) {}
+      streamRef.current = null;
+    }
 
     try {
       const hints = new Map<DecodeHintType, any>();
