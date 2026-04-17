@@ -1,13 +1,13 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Send, UserCog, History, X, Trash2, ChevronRight, MessageCircle, Mic, Volume2, VolumeX, Sparkles, ArrowLeft, Share2 } from 'lucide-react';
+import { Send, UserCog, History, X, Trash2, ChevronRight, MessageCircle, Mic, Volume2, VolumeX, Sparkles, ArrowLeft } from 'lucide-react';
 import { askLocalAgent, detectMicroAnomalies, generateRandomDataSummary } from '../lib/localAgent';
 import { analyzeBusinessQuery, generateBusinessResponse, transliterateToRoman } from '../lib/gemini';
 import { useShop } from '../context/ShopContext';
 import { SpeechRecognition } from '@capacitor-community/speech-recognition';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
-import { Share } from '@capacitor/share';
+
 import { Capacitor } from '@capacitor/core';
 import toast from 'react-hot-toast';
 
@@ -52,37 +52,33 @@ function makeWelcomeMessage(): Message {
   };
 }
 
-// ─── Stress Meter Component ──────────────────────────────────────────────────
+// ─── Stress Meter Component (Simplified) ────────────────────────────────────
 function StressMeter({ score }: { score: number }) {
   const isStressed = score < 60;
   const color = isStressed ? 'text-red-500' : 'text-[#00C853]';
-  const bgColor = isStressed ? 'bg-red-500/10' : 'bg-[#00E676]/10';
 
   return (
-    <div className={`flex items-center gap-3 p-3 rounded-2xl ${bgColor} border border-gray-100 dark:border-white/5`}>
-       <div className="flex-1">
-          <p className="text-[10px] font-black uppercase text-gray-400 mb-1">Biz-Stress Meter</p>
-          <div className="h-1.5 w-full bg-gray-200 dark:bg-white/10 rounded-full overflow-hidden">
-             <motion.div 
-               initial={{ width: 0 }}
-               animate={{ width: `${score}%` }}
-               className={`h-full ${isStressed ? 'bg-red-500' : 'bg-[#00E676]'}`}
-             />
-          </div>
+    <div className="flex items-center gap-2 px-1">
+       <div className="flex-1 h-1 bg-gray-100 dark:bg-white/5 rounded-full overflow-hidden">
+          <motion.div 
+            initial={{ width: 0 }}
+            animate={{ width: `${score}%` }}
+            className={`h-full ${isStressed ? 'bg-red-500' : 'bg-[#00E676]'}`}
+          />
        </div>
-       <div className={`text-sm font-black ${color}`}>{score < 60 ? 'HIGH' : 'SAFE'}</div>
+       <span className={`text-[9px] font-black ${color}`}>{score}% SAFE</span>
     </div>
   );
 }
 
-// ─── Message Renderer ─────────────────────────────────────────────────────────
+// ─── Message Renderer (Simplified) ──────────────────────────────────────────
 function renderBotMessage(text: string, isWelcome?: boolean, anomalies?: string[], onAction?: (a: string) => void) {
   const lines = (text || '').split('\n');
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       {lines.map((line, i) => {
         const trimmed = (line || '').trim();
-        if (!trimmed) return <div key={i} className="h-2" />;
+        if (!trimmed) return <div key={i} className="h-1" />;
 
         // [ACTION: Label] Detection
         const actionMatch = trimmed.match(/\[ACTION:\s*(.*?)\]/);
@@ -91,29 +87,24 @@ function renderBotMessage(text: string, isWelcome?: boolean, anomalies?: string[
             <button 
               key={i}
               onClick={() => onAction?.(actionMatch[1])}
-              className="w-full flex items-center justify-between p-4 bg-[#00E676]/5 hover:bg-[#00E676]/10 border border-[#00E676]/20 rounded-2xl transition-all group active:scale-[0.97] mb-1"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-[#00E676]/10 hover:bg-[#00E676]/20 text-[#00A846] rounded-full transition-all active:scale-95 text-xs font-black mr-2 mb-2"
             >
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-[#00E676]/20 flex items-center justify-center text-[#00A846]">
-                  <Sparkles size={18} strokeWidth={2.5} />
-                </div>
-                <span className="text-[14px] font-black text-[#00A846]">{actionMatch[1]}</span>
-              </div>
-              <ChevronRight size={18} className="text-[#00A846] opacity-50 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
+              <Sparkles size={12} strokeWidth={3} />
+              {actionMatch[1]}
             </button>
           );
         }
 
         if (/^─+$/.test(trimmed))
-          return <hr key={i} className="border-gray-100 dark:border-white/5 my-2" />;
+          return <hr key={i} className="border-gray-100 dark:border-white/5 my-1" />;
 
         const headingMatch = trimmed.match(/^(\p{Emoji_Presentation}|\p{Emoji}\uFE0F)\s*\*\*(.*?)\*\*$/u);
         if (headingMatch && headingMatch[2]) {
           return (
-            <div key={i} className="flex items-center gap-2 pt-2 pb-1">
-              <span className="text-xl drop-shadow-sm">{headingMatch[1] || ''}</span>
-              <span className="text-[15px] font-black text-gray-900 dark:text-white tracking-tight">{headingMatch[2]}</span>
-            </div>
+            <p key={i} className="text-[14px] font-black text-gray-900 dark:text-white flex items-center gap-2 pt-1">
+              <span>{headingMatch[1]}</span>
+              {headingMatch[2]}
+            </p>
           );
         }
 
@@ -124,49 +115,35 @@ function renderBotMessage(text: string, isWelcome?: boolean, anomalies?: string[
           const isProfit = label.includes('Profit') || label.includes('profit') || label.includes('Munafa');
           const amountValue = (amountMatch[2] || '') + (amountMatch[3] || '');
           return (
-            <div key={i} className={`flex items-center justify-between gap-4 p-4 rounded-2xl ${isProfit ? 'bg-[#00E676]/10 border border-[#00E676]/20' : 'bg-gray-50 dark:bg-white/5 border border-transparent'}`}>
-              <span className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{label}</span>
-              <span className={`text-lg font-black tabular-nums ${isProfit ? 'text-[#00C853]' : isNegative ? 'text-red-500' : 'text-gray-900 dark:text-white'}`}>{amountValue}{amountMatch[4] || ''}</span>
+            <div key={i} className="flex items-center justify-between py-1 px-0.5">
+              <span className="text-[11px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-wider">{label}</span>
+              <span className={`text-[14px] font-black tabular-nums ${isProfit ? 'text-[#00C853]' : isNegative ? 'text-red-500' : 'text-gray-900 dark:text-white'}`}>{amountValue}{amountMatch[4] || ''}</span>
             </div>
           );
         }
 
         if (trimmed.startsWith('•'))
           return (
-            <div key={i} className="flex items-start gap-3 text-[14px] text-gray-700 dark:text-gray-300 px-1">
-              <div className="w-1.5 h-1.5 rounded-full bg-[#00E676] mt-1.5 shrink-0" />
-              <span className="leading-relaxed font-bold">{renderInlineBold(trimmed.slice(1).trim())}</span>
+            <div key={i} className="flex items-start gap-2.5 text-[14px] text-gray-700 dark:text-gray-300 px-0.5">
+              <div className="w-1 h-1 rounded-full bg-[#00E676] mt-2 shrink-0" />
+              <span className="leading-snug font-bold">{renderInlineBold(trimmed.slice(1).trim())}</span>
             </div>
           );
 
-        const numMatch = trimmed.match(/^(\d+)\.\s+(.*)$/);
-        if (numMatch && numMatch[2])
-          return (
-            <div key={i} className="flex items-start gap-3.5 text-[14px] text-gray-700 dark:text-gray-300">
-              <span className="min-w-[24px] h-[24px] flex items-center justify-center bg-[#00E676]/10 text-[#00A846] dark:text-[#00E676] font-black text-[10px] rounded-lg mt-0.5">{numMatch[1]}</span>
-              <span className="leading-relaxed flex-1 font-bold">{renderInlineBold(numMatch[2])}</span>
-            </div>
-          );
-
-        return <p key={i} className="text-[14px] text-gray-700 dark:text-gray-300 font-bold leading-relaxed px-1">{renderInlineBold(trimmed)}</p>;
+        return <p key={i} className="text-[13px] text-gray-700 dark:text-gray-300 font-bold leading-snug px-0.5">{renderInlineBold(trimmed)}</p>;
       })}
       
       {isWelcome && (
-        <div className="pt-4 border-t border-gray-100 dark:border-white/5 mt-3 space-y-3">
+        <div className="pt-2 mt-2 space-y-2 border-t border-gray-100 dark:border-white/5">
            <StressMeter score={Math.min(100, Math.max(40, 80 + (anomalies?.length ? -anomalies.length * 10 : 10)))} />
-           <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] px-1">Shop Insights</p>
           {anomalies && anomalies.length > 0 ? (
-            <div className="bg-red-50 dark:bg-red-500/5 p-4 rounded-2xl border border-red-100 dark:border-red-500/10">
-              <p className="text-[11px] font-black text-red-600 dark:text-red-400 uppercase flex items-center gap-2 mb-2">
-                <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.5)]" />
-                Live Alert
-              </p>
-              <p className="text-[13px] font-bold text-gray-800 dark:text-gray-200 leading-snug">{anomalies[0].replace(/\*\*/g, '')}</p>
+            <div className="bg-red-50 dark:bg-red-500/5 p-3 rounded-xl border border-red-100 dark:border-red-500/10">
+              <p className="text-[12px] font-bold text-red-600 dark:text-red-400 leading-snug">⚠️ {anomalies[0].replace(/\*\*/g, '')}</p>
             </div>
           ) : (
-             <div className="flex items-center gap-3 p-3 rounded-xl bg-green-50/50 dark:bg-[#00E676]/5 border border-green-100/50 dark:border-[#00E676]/10">
-                <div className="w-2 h-2 rounded-full bg-[#00C853]" />
-                <p className="text-[11px] font-black text-[#00A846] uppercase">Safe Analysis Mode Active</p>
+             <div className="flex items-center gap-2 px-1">
+                <div className="w-1.5 h-1.5 rounded-full bg-[#00C853] shadow-[0_0_5px_#00C853]" />
+                <p className="text-[9px] font-black text-gray-400 uppercase">Analysis Engine Active</p>
              </div>
           )}
         </div>
@@ -385,37 +362,7 @@ export const Manager: React.FC = () => {
     Haptics.impact({ style: ImpactStyle.Light }).catch(() => {});
   };
 
-  const handleShareSummary = async () => {
-    if (messages.length <= 1) {
-      toast.error('Pehle AI se kuch sawaal poochein!');
-      return;
-    }
 
-    try {
-      // Format messages into a nice summary
-      let summary = `*Business Manager Report - ${shopData.profile?.name || 'KiryanaBook'}*\n`;
-      summary += `📅 _${new Date().toLocaleDateString()}_\n\n`;
-      
-      // Get the last bot message primarily, or the whole conversation
-      const lastBotMsg = [...messages].reverse().find(m => m.isBot);
-      if (lastBotMsg) {
-        summary += `*Summary:*\n${lastBotMsg.text.replace(/\*\*/g, '*').replace(/─+/g, '')}\n\n`;
-      }
-      
-      summary += `_Hisaab-o-Kitaab, KiryanaBook Business Manager se_`;
-
-      await Share.share({
-        title: 'Business Manager Report',
-        text: summary,
-        dialogTitle: 'WhatsApp Summary Share',
-      });
-      
-      Haptics.impact({ style: ImpactStyle.Medium }).catch(() => {});
-    } catch (e) {
-      console.error(e);
-      toast.error('Share failed');
-    }
-  };
 
   const startListening = async (silent = false) => {
     // 🌐 WEB SPEECH API FALLBACK (Reliable for Browsers)
@@ -639,45 +586,27 @@ export const Manager: React.FC = () => {
   return (
     <div className="w-full max-w-md mx-auto h-[calc(100vh-90px)] flex flex-col bg-[#F9F9FB] dark:bg-[#0A0A0A] relative overflow-hidden">
 
-      {/* ── Header ─────────────────────────────────────────────────────────── */}
-      <div className="shrink-0 bg-gradient-to-br from-[#00E676] to-[#00A846] px-5 pt-[calc(3rem+env(safe-area-inset-top,0px))] pb-5 shadow-[0_10px_30px_rgba(0,168,70,0.15)] rounded-b-[2.8rem] relative overflow-hidden">
-        {/* Glow effect */}
-        <div className="absolute top-0 right-0 w-32 h-32 bg-white/20 rounded-full blur-3xl -mr-10 -mt-10" />
-        <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/10 rounded-full blur-2xl -ml-5 -mb-5" />
-        
-        <div className="flex items-center justify-between relative z-10">
-          <div className="flex items-center gap-4">
-            <button onClick={() => navigate(-1)} className="w-9 h-9 rounded-2xl bg-white/10 flex items-center justify-center text-white active:scale-90 transition-all backdrop-blur-md border border-white/20">
-                <ArrowLeft size={18} strokeWidth={3} />
+      {/* ── Header (Slim & Pro) ─────────────────────────────────────────────────── */}
+      <div className="shrink-0 bg-white dark:bg-[#0A0A0A] px-5 pt-[calc(3rem+env(safe-area-inset-top,0px))] pb-4 border-b dark:border-white/5 shadow-sm">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <button onClick={() => navigate(-1)} className="w-9 h-9 rounded-xl bg-gray-50 dark:bg-white/5 flex items-center justify-center text-gray-700 dark:text-white/70 active:scale-90 transition-all border dark:border-white/5">
+                <ArrowLeft size={18} strokeWidth={2.5} />
             </button>
-            <div className="flex-1">
-              <h1 className="text-[18px] font-black text-white leading-none mb-1 tracking-tight">Business Manager</h1>
+            <div>
+              <h1 className="text-[17px] font-black text-gray-900 dark:text-white leading-none mb-1 tracking-tight">Business Manager</h1>
               <div className="flex items-center gap-1.5">
-                <div className="w-1.5 h-1.5 rounded-full bg-[#4BFF94] animate-pulse shadow-[0_0_8px_#4BFF94]" />
-                <p className="text-[9px] font-black text-white/80 uppercase tracking-[0.2em]">Strategy Advisor</p>
+                <div className="w-1.5 h-1.5 rounded-full bg-[#00C853] shadow-[0_0_5px_#00C853]" />
+                <p className="text-[8px] font-black text-gray-400 dark:text-white/30 uppercase tracking-[0.2em]">Strategy Mode</p>
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <button
-               onClick={handleShareSummary}
-               className="w-10 h-10 bg-white/15 rounded-[1.2rem] flex items-center justify-center text-white active:scale-90 transition-all border border-white/10"
-               title="Share Report"
-            >
-              <Share2 size={17} strokeWidth={2.5} />
+          <div className="flex items-center gap-1.5">
+            <button onClick={() => setShowHistory(true)} className="w-9 h-9 text-gray-400 hover:text-gray-900 dark:hover:text-white transition-all">
+               <History size={18} />
             </button>
-            <button
-               onClick={() => setShowHistory(true)}
-               className="w-10 h-10 bg-white/15 rounded-[1.2rem] flex items-center justify-center text-white active:scale-90 transition-all border border-white/10"
-               title="History"
-            >
-              <History size={17} strokeWidth={2.5} />
-            </button>
-            <button
-              onClick={toggleSpeaker}
-              className={`w-10 h-10 ${isSpeakerOn ? 'bg-white/15' : 'bg-red-500/30'} rounded-[1.2rem] flex items-center justify-center active:scale-90 transition-all border border-white/10`}
-            >
-              {isSpeakerOn ? <Volume2 size={17} strokeWidth={2.5} className="text-white" /> : <VolumeX size={17} strokeWidth={2.5} className="text-white" />}
+            <button onClick={toggleSpeaker} className={`w-9 h-9 transition-all ${isSpeakerOn ? 'text-[#00C853]' : 'text-gray-300'}`}>
+               {isSpeakerOn ? <Volume2 size={18} /> : <VolumeX size={18} />}
             </button>
           </div>
         </div>
@@ -755,36 +684,31 @@ export const Manager: React.FC = () => {
         <div ref={messagesEndRef} className="h-6" />
       </div>
 
-      {/* ── Input ──────────────────────────────────────────────────────────── */}
-      <div className="shrink-0 px-5 py-3 bg-white dark:bg-[#0A0A0A] border-t border-gray-100 dark:border-white/5 shadow-[0_-15px_40px_rgba(0,0,0,0.04)] z-50">
-        <div className="flex gap-3 items-center">
+      {/* ── Input (Minimalistic) ───────────────────────────────────────────────────── */}
+      <div className="shrink-0 px-4 py-3 bg-white dark:bg-[#0A0A0A] border-t dark:border-white/5 shadow-sm">
+        <div className="flex gap-2 items-center">
           <div className="relative flex-1">
              <input
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-              placeholder="Manager se poochein..."
-              className="w-full bg-[#F5F7F9] dark:bg-[#141414] text-gray-900 dark:text-white rounded-[1.8rem] py-5 pl-7 pr-16 font-black text-sm placeholder-gray-400/80 focus:outline-none focus:ring-4 focus:ring-[#00E676]/15 border-2 border-transparent focus:border-[#00E676]/30 transition-all shadow-inner"
+              placeholder="Manager se baat karein..."
+              className="w-full bg-gray-50 dark:bg-[#141414] text-gray-900 dark:text-white rounded-2xl py-4.5 pl-6 pr-14 font-black text-[13.5px] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#00E676]/20 transition-all"
             />
             <button 
               onClick={() => startListening()}
-              className={`absolute right-2 top-1/2 -translate-y-1/2 w-12 h-12 rounded-[1.2rem] flex items-center justify-center transition-all ${
-                isListening ? 'bg-red-500 text-white shadow-[0_0_20px_rgba(239,68,68,0.4)]' : 'text-gray-400 hover:text-[#00E676] bg-transparent'
+              className={`absolute right-1 top-1/2 -translate-y-1/2 w-11 h-11 rounded-xl flex items-center justify-center transition-all ${
+                isListening ? 'bg-red-500 text-white shadow-lg' : 'text-gray-400 bg-transparent'
               }`}
             >
-              {isListening ? (
-                <div className="relative">
-                  <Mic size={22} strokeWidth={2.5} />
-                  <motion.span className="absolute -inset-3 bg-red-500/20 rounded-full" animate={{ scale: [1, 1.6, 1], opacity: [1, 0, 1] }} transition={{ repeat: Infinity, duration: 1.2 }} />
-                </div>
-              ) : <Mic size={22} strokeWidth={2.5} />}
+              <Mic size={20} strokeWidth={2.5} />
             </button>
           </div>
 
           <button onClick={() => handleSend()} disabled={!input.trim()}
-            className="w-16 h-16 rounded-[1.8rem] bg-[#00E676] text-[#0A0A0A] flex items-center justify-center disabled:opacity-20 disabled:grayscale active:scale-90 transition-all shadow-[0_12px_28px_rgba(0,230,118,0.25)] shrink-0 group">
-            <Send size={24} strokeWidth={4} className="translate-x-[2px] transform transition-transform group-hover:translate-x-[4px] group-hover:-translate-y-[2px]" />
+            className="w-14 h-14 rounded-2xl bg-[#00E676] text-[#0A0A0A] flex items-center justify-center disabled:opacity-20 active:scale-90 transition-all shadow-[0_8px_20px_rgba(0,230,118,0.2)]">
+            <Send size={22} strokeWidth={4} />
           </button>
         </div>
       </div>
