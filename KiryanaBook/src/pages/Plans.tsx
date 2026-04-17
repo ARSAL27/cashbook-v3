@@ -58,9 +58,9 @@ export const Plans: React.FC = () => {
 
   return (
     <PageTransition>
-      <div className="w-full bg-background pb-8 font-outfit">
+      <div className="w-full bg-background font-outfit pb-32">
         {/* HEADER */}
-        <header className="shrink-0 sticky top-0 z-40 bg-card/80 backdrop-blur-md border-b border-border px-4 h-14 flex items-center justify-between shadow-sm">
+        <header className="pt-12 pb-3 shrink-0 sticky top-0 z-40 bg-card/80 backdrop-blur-md border-b border-border px-4 flex items-center justify-between shadow-sm">
           <div className="flex items-center space-x-3">
              <button onClick={() => { triggerHaptic(); navigate(-1); }} className="p-2 text-text-muted hover:text-text-primary transition-colors">
                <ArrowLeft size={20} />

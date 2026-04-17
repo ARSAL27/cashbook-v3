@@ -181,9 +181,9 @@ export const AddSale: React.FC = () => {
 
     return (
         <PageTransition>
-            <div className="w-full pb-8 transition-colors duration-300 font-outfit max-w-md mx-auto bg-background text-text-primary">
+            <div className="w-full transition-colors duration-300 font-outfit max-w-md mx-auto bg-background text-text-primary pb-32">
                 {/* HEADER */}
-                <div className="px-5 pt-5 pb-4 flex items-center justify-between sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b border-border">
+                <div className="pt-12 pb-3 px-5 flex items-center justify-between sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b border-border">
                     <button onClick={() => navigate(-1)} className="p-2 rounded-xl bg-card border border-border text-text-primary active:scale-90 transition-transform">
                         <ArrowLeft size={20} />
                     </button>

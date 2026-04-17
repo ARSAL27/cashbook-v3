@@ -61,9 +61,9 @@ export const NotificationDetail: React.FC = () => {
 
     return (
         <PageTransition>
-            <div className="w-full min-h-screen pb-8 font-outfit" style={{ backgroundColor: bg }}>
+            <div className="w-full min-h-screen font-outfit pb-32" style={{ backgroundColor: bg }}>
                 {/* HEADER */}
-                <div className="px-5 pt-5 pb-4 flex items-center justify-between sticky top-0 z-50 backdrop-blur-md border-b" style={{ backgroundColor: isDarkMode ? '#0A0A0A99' : '#FFFFFF99', borderColor: border }}>
+                <div className="pt-12 pb-3 px-5 flex items-center justify-between sticky top-0 z-50 backdrop-blur-md border-b" style={{ backgroundColor: isDarkMode ? '#0A0A0A99' : '#FFFFFF99', borderColor: border }}>
                     <button onClick={() => navigate(-1)} className="w-10 h-10 rounded-xl flex items-center justify-center active:scale-90 transition-all border" style={{ backgroundColor: card, borderColor: border, color: text }}>
                         <ArrowLeft size={20} strokeWidth={2.5} />
                     </button>

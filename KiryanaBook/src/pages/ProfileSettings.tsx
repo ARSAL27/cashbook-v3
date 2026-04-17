@@ -138,9 +138,9 @@ export const ProfileSettings: React.FC = () => {
 
   return (
     <PageTransition>
-      <div className="w-full bg-[#FAFAFA] dark:bg-[#0A0A0A] pb-10 font-outfit max-w-md mx-auto overflow-x-hidden min-h-screen">
+      <div className="w-full bg-[#FAFAFA] dark:bg-[#0A0A0A] font-outfit max-w-md mx-auto overflow-x-hidden min-h-screen pb-32">
         {/* HEADER */}
-        <header className="px-6 h-20 flex items-center justify-between sticky top-0 bg-background/80 backdrop-blur-xl z-50 border-b border-border/10">
+        <header className="pt-12 pb-3 px-6 flex items-center justify-between sticky top-0 bg-background/80 backdrop-blur-xl z-50 border-b border-border/10">
           <div className="flex items-center space-x-4">
             <button 
               onClick={() => { triggerHaptic(); navigate(-1); }} 

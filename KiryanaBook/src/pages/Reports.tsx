@@ -230,10 +230,10 @@ export const Reports: React.FC = () => {
 
   return (
     <PageTransition>
-      <div className="w-full transition-colors duration-300 font-outfit max-w-md mx-auto pb-8 bg-background text-text-primary">
+      <div className="w-full transition-colors duration-300 font-outfit max-w-md mx-auto bg-background text-text-primary pb-32">
         
         {/* ── HEADER ── */}
-        <div className="px-5 pt-12 pb-2 flex items-center justify-between sticky top-0 bg-inherit z-20 shadow-[0_2px_15px_rgba(0,0,0,0.05)]">
+        <div className="pt-12 pb-3 px-5 flex items-center justify-between sticky top-0 bg-inherit z-20 shadow-[0_2px_15px_rgba(0,0,0,0.05)]">
             <h1 className="text-[22px] font-black tracking-tight text-text-primary">Reports Overview</h1>
             <button 
                 onClick={() => { setActiveTab('Custom'); setShowCustom(!showCustom); }}

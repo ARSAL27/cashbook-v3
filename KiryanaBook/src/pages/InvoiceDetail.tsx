@@ -119,10 +119,10 @@ export const InvoiceDetail: React.FC = () => {
 
   return (
     <PageTransition>
-      <div className="w-full pb-8 font-outfit max-w-md mx-auto" style={{ backgroundColor: bg }}>
+      <div className="w-full font-outfit max-w-md mx-auto pb-32" style={{ backgroundColor: bg }}>
 
         {/* HEADER */}
-        <div className="sticky top-0 z-40 flex items-center justify-between px-5 py-4" style={{ backgroundColor: isDarkMode ? '#141414' : '#FFFFFF', borderBottom: `1px solid ${border}` }}>
+        <div className="pt-12 pb-3 sticky top-0 z-40 flex items-center justify-between px-5 " style={{ backgroundColor: isDarkMode ? '#141414' : '#FFFFFF', borderBottom: `1px solid ${border}` }}>
           <div className="flex items-center gap-3">
             <button onClick={() => navigate(-1)} className="active:scale-90 transition-transform" style={{ color: text }}>
                 <ArrowLeft size={22} />

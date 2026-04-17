@@ -50,9 +50,9 @@ export const OwnerProfile: React.FC = () => {
 
   return (
     <PageTransition>
-      <div className="w-full bg-background pb-8 font-outfit">
+      <div className="w-full bg-background font-outfit pb-32">
         {/* HEADER */}
-        <header className="px-6 pt-5 pb-6 flex items-center justify-between border-b border-border bg-white sticky top-0 z-50">
+        <header className="pt-12 pb-3 px-6 flex items-center justify-between border-b border-border bg-white sticky top-0 z-50">
           <div className="flex items-center space-x-4">
             <motion.button 
               whileTap={{ scale: 0.9 }}

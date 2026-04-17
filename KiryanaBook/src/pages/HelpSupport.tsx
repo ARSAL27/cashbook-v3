@@ -22,9 +22,9 @@ export const HelpSupport: React.FC = () => {
 
   return (
     <PageTransition>
-      <div className="w-full bg-background pb-8 font-outfit">
+      <div className="w-full bg-background font-outfit pb-32">
         {/* HEADER */}
-        <header className="shrink-0 flex items-center justify-between px-4 h-12 sticky top-0 bg-background/80 backdrop-blur-md z-40 border-b border-border/10">
+        <header className="pt-12 pb-3 shrink-0 flex items-center justify-between px-4 sticky top-0 bg-background/80 backdrop-blur-md z-40 border-b border-border/10">
           <div className="flex items-center space-x-3">
             <button 
               onClick={() => { triggerHaptic(); navigate(-1); }} 

@@ -53,9 +53,9 @@ export const AddExpense: React.FC = () => {
 
     return (
         <PageTransition>
-            <div className="w-full pb-8 font-outfit max-w-md mx-auto bg-background text-text-primary">
+            <div className="w-full font-outfit max-w-md mx-auto bg-background text-text-primary pb-32">
                 {/* HEADER */}
-                <div className="px-5 py-6 flex items-center justify-between sticky top-0 z-50 bg-inherit border-b border-border">
+                <div className="pt-12 pb-3 px-5 flex items-center justify-between sticky top-0 z-50 bg-inherit border-b border-border">
                     <button onClick={() => navigate(-1)} className="p-2.5 rounded-2xl bg-card shadow-sm border border-border text-text-primary">
                         <ArrowLeft size={20} />
                     </button>

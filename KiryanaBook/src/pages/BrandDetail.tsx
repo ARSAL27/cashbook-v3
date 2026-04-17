@@ -33,7 +33,7 @@ export const BrandDetail: React.FC = () => {
 
     return (
         <PageTransition>
-            <div className="w-full pb-8 font-outfit max-w-md mx-auto min-h-screen" style={{ backgroundColor: bg }}>
+            <div className="w-full font-outfit max-w-md mx-auto min-h-screen pb-32" style={{ backgroundColor: bg }}>
                 
                 {/* HEAD & THEME HEADER */}
                 <div className="relative pt-12 pb-24 px-6 overflow-hidden transition-colors duration-500" 

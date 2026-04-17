@@ -65,10 +65,10 @@ export const StockDetail: React.FC = () => {
 
   return (
     <PageTransition>
-      <div className="w-full pb-8 font-outfit max-w-md mx-auto relative overflow-x-hidden min-h-screen" style={{ backgroundColor: bg }}>
+      <div className="w-full font-outfit max-w-md mx-auto relative overflow-x-hidden min-h-screen pb-32" style={{ backgroundColor: bg }}>
         
         {/* TOP NAV */}
-        <div className="px-4 pt-6 pb-2 flex items-center justify-between sticky top-0 z-50 backdrop-blur-md" style={{ backgroundColor: bg + 'E6' }}>
+        <div className="pt-12 pb-3 px-4 flex items-center justify-between sticky top-0 z-50 backdrop-blur-md" style={{ backgroundColor: bg + 'E6' }}>
            <button onClick={() => navigate(-1)} className="w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 dark:bg-[#1E1E1E]">
               <ArrowLeft size={20} className="text-gray-600 dark:text-gray-300" />
            </button>

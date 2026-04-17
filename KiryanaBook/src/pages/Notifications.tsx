@@ -38,10 +38,10 @@ export const Notifications: React.FC = () => {
 
   return (
     <PageTransition>
-      <div className="w-full pb-8 font-outfit max-w-md mx-auto" style={{ backgroundColor: bg }}>
+      <div className="w-full font-outfit max-w-md mx-auto pb-32" style={{ backgroundColor: bg }}>
         
         {/* HEADER */}
-        <div className="sticky top-0 z-50 transition-colors duration-300 px-5 pt-5 pb-5 flex items-center justify-between" style={{ backgroundColor: isDarkMode ? '#10251A' : '#0A3D24' }}>
+        <div className="pt-12 pb-3 sticky top-0 z-50 transition-colors duration-300 px-5 flex items-center justify-between" style={{ backgroundColor: isDarkMode ? '#10251A' : '#0A3D24' }}>
           <div className="flex items-center gap-4">
             <button onClick={() => navigate(-1)} className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center text-white active:scale-90 transition-all">
               <ArrowLeft size={20} strokeWidth={2.5} />

@@ -93,11 +93,11 @@ export const Stock: React.FC = () => {
 
   return (
     <PageTransition>
-      <div className="w-full pb-8 font-outfit max-w-md mx-auto relative" style={{ backgroundColor: bg }}>
+      <div className="w-full font-outfit max-w-md mx-auto relative pb-32" style={{ backgroundColor: bg }}>
         
          <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
          
-         <div className="px-5 pt-12 pb-2 flex items-center justify-between sticky top-0 z-50 transition-all duration-300" style={{ backgroundColor: bg + 'CC', backdropFilter: 'blur(10px)' }}>
+         <div className="pt-12 pb-3 px-5 flex items-center justify-between sticky top-0 z-50 transition-all duration-300" style={{ backgroundColor: bg + 'CC', backdropFilter: 'blur(10px)' }}>
           <div className="flex items-center gap-3">
             <button 
               onClick={() => setIsSidebarOpen(true)}

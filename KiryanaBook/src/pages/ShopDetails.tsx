@@ -82,9 +82,9 @@ export const ShopDetails: React.FC = () => {
 
   return (
     <PageTransition>
-      <div className="w-full bg-background pb-8 font-outfit">
+      <div className="w-full bg-background font-outfit pb-32">
         {/* HEADER */}
-        <header className="px-4 pt-5 pb-4 border-b border-border/10 bg-background/80 backdrop-blur-md sticky top-0 z-50 flex items-center justify-between">
+        <header className="pt-12 pb-3 px-4 border-b border-border/10 bg-background/80 backdrop-blur-md sticky top-0 z-50 flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <motion.button 
               whileTap={{ scale: 0.9 }}

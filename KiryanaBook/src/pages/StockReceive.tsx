@@ -176,10 +176,10 @@ export const StockReceive: React.FC = () => {
 
   return (
     <PageTransition>
-      <div className="w-full pb-8 font-outfit max-w-md mx-auto relative min-h-screen" style={{ backgroundColor: bg }}>
+      <div className="w-full font-outfit max-w-md mx-auto relative min-h-screen pb-32" style={{ backgroundColor: bg }}>
         
         {/* HEADER */}
-        <div className="sticky top-0 z-40 transition-colors duration-300 px-5 pt-5 pb-4" style={{ backgroundColor: bg + 'CC', backdropFilter: 'blur(10px)' }}>
+        <div className="pt-12 pb-3 sticky top-0 z-40 transition-colors duration-300 px-5 " style={{ backgroundColor: bg + 'CC', backdropFilter: 'blur(10px)' }}>
            <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
                  <button onClick={() => {

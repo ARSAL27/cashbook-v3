@@ -72,7 +72,7 @@ export const RolePermissions: React.FC = () => {
 
   return (
     <PageTransition>
-      <div className="w-full pb-8 font-outfit max-w-md mx-auto" style={{ backgroundColor: bg }}>
+      <div className="w-full font-outfit max-w-md mx-auto pb-32" style={{ backgroundColor: bg }}>
         <div className="px-5 pt-6 flex items-center justify-between">
           <button onClick={() => navigate(-1)} className="text-gray-400">
             <ArrowLeft size={22} />

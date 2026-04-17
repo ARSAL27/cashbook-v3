@@ -56,7 +56,7 @@ export const AddStaff: React.FC = () => {
 
   return (
     <PageTransition>
-      <div className="w-full pb-8 font-outfit max-w-md mx-auto" style={{ backgroundColor: bg }}>
+      <div className="w-full font-outfit max-w-md mx-auto pb-32" style={{ backgroundColor: bg }}>
 
         {/* HEADER */}
         <div className="bg-[#0A3D24] px-5 pt-6 pb-6 rounded-b-[2rem] relative overflow-hidden">

@@ -126,12 +126,12 @@ export const Customers: React.FC = () => {
 
   return (
     <PageTransition>
-      <div className="w-full pb-8 font-outfit max-w-md mx-auto transition-colors" style={{ backgroundColor: bg }}>
+      <div className="w-full font-outfit max-w-md mx-auto transition-colors pb-32" style={{ backgroundColor: bg }}>
 
         <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
 
         {/* HEADER */}
-        <div className="sticky top-0 z-40 transition-colors duration-300 shadow-[0_2px_15px_rgba(0,0,0,0.05)]" style={{ backgroundColor: isDarkMode ? '#10251A' : '#0A3D24' }}>
+        <div className="pt-12 pb-3 sticky top-0 z-40 transition-colors duration-300 shadow-[0_2px_15px_rgba(0,0,0,0.05)]" style={{ backgroundColor: isDarkMode ? '#10251A' : '#0A3D24' }}>
           <div className="px-5 pt-12 pb-3 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <button 
