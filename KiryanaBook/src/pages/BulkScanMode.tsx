@@ -1,7 +1,7 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Flashlight, FlashlightOff, Check, X, ChevronDown, Zap } from 'lucide-react';
+import { ArrowLeft, Flashlight, FlashlightOff, Check, X, ChevronDown, Zap, Pencil } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useShop } from '../context/ShopContext';
 import { useAuth } from '../context/AuthContext';
@@ -147,7 +147,7 @@ export const BulkScanMode: React.FC = () => {
           setTimeout(() => {
             isProcessingRef.current = false;
             startScanner();
-          }, 400);
+          }, 300);
         } else {
           resumeScanning();
         }
@@ -247,9 +247,15 @@ export const BulkScanMode: React.FC = () => {
       sellingPrice: Number(tempSelling) || 0
     };
 
-    setBulkItems(prev => [...prev, item]);
+    setBulkItems(prev => {
+        const existing = prev.find(i => i.barcode === pendingProduct.barcode);
+        if (existing) {
+            return prev.map(i => i.barcode === pendingProduct.barcode ? item : i);
+        }
+        return [...prev, item];
+    });
     Haptics.impact({ style: ImpactStyle.Heavy }).catch(() => {});
-    toast.success(`${pendingProduct.name} list mein add ho gaya`);
+    toast.success(`${pendingProduct.name} updated`);
     resetForNextScan();
   };
 
@@ -353,7 +359,7 @@ export const BulkScanMode: React.FC = () => {
       </div>
 
       {/* Camera Error State */}
-      {hasCameraError && (
+      {hasCameraError && bulkItems.length === 0 && (
         <div className="absolute inset-0 flex flex-col items-center justify-center z-[100] bg-black/80 px-10 text-center">
           <div className="w-20 h-20 rounded-3xl bg-red-500/20 flex items-center justify-center mb-6">
             <FlashlightOff size={32} className="text-red-500" />
@@ -366,6 +372,18 @@ export const BulkScanMode: React.FC = () => {
           >
             Restart Camera
           </button>
+        </div>
+      )}
+
+      {/* Mini Error state when list has items */}
+      {hasCameraError && bulkItems.length > 0 && sheetState === 'scanning' && (
+        <div className="absolute inset-0 flex items-center justify-center z-[5] bg-black/60 pointer-events-none">
+           <div className="flex flex-col items-center gap-4 p-8 rounded-[2rem] bg-black/40 backdrop-blur-md border border-white/10 pointer-events-auto">
+             <p className="text-white/60 font-bold text-[13px]">Camera stopped</p>
+             <button onClick={startScanner} className="px-5 py-2.5 bg-white/10 text-white rounded-xl font-black text-[12px] border border-white/10">
+               Resume Scanning
+             </button>
+           </div>
         </div>
       )}
 
@@ -407,7 +425,7 @@ export const BulkScanMode: React.FC = () => {
 
       {/* Bulk list (bottom of screen when scanning) */}
       {sheetState === 'scanning' && bulkItems.length > 0 && (
-        <div className="absolute bottom-8 left-4 right-4 z-10">
+        <div className="absolute bottom-8 left-4 right-4 z-[150]">
           <div className="rounded-3xl overflow-hidden" style={{ backgroundColor: card + 'EE', backdropFilter: 'blur(20px)' }}>
             <div className="px-4 pt-4 pb-2 flex items-center justify-between">
               <p className="font-black text-[13px]" style={{ color: text }}>{bulkItems.length} items ready</p>
@@ -434,9 +452,25 @@ export const BulkScanMode: React.FC = () => {
                       <p className="font-bold text-[10px]" style={{ color: sub }}>x{item.quantity} • Rs {item.sellingPrice || '?'}</p>
                     </div>
                   </div>
-                  <button onClick={() => removeItem(item.barcode)} className="w-6 h-6 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center ml-2 shrink-0">
-                    <X size={10} className="text-red-500" />
-                  </button>
+                  <div className="flex items-center gap-2 shrink-0 ml-2">
+                    <button 
+                        onClick={() => {
+                            setPendingProduct(item);
+                            setTempQty(item.quantity.toString());
+                            setTempBuying(item.buyingPrice.toString());
+                            setTempSelling(item.sellingPrice.toString());
+                            setOverrideCategory(item.category);
+                            setSheetState('enter_qty');
+                            setStatus('PAUSED');
+                        }}
+                        className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center"
+                    >
+                        <Pencil size={12} className="text-blue-500" />
+                    </button>
+                    <button onClick={() => removeItem(item.barcode)} className="w-8 h-8 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+                        <X size={12} className="text-red-500" />
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>

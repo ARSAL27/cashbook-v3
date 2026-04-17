@@ -47,13 +47,14 @@ export const Customers: React.FC = () => {
 
     // Also include legacy udhaar-only people (no contact record) for customers tab
     if (activeTab === 'customers') {
-      const contactNames = new Set(contacts.filter(c => c.type === 'customer').map(c => c.name?.toLowerCase().trim()));
+      const allContactNames = new Set(contacts.map(c => c.name?.toLowerCase().trim()));
       
       const legacyMap = new Map<string, any>();
       (udhaars || []).forEach(u => {
         if (!u.customerName) return;
         const nameLow = u.customerName.toLowerCase().trim();
-        if (!contactNames.has(nameLow) && !legacyMap.has(nameLow)) {
+        // ONLY add as a customer if they don't exist as ANY type in contacts already
+        if (!allContactNames.has(nameLow) && !legacyMap.has(nameLow)) {
             legacyMap.set(nameLow, {
               id: 'legacy-' + u.customerName,
               name: u.customerName,

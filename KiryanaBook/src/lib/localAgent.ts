@@ -264,6 +264,14 @@ function detectIntent(query: string, data: ShopData): IntentResult {
   if (/vs|muqabla|fark|difference|compare|pichle/.test(q)) return { intent: 'COMPARISON', confidence: 0.95 };
   if (/kesay|kaise|kese|kesei|mashwara|advice|kya karoon|kya karna|kya karen|karain|karaen|barhaun|barhana|barhao|strategy|tips|increase|improve|growth|help|mashura|brah|barh|izafa/.test(q)) return { intent: 'ADVICE', confidence: 1 };
   
+  if (/kaha|kahan|location|sheher|city|address|area/.test(q)) return { intent: 'SHOP_INFO', confidence: 0.95 };
+  if (/kon hai wo|kon he vo|kon he wo|naam batao|kis kis se|list batao|debtors list|bande|name|kon/.test(q)) return { intent: 'TOP_DEBTORS', confidence: 0.95 };
+  if (/sabse zyada kharcha|bara kharcha|top kharch|biggest expense/i.test(q)) return { intent: 'TOP_EXPENSE', confidence: 0.95 };
+  if (/nahi bik raha|rakha hua|slow stock|dead stock|fuzool stock|dead/i.test(q)) return { intent: 'SLOW_STOCK', confidence: 0.95 };
+  if (/galla|galle|gullay|cash kitna|paisa kitna|hath mein/i.test(q)) return { intent: 'CASH_HAND', confidence: 0.95 };
+  if (/worth|value|asasa|malik|dukan kitne ki/i.test(q)) return { intent: 'NET_WORTH', confidence: 0.95 };
+  if (/nuqsan|ghata|loss|red/i.test(q)) return { intent: 'LOSS_MAKING', confidence: 0.95 };
+
   if (/sale|kamai|aamdan|bikri/.test(q) && !(q.includes('loss') || q.includes('profit') || q.includes('vs'))) return { intent: 'TODAY_SALES', confidence: 0.9 };
   if (/stock|maal|item|quantity|invent/.test(q)) return { intent: 'LOW_STOCK', confidence: 0.8 };
 

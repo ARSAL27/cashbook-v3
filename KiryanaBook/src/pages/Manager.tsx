@@ -283,28 +283,31 @@ function HistoryPanel({
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 export const Manager: React.FC = () => {
-  const { sales, expenses, udhaars, stock, contacts, profile } = useShop();
-  // Null-safe: always pass arrays to avoid crashes in localAgent / detectMicroAnomalies
-  const shopData = {
+  // 🧪 Memoize shopData to prevent unnecessary re-calculates on every keystroke
+  const shopData = useMemo(() => ({
     sales: Array.isArray(sales) ? sales : [],
     expenses: Array.isArray(expenses) ? expenses : [],
     udhaars: Array.isArray(udhaars) ? udhaars : [],
     stock: Array.isArray(stock) ? stock : [],
     contacts: Array.isArray(contacts) ? contacts : [],
     profile: profile || null,
-  };
+  }), [sales, expenses, udhaars, stock, contacts, profile]);
+
   const location = useLocation();
   const navigate = useNavigate();
-
 
   const [sessions, setSessions] = useState<ChatSession[]>(loadSessions);
   const [currentSessionId, setCurrentSessionId] = useState<string>(() => `s-${Date.now()}`);
   
-  // 🧪 Memoized Live Vitals
-  const allAnomalies = useMemo(() => 
-    detectMicroAnomalies(shopData).filter(x => x && !x.includes('Masha\'Allah')),
-    [shopData]
-  );
+  // Memoized Live Vitals
+  const allAnomalies = useMemo(() => {
+    try {
+      return detectMicroAnomalies(shopData).filter(x => x && !x.includes('Masha\'Allah'));
+    } catch (e) {
+      console.error("Anomaly detection failed", e);
+      return [];
+    }
+  }, [shopData]);
 
   const [messages, setMessages] = useState<Message[]>([makeWelcomeMessage()]);
   const [input, setInput] = useState('');
@@ -333,10 +336,17 @@ export const Manager: React.FC = () => {
   const speak = (text: string) => {
     if (!isSpeakerOn) return;
     window.speechSynthesis.cancel();
-    // Clean text for speech (remove markdown)
-    const cleanText = text.replace(/\*\*/g, '').replace(/─+/g, '').replace(/•/g, '').replace(/#/g, '');
+    // Clean text for speech (remove markdown, emoji symbols, and divider lines)
+    const cleanText = text
+       .replace(/\*\*(.*?)\*\*/g, '$1') // remove ** but keep text
+       .replace(/─+/g, '')
+       .replace(/•/g, '')
+       .replace(/[🚀💰📊🚨⏳📈📦🌟🌟]/g, '') // remove common UI emojis for cleaner speech
+       .replace(/\[ACTION:.*?\]/g, ''); // hide action buttons from speech
+
     const utterance = new SpeechSynthesisUtterance(cleanText);
-    utterance.lang = 'ur-PK'; // Urdu fallback
+    utterance.lang = 'ur-PK'; 
+    utterance.pitch = 1.1; // Slightly more natural pitch
     utterance.rate = 1.0;
     window.speechSynthesis.speak(utterance);
   };
@@ -438,7 +448,7 @@ export const Manager: React.FC = () => {
       SpeechRecognition.start({
         language: 'ur-PK',
         partialResults: true,
-        popup: true,
+        popup: false, // Don't show the native dialog if possible for cleaner integration
       });
 
       SpeechRecognition.addListener('partialResults', (data: any) => {
@@ -452,23 +462,23 @@ export const Manager: React.FC = () => {
     }
   };
 
-  // Add listener for speech end
+  // Handle auto-send after voice input stops
   useEffect(() => {
-    let handle: any;
+    if (!Capacitor.isNativePlatform()) return;
     
+    let stopHandle: any;
     const setupListener = async () => {
-      handle = await SpeechRecognition.addListener('listeningState', (state: any) => {
+      stopHandle = await SpeechRecognition.addListener('listeningState', (state: any) => {
         if (state.status === 'stopped') {
           setIsListening(false);
-          // Auto-send if we are on Native and mic stopped
           if (input.trim().length > 2) handleSend();
         }
       });
     };
-    if (Capacitor.isNativePlatform()) setupListener();
+    setupListener();
 
     return () => {
-      if (handle) handle.remove();
+      if (stopHandle) stopHandle.remove();
       window.speechSynthesis.cancel();
     };
   }, [input]);

@@ -140,22 +140,26 @@ export const StockDetail: React.FC = () => {
         </div>
 
         {/* INFO GRIDS */}
-        <div className="px-4 mt-6 grid grid-cols-2 gap-4">
+        <div className="px-4 mt-6 grid grid-cols-2 gap-3">
            {[
              { label: 'Buying', value: `Rs ${item.buyingPrice?.toLocaleString() || '0'}`, icon: Package, color: brandStyle.bg },
-             { label: 'Selling', value: `Rs ${item.price?.toLocaleString() || '0'}`, icon: DollarSign, color: brandStyle.bg },
+             { label: 'Selling', value: `Rs ${item.price?.toLocaleString() || '0'}`, icon: null, color: brandStyle.bg, customIcon: 'Rs' },
              { label: 'Margin', value: `+${margin}%`, icon: Percent, color: '#4BFF94' },
              { label: 'Unit', value: item.unit?.toUpperCase() || 'PCS', icon: Layers, color: '#f59e0b' }
            ].map((stat, i) => (
-             <div key={i} className="rounded-[2rem] p-5 border flex flex-col gap-4 shadow-sm" 
+             <div key={i} className="rounded-3xl p-3.5 border flex flex-col gap-3 shadow-sm" 
                   style={{ backgroundColor: card, borderColor: border }}>
-                <div className="w-10 h-10 rounded-2xl flex items-center justify-center transition-transform hover:scale-110" 
+                <div className="w-8 h-8 rounded-xl flex items-center justify-center transition-transform hover:scale-110" 
                      style={{ backgroundColor: stat.color + '10', color: stat.color }}>
-                   <stat.icon size={20} strokeWidth={2.5} />
+                   {stat.icon ? (
+                     <stat.icon size={16} strokeWidth={2.5} />
+                   ) : (
+                     <span className="text-[10px] font-black">{stat.customIcon}</span>
+                   )}
                 </div>
                 <div>
-                   <p className="text-[11px] font-black uppercase tracking-[0.1em] text-gray-400">{stat.label}</p>
-                   <h4 className="text-[18px] font-black leading-tight mt-1" style={{ color: text }}>{stat.value}</h4>
+                   <p className="text-[10px] font-black uppercase tracking-[0.1em] text-gray-400">{stat.label}</p>
+                   <h4 className="text-[15px] font-black leading-tight mt-0.5" style={{ color: text }}>{stat.value}</h4>
                 </div>
              </div>
            ))}
@@ -195,9 +199,10 @@ export const StockDetail: React.FC = () => {
             <div className="fixed inset-0 z-[100] flex items-end justify-center bg-black/60 backdrop-blur-sm p-4">
                 <motion.div 
                     initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
-                    className="w-full max-w-md rounded-[2.5rem] p-8 shadow-2xl relative"
+                    className="w-full max-w-md rounded-t-[3rem] p-8 shadow-2xl relative overflow-y-auto max-h-[92vh] pb-16"
                     style={{ backgroundColor: card }}
                 >
+                    <div className="w-12 h-1.5 bg-gray-200 dark:bg-white/10 rounded-full mx-auto mb-6 opacity-40" />
                     <div className="flex items-center justify-between mb-6">
                         <h3 className="text-[20px] font-black" style={{ color: text }}>Edit Product</h3>
                     </div>
@@ -381,9 +386,10 @@ export const StockDetail: React.FC = () => {
             <div className="fixed inset-0 z-[100] flex items-end justify-center bg-black/60 backdrop-blur-sm p-4">
                 <motion.div 
                     initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
-                    className="w-full max-w-md rounded-[2.5rem] p-8 shadow-2xl relative"
+                    className="w-full max-w-md rounded-t-[3rem] p-8 shadow-2xl relative max-h-[90vh] overflow-y-auto pb-16"
                     style={{ backgroundColor: card }}
                 >
+                    <div className="w-12 h-1.5 bg-gray-200 dark:bg-white/10 rounded-full mx-auto mb-6 opacity-40" />
                     <div className="flex items-center justify-between mb-6">
                         <h3 className="text-[20px] font-black" style={{ color: text }}>Adjust Stock Quantity</h3>
                     </div>

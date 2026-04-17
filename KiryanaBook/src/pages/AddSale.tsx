@@ -241,7 +241,7 @@ export const AddSale: React.FC = () => {
                                         )}
                                     </div>
                                     <button
-                                        onClick={() => navigate('/barcode-scan?mode=sale')}
+                                        onClick={() => navigate('/barcode-scan?mode=SINGLE&target=sale')}
                                         className="w-16 h-16 rounded-3xl bg-primary/10 border border-primary/30 flex items-center justify-center shrink-0 active:scale-90 transition-all"
                                     >
                                         <ScanLine size={24} className="text-primary" strokeWidth={2.5} />

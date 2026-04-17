@@ -262,6 +262,22 @@ export const AddItem: React.FC = () => {
               />
            </div>
 
+           {/* BARCODE / SKU */}
+           <div className="space-y-2">
+              <p className="text-[11px] font-black uppercase tracking-widest px-1" style={{ color: sub }}>Barcode / SKU</p>
+              <div className="relative">
+                <input 
+                    value={sku} onChange={e => setSku(e.target.value)}
+                    placeholder="Enter or scan barcode"
+                    className="w-full p-4 rounded-2xl border outline-none font-bold text-[15px] transition-all pr-12"
+                    style={{ color: text, borderColor: '#4BFF94', backgroundColor: input }}
+                />
+                <div className="absolute right-4 top-1/2 -translate-y-1/2 rotate-90">
+                  <Package size={18} className="text-[#4BFF94]" />
+                </div>
+              </div>
+           </div>
+
            {/* CAT, UNIT & PACK SIZE */}
            <div className="grid grid-cols-1 gap-4">
               <div className="space-y-2">

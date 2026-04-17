@@ -199,6 +199,7 @@ function AppRoutes() {
   const { loading: shopLoading } = useShop();
   const location = useLocation();
   const [initialSplash, setInitialSplash] = React.useState(true);
+  const [forceHideSplash, setForceHideSplash] = React.useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -209,11 +210,19 @@ function AppRoutes() {
       });
     }
 
+    // 🕒 INITIAL ANIMATION TIMER (MINIMUM)
     const timer = setTimeout(() => {
       setInitialSplash(false);
-    }, 400); // Faster initial transition
+    }, 400); 
+
+    // 🚀 MAX SPLASH LIMIT (FORCE TRANSITION AFTER 3 SECONDS)
+    const forceTimer = setTimeout(() => {
+      setForceHideSplash(true);
+    }, 3000);
+
     return () => {
         clearTimeout(timer);
+        clearTimeout(forceTimer);
         if (Capacitor.isNativePlatform()) LocalNotifications.removeAllListeners();
     };
   }, [navigate]);
@@ -233,7 +242,11 @@ function AppRoutes() {
     };
   }, []);
 
-  if (initialSplash || authLoading || !isSecurityReady || (user && shopLoading)) {
+  // ✅ TRANSITION LOGIC: Exit splash if all data is ready OR if 3 seconds have passed
+  const isDataReady = !authLoading && isSecurityReady && (!user || !shopLoading);
+  const shouldShowSplash = initialSplash || (!isDataReady && !forceHideSplash);
+
+  if (shouldShowSplash) {
     return <SplashLoader />;
   }
 

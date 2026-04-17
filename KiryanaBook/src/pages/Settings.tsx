@@ -335,43 +335,7 @@ export const Settings: React.FC = () => {
 
             {/* SETTINGS GROUPS */}
             <div className="space-y-4">
-                {/* ── SECURITY SECTION ── */}
-                <h3 className="text-[11px] font-black text-text-muted uppercase tracking-[0.2em] ml-2 opacity-50">Security & Access</h3>
-                <div className="bg-card border border-border/60 rounded-[2.5rem] overflow-hidden shadow-sm">
-                    <button onClick={resetPin} className="w-full flex items-center justify-between p-5 active:bg-gray-50 dark:active:bg-white/5 transition-colors border-b border-border/40">
-                        <div className="flex items-center gap-4">
-                            <div className="w-11 h-11 bg-purple-500/10 text-purple-600 dark:text-purple-400 rounded-2xl flex items-center justify-center">
-                                <Lock size={20} strokeWidth={2.5} />
-                            </div>
-                            <div className="text-left">
-                                <p className="text-[14px] font-black text-text-primary leading-tight">{!userPin ? 'Setup Security PIN' : 'Change Security PIN'}</p>
-                                <p className="text-[10px] font-bold text-text-muted opacity-60 uppercase tracking-tight">Protect your data</p>
-                            </div>
-                        </div>
-                        <ChevronRight size={18} className="text-text-muted opacity-30" />
-                    </button>
-
-                    <div className="p-5 space-y-3">
-                        <div className="flex items-center justify-between">
-                            <p className="text-[13px] font-black text-text-primary">Auto-Lock Timer</p>
-                            <Toggle active={autoLockTimer !== -1} />
-                        </div>
-                        <div className="relative">
-                            <select
-                              value={autoLockTimer}
-                              onChange={(e) => saveAutoLockTimer(Number(e.target.value))}
-                              className="w-full bg-background border border-border/60 text-text-primary rounded-2xl py-4 px-5 text-[13px] font-black outline-none appearance-none cursor-pointer"
-                            >
-                                <option value={0}>Immediately</option>
-                                <option value={60000}>After 1 Minute</option>
-                                <option value={300000}>After 5 Minutes</option>
-                                <option value={900000}>After 15 Minutes</option>
-                                <option value={-1}>Never</option>
-                            </select>
-                            <ChevronRight size={16} className="absolute right-5 top-1/2 -translate-y-1/2 rotate-90 text-text-muted opacity-40 pointer-events-none" />
-                        </div>
-                    </div>
-                </div>
+  </div>
 
                 {/* ── DATA & EXPORTS ── */}
                 <h3 className="text-[11px] font-black text-text-muted uppercase tracking-[0.2em] ml-2 mt-8 opacity-50">Data & Backup</h3>
@@ -422,7 +386,7 @@ export const Settings: React.FC = () => {
                     <ChevronRight size={16} className="opacity-20" />
                 </button>
                 <div className="text-center py-6">
-                    <p className="text-[9px] font-black text-text-muted opacity-30 uppercase tracking-[0.3em]">KiryanaBook v3.1.0 Premium</p>
+                    <p className="text-[9px] font-black text-text-muted opacity-30 uppercase tracking-[0.3em]">KiryanaBook v3.3.18 Premium</p>
                     <p className="text-[8px] font-bold text-text-muted opacity-20 uppercase tracking-widest mt-1">© 2026 Indus Ledger Tech</p>
                 </div>
             </div>

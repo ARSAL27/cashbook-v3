@@ -1029,7 +1029,8 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
         ...sanitizedItem,
         history: [historyEntry],
         soldCount: 0,
-        status: 'active'
+        status: 'active',
+        createdAt: serverTimestamp()
       }));
       await updateLastSync();
     } catch (e: any) {
@@ -1122,18 +1123,13 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (c.includes('spice') || c.includes('masala') || c.includes('mirch')) return 'Spices & Masala';
     if (c.includes('oil') || c.includes('ghee')) return 'Cooking Oil & Ghee';
     if (c.includes('milk') || c.includes('dairy') || c.includes('yogurt')) return 'Milk & Dairy';
+    if (c.includes('grocery') || c.includes('parchoon') || c.includes('kiryana')) return 'Grocery';
     if (c.includes('personal') || c.includes('soap') || c.includes('shampoo')) return 'Personal Care';
-    if (c.includes('clean') || c.includes('detergent') || c.includes('house')) return 'Household Cleaning';
-    if (c.includes('biscuit') || c.includes('snack') || c.includes('nimco')) return 'Biscuits & Snacks';
-    if (c.includes('sauce') || c.includes('pickle') || c.includes('jam') || c.includes('ketchup')) return 'Sauces, Pickles & Chutneys';
-    if (c.includes('dessert') || c.includes('sweet') || c.includes('sugar')) return 'Desserts & Sweets';
-    if (c.includes('frozen')) return 'Frozen Foods';
-    if (c.includes('candy') || c.includes('chocolate') || c.includes('toffee')) return 'Candies & Chocolates';
-    if (c.includes('medic') || c.includes('health') || c.includes('panadol')) return 'Medical / Basic Health';
-    if (c.includes('misc') || c.includes('other')) return 'Miscellaneous';
+    
+    // ... rest
     
     // If it's a known default cat but in a different case, return the exact default
-    const defaults = ['Grains & Flour', 'Spices & Masala', 'Cooking Oil & Ghee', 'Tea & Beverages', 'Milk & Dairy', 'Personal Care', 'Household Cleaning', 'Biscuits & Snacks', 'Sauces, Pickles & Chutneys', 'Desserts & Sweets', 'Frozen Foods', 'Candies & Chocolates', 'Medical / Basic Health', 'Miscellaneous'];
+    const defaults = ['Grocery', 'Grains & Flour', 'Spices & Masala', 'Cooking Oil & Ghee', 'Tea & Beverages', 'Milk & Dairy', 'Personal Care', 'Household Cleaning', 'Biscuits & Snacks', 'Sauces, Pickles & Chutneys', 'Desserts & Sweets', 'Frozen Foods', 'Candies & Chocolates', 'Medical / Basic Health', 'Miscellaneous'];
     const found = defaults.find(d => d.toLowerCase() === c);
     return found || cat;
   };

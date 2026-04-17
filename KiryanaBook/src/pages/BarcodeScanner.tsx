@@ -23,22 +23,25 @@ export const BarcodeScanner: React.FC = () => {
         if (isRedirecting) return;
         setIsRedirecting(true);
 
-        // 0.5 sec delay as requested by user
+        // 1 sec delay for better visibility
         redirectTimeoutRef.current = setTimeout(() => {
+            // Priority 1: If we are in Sale Mode (target=sale)
             if (target === 'sale') {
+                toast.success("Item Cart mein add ho raha hai...", { id: 'scan-sale' });
                 navigate(`/add-sale?scanned_barcode=${code}`, { replace: true });
-            } else {
-                // Check if product exists in inventory
-                const existingProduct = stock.find(s => s.sku === code);
-                if (existingProduct) {
-                    toast.success("Product mil gaya!");
-                    navigate(`/stock/${existingProduct.id}`, { replace: true });
-                } else {
-                    toast.error("Naya product!");
-                    navigate(`/add-item?barcode=${code}`, { replace: true });
-                }
+                return;
             }
-        }, 500);
+
+            // Priority 2: Check if product exists in inventory (Stock Mode)
+            const existingProduct = stock.find(s => s.sku === code || s.id === code);
+            if (existingProduct) {
+                toast.success("Product mil gaya!", { id: 'scan-success' });
+                navigate(`/stock/${existingProduct.id}`, { replace: true });
+            } else {
+                toast.error("Naya product! Details bharein.", { id: 'scan-new' });
+                navigate(`/add-item?barcode=${code}`, { replace: true });
+            }
+        }, 300);
     }, [navigate, stock, target, isRedirecting]);
 
     const {

@@ -68,44 +68,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isSecurityReady, setIsSecurityReady] = useState(false);
 
   const checkPinRequirement = useCallback(async (hasPin: boolean, isEnabled: boolean, timer: number, lockout: number | null, mode: 'check' | 'verify' = 'check', finalPin: string = '') => {
-    if (lockout && lockout > Date.now()) {
-      setPinVerified(false);
-      return;
-    }
-    if (!hasPin || !isEnabled) {
-      setPinVerified(true);
-      return;
-    }
-    
-    if (mode === 'verify') {
-      const isCorrect = await verifyPin(finalPin, userPin || '');
-      if (isCorrect) {
-        setPinVerified(true);
-        return;
-      } else {
-        setPinVerified(false);
-        return;
-      }
-    }
-
-    const lastActive = localStorage.getItem('last_active_time');
-    if (!lastActive) {
-      setPinVerified(false);
-      return;
-    }
-    const now = Date.now();
-    const inactiveDuration = now - parseInt(lastActive);
-    
-    if (timer === -1) { 
-        setPinVerified(true);
-        return;
-    }
-
-    if (inactiveDuration > timer) {
-      setPinVerified(false);
-    } else {
-      setPinVerified(true);
-    }
+    // 🛡️ USER REQUEST: Security PIN feature disabled globally
+    setPinVerified(true);
+    return;
   }, []);
 
   // ── Handle Google Redirect Result (fires after signInWithRedirect returns) ──

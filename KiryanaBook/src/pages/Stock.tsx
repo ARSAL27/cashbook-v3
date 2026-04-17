@@ -44,16 +44,24 @@ export const Stock: React.FC = () => {
 
   const filteredStock = useMemo(() => {
     const s = deferredSearch.toLowerCase();
-    return (stock || []).filter(item => {
+    const filtered = (stock || []).filter(item => {
       const matchSearch = item.name.toLowerCase().includes(s) || 
                           item.sku?.toLowerCase().includes(s);
       const matchCat = activeCategory === 'All Items' || item.category === activeCategory;
       
       let matchFilter = true;
-      if (filterType === 'low') matchFilter = item.quantity > 0 && item.quantity <= (item.minThreshold || 5);
-      if (filterType === 'out') matchFilter = item.quantity <= 0;
+      if (filterType === 'low') matchFilter = (item.quantity || 0) > 0 && (item.quantity || 0) <= (item.minThreshold || 5);
+      if (filterType === 'out') matchFilter = (item.quantity || 0) <= 0;
 
       return matchSearch && matchCat && matchFilter;
+    });
+
+    // Sort by createdAt (newest first), fallback to name
+    return [...filtered].sort((a, b) => {
+        const timeA = a.createdAt ? (typeof a.createdAt === 'string' ? new Date(a.createdAt).getTime() : a.createdAt.seconds * 1000) : 0;
+        const timeB = b.createdAt ? (typeof b.createdAt === 'string' ? new Date(b.createdAt).getTime() : b.createdAt.seconds * 1000) : 0;
+        if (timeB !== timeA) return timeB - timeA;
+        return a.name.localeCompare(b.name);
     });
   }, [stock, deferredSearch, activeCategory, filterType]);
 

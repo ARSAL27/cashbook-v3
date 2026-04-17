@@ -120,11 +120,16 @@ export const useScanner = (props: UseScannerProps) => {
         if (barcodes.length > 0) {
           handleBarcodeResponse(barcodes[0].displayValue);
         }
-      } catch (err) {
+      } catch (err: any) {
         isScanningRef.current = false;
         _nativeScannerActive = false;
-        // ✅ FIX: Agar component intentionally band ho raha hai (back press) toh error mat dikhaao
-        if (!isUnmountingRef.current) {
+        
+        // ❌ Detect if user canceled manually (X button)
+        const errorMessage = err?.message?.toLowerCase() || "";
+        const isCanceled = errorMessage.includes("cancel") || errorMessage.includes("closed") || !err;
+
+        // ✅ FIX: Only show error if it's a real hardware failure, not a manual close
+        if (!isUnmountingRef.current && !isCanceled) {
           setHasError(true);
         }
       }
