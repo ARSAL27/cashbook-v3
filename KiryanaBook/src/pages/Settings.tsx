@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, User, Store, ChevronRight, Database, FileSpreadsheet, FileText, Moon, Crown, Lock } from 'lucide-react';
+import { ArrowLeft, User, Store, ChevronRight, Database, FileSpreadsheet, FileText, Moon, Crown } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { PageTransition } from '../components/PageTransition';
 import { useAuth } from '../context/AuthContext';
@@ -18,7 +18,7 @@ import { Share } from '@capacitor/share';
 
 export const Settings: React.FC = () => {
   const navigate = useNavigate();
-  const { resetPin, saveAutoLockTimer } = useAuth();
+  const {} = useAuth();
   const { profile, sales, expenses, stock, contacts, invoices } = useShop();
   const { setMode, isDarkMode } = useTheme();
   const { language, setLanguage, t } = useLanguage();

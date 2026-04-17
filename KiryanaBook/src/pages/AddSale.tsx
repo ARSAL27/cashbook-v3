@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { PageTransition } from '../components/PageTransition';
 import { useShop, type Stock } from '../context/ShopContext';
@@ -16,23 +16,59 @@ export const AddSale: React.FC = () => {
     const [isSaving, setIsSaving] = useState(false);
     const [view, setView] = useState<'add' | 'review'>('add');
     const [searchTerm, setSearchTerm] = useState('');
-    const [basket, setBasket] = useState<{ id: string; name: string; price: number; qty: number }[]>([]);
+    const [basket, setBasket] = useState<{ id: string; name: string; price: number; qty: number }[]>(() => {
+        const saved = localStorage.getItem('current_sale_basket');
+        return saved ? JSON.parse(saved) : [];
+    });
     const [discount, setDiscount] = useState<string | number>(0);
     const [selectedCustomerName, setSelectedCustomerName] = useState<string | null>(null);
     const [isSearchFocused, setIsSearchFocused] = useState(false);
 
+    // Save basket to localStorage whenever it changes
+    useEffect(() => {
+        localStorage.setItem('current_sale_basket', JSON.stringify(basket));
+    }, [basket]);
+    
+    // ✅ FIX: Guard ref to prevent duplicate scan processing
+    const processedScanRef = useRef<string | null>(null);
+
     // Auto-add item when returning from barcode scan
     useEffect(() => {
-        const scannedId = searchParams.get('scanned');
-        const scannedBarcode = searchParams.get('scanned_barcode');
+        try {
+            const scannedId = searchParams.get('scanned');
+            const scannedBarcode = searchParams.get('scanned_barcode');
+            
+            // ✅ Nothing to process
+            if (!scannedId && !scannedBarcode) return;
+            
+            const scanKey = scannedId || scannedBarcode || '';
+            
+            // ✅ FIX: Prevent double processing on re-renders
+            if (processedScanRef.current === scanKey) return;
+            
+            // ✅ FIX: Wait for stock to load before processing
+            if (!stock || stock.length === 0) {
+                // Stock hasn't loaded yet, will re-run when stock is available
+                return;
+            }
+            
+            // Mark as processed BEFORE doing anything
+            processedScanRef.current = scanKey;
 
-        if (scannedId || scannedBarcode) {
-            const item = stock.find(s => s.id === scannedId || s.sku === scannedBarcode);
+            const item = stock.find(s => 
+                (scannedId && String(s.id) === String(scannedId)) || 
+                (scannedBarcode && String(s.sku) === String(scannedBarcode))
+            );
+            
             if (item) {
-                // To prevent double adding on re-renders, check if we just added this
-                // (Though basket logic usually handles addition, we want to be clean)
-                addToBasket(item);
-                toast.success(`${item.name} basket mein add ho gaya`);
+                // Ensure price and qty are numbers
+                const safeItem = {
+                    ...item,
+                    price: Number(item.price || 0),
+                    quantity: Number(item.quantity || 0)
+                };
+                addToBasket(safeItem);
+                toast.success(`${item.name} basket mein add ho gaya`, { id: 'scan-added' });
                 
                 // Remove the param so refresh doesn't re-add
                 const newParams = new URLSearchParams(searchParams);
@@ -40,9 +76,12 @@ export const AddSale: React.FC = () => {
                 newParams.delete('scanned_barcode');
                 navigate({ search: newParams.toString() }, { replace: true });
             } else if (scannedBarcode) {
-                toast.error('Product nahi mila, please pehle add karein');
-                navigate(`/add-item?barcode=${scannedBarcode}`);
+                toast.error('Product nahi mila: ' + scannedBarcode, { id: 'scan-notfound' });
+                navigate(`/add-item?barcode=${encodeURIComponent(scannedBarcode)}`, { replace: true });
             }
+        } catch (err) {
+            console.error('Scan processing error:', err);
+            toast.error('Scan process mein masla hua');
         }
     }, [searchParams, stock]);
 
@@ -109,14 +148,31 @@ export const AddSale: React.FC = () => {
         setIsSaving(true);
         triggerHaptic(ImpactStyle.Heavy);
         try {
-            const saleItems = basket.map(i => ({ itemId: i.id, name: i.name, price: i.price, qty: i.qty }));
+            const saleItems = basket.map(i => ({ 
+                itemId: String(i.id), 
+                name: String(i.name), 
+                price: Number(i.price || 0), 
+                qty: Number(i.qty || 0) 
+            }));
             const parsedDiscount = parseFloat(String(discount || '0'));
+            
+            // ✅ FIX: Validate items before sending to addSale
+            if (saleItems.some(item => !item.itemId || !item.name || item.qty <= 0)) {
+                toast.error('Kuch items mein masla hai (Name/Price/Qty missing), dobara try karein');
+                setIsSaving(false);
+                return;
+            }
+            
+            toast.loading("Saving sale...", { id: 'saving-sale' });
             const invId = await addSale(saleItems, 'cash', parsedDiscount);
+            toast.dismiss('saving-sale');
             toast.success("Hisaab Save Hogaya! ✅");
+            localStorage.removeItem('current_sale_basket'); // Clear persistence
             if (invId) navigate(`/invoice/${invId}`);
             else navigate('/');
         } catch (err: any) {
-            toast.error(err?.message || "Error saving sale.");
+            console.error('Sale save error:', err);
+            toast.error(err?.message || "Sale save nahi ho saki. Dobara try karein.");
         } finally {
             setIsSaving(false);
         }
@@ -214,7 +270,7 @@ export const AddSale: React.FC = () => {
                     )}
                 </div>
 
-                <div className="fixed bottom-[100px] inset-x-0 mx-auto max-w-md p-6 rounded-t-[3.5rem] shadow-[0_-20px_50px_rgba(0,0,0,0.2)] border-t transition-all duration-500 bg-card border-border z-40">
+                <div className="fixed bottom-[120px] inset-x-0 mx-auto max-w-md p-6 rounded-t-[3.5rem] shadow-[0_-20px_50px_rgba(0,0,0,0.2)] border-t transition-all duration-500 bg-card border-border z-40">
                     {view === 'add' ? (
                         <>
                             <div className="relative mb-6">

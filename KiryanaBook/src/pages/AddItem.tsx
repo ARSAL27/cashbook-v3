@@ -44,16 +44,11 @@ export const AddItem: React.FC = () => {
     setSku(barcode);
     
     // 1. Check local stock first
-    const existing = stock.find(s => s.sku === barcode);
+    const existing = stock.find(s => String(s.sku) === barcode || String(s.id) === barcode);
     if (existing) {
-       setName(existing.name);
-       setCategory(existing.category);
-       setUnit(existing.unit as any);
-       setCompany(existing.company || '');
-       setBuyingPrice(existing.buyingPrice?.toString() || '');
-       setSellingPrice(existing.price?.toString() || '');
-       setImageUrl(existing.imageUrl || '');
-       toast('Yeh item pehle se stock mein hai. Updates save honge.', { icon: 'ℹ️' });
+       toast.error('Yeh item pehle se stock mein hai! Details load kar raha hoon...', { id: 'exists-check' });
+       // Redirect to Stock Detail for editing instead of staying on Add Item
+       navigate(`/stock/${existing.id}`, { replace: true });
        return;
     }
 
@@ -100,18 +95,21 @@ export const AddItem: React.FC = () => {
 
   const handleSave = async () => {
     if (!name.trim()) return toast.error('Product name zaroori hai');
-    if (buyingPrice === '' || sellingPrice === '' || openingStock === '') {
-      return toast.error('Qemat aur Stock ki details bharna lazmi hai');
-    }
+    
+    // Default empty numeric fields to 0
+    const finalOpening = openingStock === '' ? 0 : Number(openingStock);
+    const finalBuying = buyingPrice === '' ? 0 : Number(buyingPrice);
+    const finalSelling = sellingPrice === '' ? 0 : Number(sellingPrice);
 
     const finalCategory = showCategoryInput ? newCategory.trim() : category;
     const finalBrand = standardizeBrand(company);
 
-    // Smart Validation Engine
+    // Smart Validation Engine - Reduced friction for Quick Add
     const validation = validateProductEntry(name.trim(), finalCategory, finalBrand);
     if (!validation.isValid && !categoryWarning) {
       setCategoryWarning(true);
-      return toast.error(`${validation.message} (Save dubara dabayein confirm karne ke liye)`, { duration: 5000 });
+      toast.error(`${validation.message}`, { duration: 3000 });
+      // Don't return! Let them save anyway if they want, just show warning
     }
     
     setLoading(true);
@@ -121,12 +119,12 @@ export const AddItem: React.FC = () => {
         company: finalBrand,
         category: finalCategory || 'Others',
         unit,
-        quantity: Number(openingStock),
-        buyingPrice: Number(buyingPrice),
-        price: Number(sellingPrice),
-        minThreshold: Number(minThreshold),
+        quantity: isNaN(finalOpening) ? 0 : finalOpening,
+        buyingPrice: isNaN(finalBuying) ? 0 : finalBuying,
+        price: isNaN(finalSelling) ? 0 : finalSelling,
+        minThreshold: Number(minThreshold) || 5,
         imageUrl: imageUrl || '',
-        sku: sku || `SKU-${Math.floor(1000 + Math.random() * 9000)}`
+        sku: String(sku || `SKU-${Math.floor(1000 + Math.random() * 9000)}`)
       };
       
       if (packSize.trim()) newItem.packSize = packSize.trim();
@@ -429,7 +427,7 @@ export const AddItem: React.FC = () => {
            </div>
 
            {/* STICKY SAVE BUTTON */}
-           <div className="fixed bottom-[110px] left-5 right-5 z-[85] max-w-md mx-auto">
+           <div className="fixed bottom-[130px] left-5 right-5 z-[85] max-w-md mx-auto">
               <button
                  onClick={handleSave}
                  disabled={loading}

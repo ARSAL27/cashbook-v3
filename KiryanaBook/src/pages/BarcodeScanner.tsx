@@ -21,25 +21,47 @@ export const BarcodeScanner: React.FC = () => {
 
     const handleConfirm = useCallback((code: string) => {
         if (isRedirecting) return;
+        
+        // ✅ FIX: Validate barcode is non-empty before processing
+        const cleanCode = (code || '').trim();
+        if (!cleanCode) {
+            toast.error('Barcode read nahi ho saka');
+            return;
+        }
+        
+        setScannedResult(cleanCode); // ✅ FIX: Set result BEFORE redirecting
         setIsRedirecting(true);
 
-        // 1 sec delay for better visibility
+        // Short delay for visual feedback
         redirectTimeoutRef.current = setTimeout(() => {
-            // Priority 1: If we are in Sale Mode (target=sale)
-            if (target === 'sale') {
-                toast.success("Item Cart mein add ho raha hai...", { id: 'scan-sale' });
-                navigate(`/add-sale?scanned_barcode=${code}`, { replace: true });
-                return;
-            }
+            try {
+                // Priority 1: If we are in Sale Mode (target=sale)
+                if (target === 'sale') {
+                    // ✅ FIX: First check if product exists, then navigate with proper params
+                    const existingItem = stock.find(s => s.sku === cleanCode || s.id === cleanCode);
+                    if (existingItem) {
+                        toast.success(`${existingItem.name} cart mein add ho raha hai...`, { id: 'scan-sale' });
+                        navigate(`/add-sale?scanned_barcode=${encodeURIComponent(cleanCode)}`, { replace: true });
+                    } else {
+                        toast.error('Pehle product add karein, phir sale karein', { id: 'scan-new' });
+                        navigate(`/add-item?barcode=${encodeURIComponent(cleanCode)}`, { replace: true });
+                    }
+                    return;
+                }
 
-            // Priority 2: Check if product exists in inventory (Stock Mode)
-            const existingProduct = stock.find(s => s.sku === code || s.id === code);
-            if (existingProduct) {
-                toast.success("Product mil gaya!", { id: 'scan-success' });
-                navigate(`/stock/${existingProduct.id}`, { replace: true });
-            } else {
-                toast.error("Naya product! Details bharein.", { id: 'scan-new' });
-                navigate(`/add-item?barcode=${code}`, { replace: true });
+                // Priority 2: Check if product exists in inventory (Stock Mode)
+                const existingProduct = stock.find(s => String(s.sku) === cleanCode || String(s.id) === cleanCode);
+                if (existingProduct) {
+                    toast.success("Product mil gaya!", { id: 'scan-success' });
+                    navigate(`/stock/${existingProduct.id}`, { replace: true });
+                } else {
+                    toast.error("Naya product! Details bharein.", { id: 'scan-new' });
+                    navigate(`/add-item?barcode=${encodeURIComponent(cleanCode)}`, { replace: true });
+                }
+            } catch (err) {
+                console.error('Scanner navigation error:', err);
+                toast.error('Navigation mein masla hua, wapis jayen');
+                setIsRedirecting(false);
             }
         }, 300);
     }, [navigate, stock, target, isRedirecting]);

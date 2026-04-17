@@ -58,8 +58,10 @@ export const Stock: React.FC = () => {
 
     // Sort by createdAt (newest first), fallback to name
     return [...filtered].sort((a, b) => {
-        const timeA = a.createdAt ? (typeof a.createdAt === 'string' ? new Date(a.createdAt).getTime() : a.createdAt.seconds * 1000) : 0;
-        const timeB = b.createdAt ? (typeof b.createdAt === 'string' ? new Date(b.createdAt).getTime() : b.createdAt.seconds * 1000) : 0;
+        // Strict newest first
+        const timeA = a.createdAt ? (typeof a.createdAt === 'string' ? new Date(a.createdAt).getTime() : ((a.createdAt as any).seconds ?? 0) * 1000 + ((a.createdAt as any).nanoseconds ?? 0) / 1000000) : 0;
+        const timeB = b.createdAt ? (typeof b.createdAt === 'string' ? new Date(b.createdAt).getTime() : ((b.createdAt as any).seconds ?? 0) * 1000 + ((b.createdAt as any).nanoseconds ?? 0) / 1000000) : 0;
+        
         if (timeB !== timeA) return timeB - timeA;
         return a.name.localeCompare(b.name);
     });
@@ -333,7 +335,7 @@ export const Stock: React.FC = () => {
         </div>
 
         {/* ── MODERN FAB MENU ── */}
-        <div className="fixed bottom-24 right-6 flex flex-col items-end gap-3 z-[100]">
+        <div className="fixed bottom-32 right-6 flex flex-col items-end gap-3 z-[100]">
           <AnimatePresence>
             {isFABOpen && (
               <motion.div 
@@ -365,7 +367,7 @@ export const Stock: React.FC = () => {
                 <Tag size={18} />
               </button>
               <button
-                onClick={() => navigate('/barcode-scan?mode=stock')}
+                onClick={() => navigate('/barcode-scan?target=stock')}
                 className="flex items-center gap-2 px-4 py-3 rounded-2xl bg-spring-green text-emerald-950 shadow-lg active:scale-95 transition-all text-sm font-bold border border-white/20"
               >
                 Quick Barcode

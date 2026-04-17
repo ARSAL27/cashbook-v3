@@ -193,3 +193,20 @@ export const generateBusinessResponse = async (queryText: string, dataSummary: s
     return `⚠️ Error: ${msg || 'Gemini se response nahi aaya. Dobara try karein.'}`;
   }
 };
+
+export const transliterateToRoman = async (text: string): Promise<string> => {
+  if (!genAI || !text.trim()) return text;
+  // If text is already mostly Roman/English, skip
+  if (!/[\u0600-\u06FF]/.test(text)) return text;
+  
+  const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+  const prompt = `Convert the following Urdu script text into Roman Urdu (English alphabet). Keep it natural and casual. ONLY return the transliterated text.\n\nText: "${text}"`;
+
+  try {
+    const result = await model.generateContent(prompt);
+    return result.response.text().trim();
+  } catch (error) {
+    console.error("Transliteration error:", error);
+    return text;
+  }
+};

@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Send, UserCog, History, X, Trash2, ChevronRight, MessageCircle, Mic, Volume2, VolumeX, Sparkles, ArrowLeft, Share2 } from 'lucide-react';
 import { askLocalAgent, detectMicroAnomalies, generateRandomDataSummary } from '../lib/localAgent';
-import { analyzeBusinessQuery, generateBusinessResponse } from '../lib/gemini';
+import { analyzeBusinessQuery, generateBusinessResponse, transliterateToRoman } from '../lib/gemini';
 import { useShop } from '../context/ShopContext';
 import { SpeechRecognition } from '@capacitor-community/speech-recognition';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
@@ -318,6 +318,30 @@ export const Manager: React.FC = () => {
   const [isListening, setIsListening] = useState(false);
   const [isSpeakerOn, setIsSpeakerOn] = useState(() => localStorage.getItem('manager_speaker') !== 'off');
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef(input);
+  const isMounted = useRef(true);
+  const listenersRef = useRef<any[]>([]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    isMounted.current = true;
+    return () => {
+      isMounted.current = false;
+      // Clean up all gathered listeners
+      listenersRef.current.forEach(l => {
+        if (l && typeof l.remove === 'function') l.remove();
+      });
+      window.speechSynthesis.cancel();
+      try {
+         SpeechRecognition.stop();
+      } catch (e) {}
+    };
+  }, []);
+
+  // Sync ref with state
+  useEffect(() => {
+    inputRef.current = input;
+  }, [input]);
 
   // Auto-scroll
   useEffect(() => {
@@ -410,21 +434,34 @@ export const Manager: React.FC = () => {
         };
 
         recognition.onresult = (event: any) => {
+          if (!isMounted.current) return;
           const transcript = Array.from(event.results)
             .map((result: any) => result[0].transcript)
             .join('');
           setInput(transcript);
         };
 
-        recognition.onend = () => {
+        recognition.onend = async () => {
+          if (!isMounted.current) return;
           setIsListening(false);
-          // Auto-send if we have enough text
-          if (input.trim().length > 2) {
-            handleSend();
+          
+          // Transliterate to Roman if contains Urdu script
+          const currentInput = inputRef.current;
+          if (/[\u0600-\u06FF]/.test(currentInput)) {
+            toast.loading("Converting to Roman Urdu...", { id: 'trans-loading' });
+            const roman = await transliterateToRoman(currentInput);
+            toast.dismiss('trans-loading');
+            if (isMounted.current) {
+                setInput(roman);
+                if (roman.trim().length > 2) handleSend(roman);
+            }
+          } else if (currentInput.trim().length > 2) {
+            handleSend(currentInput);
           }
         };
 
         recognition.onerror = () => {
+          if (!isMounted.current) return;
           setIsListening(false);
           if (!silent) toast.error('Mic access denied or error');
         };
@@ -445,19 +482,21 @@ export const Manager: React.FC = () => {
       }
 
       await SpeechRecognition.requestPermissions();
+      if (!isMounted.current) return;
       setIsListening(true);
       
       SpeechRecognition.start({
         language: 'ur-PK',
         partialResults: true,
-        popup: false, // Don't show the native dialog if possible for cleaner integration
+        popup: false, 
       });
 
-      SpeechRecognition.addListener('partialResults', (data: any) => {
-        if (data.matches && data.matches.length > 0) {
+      const partialHandle = await SpeechRecognition.addListener('partialResults', (data: any) => {
+        if (isMounted.current && data.matches && data.matches.length > 0) {
           setInput(data.matches[0]);
         }
       });
+      listenersRef.current.push(partialHandle);
     } catch (e) {
       setIsListening(false);
       if (!silent) toast.error('Could not start mic');
@@ -470,20 +509,45 @@ export const Manager: React.FC = () => {
     
     let stopHandle: any;
     const setupListener = async () => {
-      stopHandle = await SpeechRecognition.addListener('listeningState', (state: any) => {
-        if (state.status === 'stopped') {
-          setIsListening(false);
-          if (input.trim().length > 2) handleSend();
-        }
-      });
+      try {
+        stopHandle = await SpeechRecognition.addListener('listeningState', async (state: any) => {
+          if (isMounted.current && state.status === 'stopped') {
+            setIsListening(false);
+            
+            const currentInput = inputRef.current;
+            if (/[\u0600-\u06FF]/.test(currentInput)) {
+                toast.loading("Converting to Roman Urdu...", { id: 'trans-loading' });
+                const roman = await transliterateToRoman(currentInput);
+                toast.dismiss('trans-loading');
+                if (isMounted.current) {
+                    setInput(roman);
+                    if (roman.trim().length > 2) handleSend(roman);
+                }
+            } else if (currentInput.trim().length > 2) {
+                handleSend(currentInput);
+            }
+          }
+        });
+        listenersRef.current.push(stopHandle);
+      } catch (e) {
+        console.error("Failed to setup SpeechRecognition listener", e);
+      }
     };
     setupListener();
 
     return () => {
-      if (stopHandle) stopHandle.remove();
-      window.speechSynthesis.cancel();
+      if (stopHandle && typeof stopHandle.remove === 'function') {
+        stopHandle.remove();
+      }
     };
-  }, [input]);
+  }, []); 
+
+  // Cleanup synthesis on unmount
+  useEffect(() => {
+     return () => {
+        window.speechSynthesis.cancel();
+     };
+  }, []);
 
   // Auto-save session whenever messages change (if more than 1 message)
   useEffect(() => {
@@ -513,7 +577,7 @@ export const Manager: React.FC = () => {
   };
 
   const handleSend = async (text: string = input) => {
-    if (!text.trim()) return;
+    if (!text.trim() || !isMounted.current) return;
     const userMsg: Message = { id: `u-${Date.now()}`, text: text.trim(), isBot: false, time: new Date().toISOString() };
     setMessages(prev => [...prev, userMsg]);
     setInput('');

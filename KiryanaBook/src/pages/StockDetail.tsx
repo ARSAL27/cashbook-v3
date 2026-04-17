@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { PageTransition } from '../components/PageTransition';
 import { useShop, type Stock } from '../context/ShopContext';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Edit3, Package, DollarSign, Plus, Percent, Layers, Trash2, Camera } from 'lucide-react';
+import { ArrowLeft, Edit3, Package, Plus, Percent, Layers, Trash2, Camera } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../context/ThemeContext';
 import toast from 'react-hot-toast';
@@ -199,7 +199,7 @@ export const StockDetail: React.FC = () => {
             <div className="fixed inset-0 z-[100] flex items-end justify-center bg-black/60 backdrop-blur-sm p-4">
                 <motion.div 
                     initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
-                    className="w-full max-w-md rounded-t-[3rem] p-8 shadow-2xl relative overflow-y-auto max-h-[92vh] pb-16"
+                    className="w-full max-w-md rounded-t-[3rem] p-8 shadow-2xl relative overflow-y-auto max-h-[92vh] pb-32"
                     style={{ backgroundColor: card }}
                 >
                     <div className="w-12 h-1.5 bg-gray-200 dark:bg-white/10 rounded-full mx-auto mb-6 opacity-40" />
@@ -386,7 +386,7 @@ export const StockDetail: React.FC = () => {
             <div className="fixed inset-0 z-[100] flex items-end justify-center bg-black/60 backdrop-blur-sm p-4">
                 <motion.div 
                     initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
-                    className="w-full max-w-md rounded-t-[3rem] p-8 shadow-2xl relative max-h-[90vh] overflow-y-auto pb-16"
+                    className="w-full max-w-md rounded-t-[3rem] p-8 shadow-2xl relative max-h-[90vh] overflow-y-auto pb-32"
                     style={{ backgroundColor: card }}
                 >
                     <div className="w-12 h-1.5 bg-gray-200 dark:bg-white/10 rounded-full mx-auto mb-6 opacity-40" />

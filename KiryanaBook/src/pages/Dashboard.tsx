@@ -5,7 +5,7 @@ import { Users, Plus, Minus, Bell, HandCoins, BarChart2, Filter, ArrowDownLeft, 
 import { Sidebar } from '../components/Sidebar';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { AreaChart, Area, XAxis, CartesianGrid, ResponsiveContainer } from 'recharts';
+import { AreaChart, Area, XAxis, CartesianGrid } from 'recharts';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 

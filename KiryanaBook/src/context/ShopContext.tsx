@@ -455,9 +455,13 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const addSale = async (items: any[], type: 'cash' | 'udhaar', discount: number = 0): Promise<string | undefined> => {
     if (!user) return;
     
+    // 🛡️ LIMIT CHECK (Consistency with addInvoice)
+    const limit = checkLimit('sales');
+    if (!limit.allowed) throw new Error(limit.message);
+
     for (const i of items) {
-      const stockItem = stock.find(s => s.id === i.itemId);
-      if (stockItem && stockItem.quantity < i.qty) {
+      const stockItem = stock.find(s => s.id === String(i.itemId));
+      if (stockItem && Number(stockItem.quantity) < Number(i.qty)) {
         throw new Error(`"${stockItem.name}" ka stock kam hai. Sirf ${stockItem.quantity} pieces hain.`);
       }
     }

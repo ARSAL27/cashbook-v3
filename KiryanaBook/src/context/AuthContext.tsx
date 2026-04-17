@@ -18,7 +18,7 @@ import {
 import { auth, googleProvider, db } from '../lib/firebase';
 import { doc, setDoc, getDoc, serverTimestamp, deleteDoc, onSnapshot } from 'firebase/firestore';
 import toast from 'react-hot-toast';
-import { verifyPin, hashPin } from '../utils/crypto';
+import { hashPin } from '../utils/crypto';
 
 interface AuthContextType {
   user: User | null;
@@ -67,7 +67,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isPasswordRecorded, setIsPasswordRecorded] = useState(true);
   const [isSecurityReady, setIsSecurityReady] = useState(false);
 
-  const checkPinRequirement = useCallback(async (hasPin: boolean, isEnabled: boolean, timer: number, lockout: number | null, mode: 'check' | 'verify' = 'check', finalPin: string = '') => {
+  const checkPinRequirement = useCallback(async (_hasPin: boolean, _isEnabled: boolean, _timer: number, _lockout: number | null, _mode: 'check' | 'verify' = 'check', _finalPin: string = '') => {
     // 🛡️ USER REQUEST: Security PIN feature disabled globally
     setPinVerified(true);
     return;

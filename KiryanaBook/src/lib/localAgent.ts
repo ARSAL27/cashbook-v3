@@ -579,9 +579,10 @@ function _askLocalAgentInternal(query: string, data: ShopData): string {
     case 'COMPARISON': return getComparison(data);
     
     case 'TOTAL_UDHAAR': {
-      const total = data.udhaars.reduce((a, x) => a + x.amount, 0);
+      const safeUdhaarsLocal = data.udhaars || [];
+      const total = safeUdhaarsLocal.reduce((a, x) => a + (x?.amount || 0), 0);
       const balances: Record<string, number> = {};
-      data.udhaars.forEach(u => { balances[u.customerName] = (balances[u.customerName] || 0) + u.amount; });
+      safeUdhaarsLocal.forEach(u => { if (u?.customerName) balances[u.customerName] = (balances[u.customerName] || 0) + (u?.amount || 0); });
       const top = Object.entries(balances)
         .filter(([, b]) => b > 1)
         .sort(([, a], [, b]) => b - a)
@@ -596,7 +597,7 @@ function _askLocalAgentInternal(query: string, data: ShopData): string {
 
     case 'TOP_DEBTORS': {
       const balances: Record<string, number> = {};
-      data.udhaars.forEach(u => { balances[u.customerName] = (balances[u.customerName] || 0) + u.amount; });
+      (data.udhaars || []).forEach(u => { if (u?.customerName) balances[u.customerName] = (balances[u.customerName] || 0) + (u?.amount || 0); });
       const top = Object.entries(balances)
         .filter(([, b]) => b > 0)
         .sort(([, a], [, b]) => b - a)
@@ -608,7 +609,7 @@ function _askLocalAgentInternal(query: string, data: ShopData): string {
     case 'RECOVERY_CHASE':
     case 'OVERDUE': {
       const balances: Record<string, number> = {};
-      data.udhaars.forEach(u => { balances[u.customerName] = (balances[u.customerName] || 0) + u.amount; });
+      (data.udhaars || []).forEach(u => { if (u?.customerName) balances[u.customerName] = (balances[u.customerName] || 0) + (u?.amount || 0); });
       const overdue = Object.entries(balances)
         .filter(([, b]) => b > 500)
         .sort(([, a], [, b]) => b - a)
@@ -758,21 +759,28 @@ function _askLocalAgentInternal(query: string, data: ShopData): string {
  * Performs 'very complicated' analysis for strategic consulting.
  */
 export function generateDeepBusinessAudit(data: ShopData): string {
-  const totalSales = data.sales.reduce((a, x) => a + x.total, 0);
-  const totalExp = data.expenses.reduce((a, x) => a + x.amount, 0);
-  const totalUdhaar = data.udhaars.reduce((a, x) => a + x.amount, 0);
+  if (!data) return '--- DEEP AUDIT REPORT ---\nData available nahi hai.';
+  
+  const safeSales = data.sales || [];
+  const safeExpenses = data.expenses || [];
+  const safeUdhaars = data.udhaars || [];
+  const safeStock = data.stock || [];
+  
+  const totalSales = safeSales.reduce((a, x) => a + (x?.total || 0), 0);
+  const totalExp = safeExpenses.reduce((a, x) => a + (x?.amount || 0), 0);
+  const totalUdhaar = safeUdhaars.reduce((a, x) => a + (x?.amount || 0), 0);
   
   // 1. Customer Concentration Risk
   const custMap: any = {};
-  data.udhaars.forEach(u => custMap[u.customerName] = (custMap[u.customerName] || 0) + u.amount);
+  safeUdhaars.forEach(u => { if (u?.customerName) custMap[u.customerName] = (custMap[u.customerName] || 0) + (u?.amount || 0); });
   const topCust = Object.entries(custMap).sort(([,a]:any,[,b]:any) => b - a).slice(0,1)[0];
-  const riskPercent = topCust ? (topCust[1] as number / totalUdhaar) * 100 : 0;
+  const riskPercent = topCust && totalUdhaar > 0 ? (topCust[1] as number / totalUdhaar) * 100 : 0;
 
   // 2. High Wastage / Low Margin Detection
-  const lowMargin = data.stock.filter(s => (s.price - s.buyingPrice) / s.price < 0.05).map(s => s.name);
+  const lowMargin = safeStock.filter(s => s?.price && s?.buyingPrice && (s.price - s.buyingPrice) / s.price < 0.05).map(s => s?.name || 'Unknown');
 
   // 3. Inventory Turnover (Simplified)
-  const stockingIssue = data.stock.filter(s => s.quantity > 50 && (s.soldCount || 0) < 5).map(s => s.name);
+  const stockingIssue = safeStock.filter(s => (s?.quantity || 0) > 50 && (s?.soldCount || 0) < 5).map(s => s?.name || 'Unknown');
 
   return `
     --- DEEP AUDIT REPORT ---

@@ -118,8 +118,15 @@ export const useScanner = (props: UseScannerProps) => {
 
         isScanningRef.current = false;
         _nativeScannerActive = false;
-        if (barcodes.length > 0) {
-          handleBarcodeResponse(barcodes[0].displayValue);
+        
+        // ✅ FIX: Validate barcode value exists and is non-empty
+        if (barcodes && barcodes.length > 0) {
+          const scannedValue = barcodes[0]?.displayValue || barcodes[0]?.rawValue || '';
+          if (scannedValue && scannedValue.trim().length > 0) {
+            handleBarcodeResponse(scannedValue.trim());
+          } else {
+            toast.error('Barcode read nahi ho saka, dobara try karein');
+          }
         }
       } catch (err: any) {
         isScanningRef.current = false;
