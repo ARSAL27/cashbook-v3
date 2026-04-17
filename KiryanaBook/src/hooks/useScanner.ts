@@ -52,6 +52,7 @@ export const useScanner = (props: UseScannerProps) => {
   const triggerHaptic = () => Haptics.impact({ style: ImpactStyle.Heavy }).catch(() => {});
 
   const isUnmountingRef = useRef(false);
+  const isHardwareStartingRef = useRef(false); // ✅ FIX: Block concurrent starts
 
   const stopHardware = useCallback(() => {
     isUnmountingRef.current = true;
@@ -136,10 +137,17 @@ export const useScanner = (props: UseScannerProps) => {
       return;
     }
 
-    setHasError(false);
-    if (!videoRef.current) return;
+    // ✅ FIX: Industrial Lock — prevent multiple concurrent starts
+    if (isHardwareStartingRef.current) return;
+    isHardwareStartingRef.current = true;
 
-    // ✅ FIX: Stop any existing stream before starting a new one to prevent AbortError
+    setHasError(false);
+    if (!videoRef.current) {
+        isHardwareStartingRef.current = false;
+        return;
+    }
+
+    // ✅ FIX: Aggressive cleanup before starting
     if (controlsRef.current) {
       try { controlsRef.current.stop(); } catch (e) {}
       controlsRef.current = null;
@@ -148,6 +156,9 @@ export const useScanner = (props: UseScannerProps) => {
       try { streamRef.current.getTracks().forEach(t => t.stop()); } catch (e) {}
       streamRef.current = null;
     }
+
+    // ✅ FIX: Stabilization delay — give hardware time to reset
+    await new Promise(resolve => setTimeout(resolve, 150));
 
     try {
       const hints = new Map<DecodeHintType, any>();
@@ -171,9 +182,11 @@ export const useScanner = (props: UseScannerProps) => {
 
       controlsRef.current = controls;
       streamRef.current = videoRef.current.srcObject as MediaStream;
+      isHardwareStartingRef.current = false;
     } catch (err) {
       console.error('Camera fail:', err);
       setHasError(true);
+      isHardwareStartingRef.current = false;
     }
   }, [handleBarcodeResponse]);
 
