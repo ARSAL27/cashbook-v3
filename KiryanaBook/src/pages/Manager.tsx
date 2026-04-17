@@ -582,7 +582,7 @@ export const Manager: React.FC = () => {
     <div className="w-full max-w-md mx-auto h-[calc(100vh-90px)] flex flex-col bg-[#F9F9FB] dark:bg-[#0A0A0A] relative overflow-hidden">
 
       {/* ── Header (Slim & Pro) ─────────────────────────────────────────────────── */}
-      <div className="shrink-0 bg-white dark:bg-[#0A0A0A] px-5 pt-[calc(3rem+env(safe-area-inset-top,0px))] pb-4 border-b dark:border-white/5 shadow-sm">
+      <div className="shrink-0 bg-white dark:bg-[#0A0A0A] px-5 pt-12 pb-3 border-b dark:border-white/5 shadow-[0_2px_15px_rgba(0,0,0,0.02)]">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button onClick={() => navigate(-1)} className="w-9 h-9 rounded-xl bg-gray-50 dark:bg-white/5 flex items-center justify-center text-gray-700 dark:text-white/70 active:scale-90 transition-all border dark:border-white/5">

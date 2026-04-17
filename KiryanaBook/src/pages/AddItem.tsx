@@ -99,11 +99,15 @@ export const AddItem: React.FC = () => {
 
   const handleSave = async () => {
     if (!name.trim()) return toast.error('Product name zaroori hai');
+    if (!category) return toast.error('Category zaroori hai');
+    if (openingStock === '') return toast.error('Opening stock likhein');
+    if (buyingPrice === '') return toast.error('Buying price likhein');
+    if (sellingPrice === '') return toast.error('Selling price likhein');
     
-    // Default empty numeric fields to 0
-    const finalOpening = openingStock === '' ? 0 : Number(openingStock);
-    const finalBuying = buyingPrice === '' ? 0 : Number(buyingPrice);
-    const finalSelling = sellingPrice === '' ? 0 : Number(sellingPrice);
+    // Default empty numeric fields to 0 (already validated, but keeping number conversion)
+    const finalOpening = Number(openingStock);
+    const finalBuying = Number(buyingPrice);
+    const finalSelling = Number(sellingPrice);
 
     const finalCategory = showCategoryInput ? newCategory.trim() : category;
     const finalBrand = standardizeBrand(company);
@@ -149,27 +153,27 @@ export const AddItem: React.FC = () => {
       <div className="w-full pb-8 font-outfit max-w-md mx-auto relative min-h-screen" style={{ backgroundColor: bg }}>
         
         {/* HEADER */}
-        <div className="sticky top-0 z-50 transition-colors duration-300 px-5 pt-5 pb-6 flex items-center justify-between" style={{ backgroundColor: isDarkMode ? '#10251A' : '#0A3D24' }}>
+        <div className="sticky top-0 z-50 transition-colors duration-300 px-5 pt-12 pb-4 flex items-center justify-between shadow-[0_2px_15px_rgba(0,0,0,0.05)]" style={{ backgroundColor: isDarkMode ? '#10251A' : '#0A3D24' }}>
            <div className="flex items-center gap-3">
-              <button onClick={() => navigate(-1)} className="text-white/60">
-                 <ArrowLeft size={22} />
+              <button onClick={() => navigate(-1)} className="text-white/60 p-2 -ml-2 active:bg-white/10 rounded-full transition-colors">
+                 <ArrowLeft size={24} />
               </button>
-              <h1 className="text-white font-black text-[20px]">Add New Item</h1>
+              <h1 className="text-white font-black text-[22px] tracking-tight">Add New Item</h1>
            </div>
         </div>
 
-        <div className="px-5 pt-6 space-y-6">
+        <div className="px-5 pt-5 space-y-5">
            
            {/* IMAGE UPLOADER */}
-            <div className="flex flex-col items-center justify-center py-2">
+            <div className="flex flex-col items-center justify-center py-1">
                 <div className="relative">
-                    <div className="w-24 h-24 rounded-[2rem] border-2 border-dashed flex items-center justify-center overflow-hidden transition-all" 
+                    <div className="w-20 h-20 rounded-[1.5rem] border-2 border-dashed flex items-center justify-center overflow-hidden transition-all" 
                          style={{ backgroundColor: input, borderColor: border }}>
                         {imageUrl ? (
                             <img src={imageUrl} alt="Product" className="w-full h-full object-cover" />
                         ) : (
                             <div className="flex flex-col items-center gap-1 opacity-20">
-                                <Package size={24} />
+                                <Package size={20} />
                                 <span className="text-[8px] font-black uppercase">NO PIC</span>
                             </div>
                         )}
@@ -177,8 +181,8 @@ export const AddItem: React.FC = () => {
                     {/* CAMERA TRIGGER BUTTON */}
                     <button 
                       onClick={() => setShowImageSource(true)}
-                      className="absolute -bottom-1 -right-1 w-10 h-10 bg-[#4BFF94] text-[#0A3D24] rounded-2xl flex items-center justify-center shadow-lg cursor-pointer active:scale-90 transition-transform border-4 border-white dark:border-[#0A0A0A]">
-                        <Camera size={18} strokeWidth={3} />
+                      className="absolute -bottom-1 -right-1 w-8 h-8 bg-[#4BFF94] text-[#0A3D24] rounded-xl flex items-center justify-center shadow-lg cursor-pointer active:scale-90 transition-transform border-2 border-white dark:border-[#0A0A0A]">
+                        <Camera size={16} strokeWidth={2} />
                     </button>
                     
                     {/* HIDDEN INPUTS */}
@@ -225,66 +229,74 @@ export const AddItem: React.FC = () => {
             )}
            
            {/* PRODUCT NAME (Database Integrated) */}
-           <div className="space-y-2">
-              <SearchableSelector 
-                label="Product Search"
-                items={KIRYANA_DATABASE}
-                keys={['name', 'company']}
-                placeholder="Dhund kar add karein (e.g. Shan Dalda)"
-                category="products"
-                onSelect={(item) => {
-                   setName(item.name);
-                   if (item.category) setCategory(item.category);
-                   if (item.company) setCompany(item.company);
-                   if (item.unit) setUnit(item.unit as any);
-                }}
-                onAddNew={(newName) => {
-                   setName(newName);
-                   const suggested = guessCategory(newName);
-                   if (suggested) {
-                     setCategory(suggested);
-                     toast.success(`Category auto-selected: ${suggested}`, { icon: '🤖' });
-                   }
-                }}
+           <div className="space-y-1">
+              <p className="text-[11px] font-black uppercase tracking-widest px-1" style={{ color: sub }}>Product Name *</p>
+              <input 
+                  value={name} 
+                  onChange={e => setName(e.target.value)}
+                  placeholder="Enter product name..."
+                  className="w-full p-3.5 rounded-xl border outline-none font-bold text-[14px] transition-all"
+                  style={{ color: text, borderColor: border, backgroundColor: input }}
               />
-              <div className="flex items-center gap-1.5 px-1 mt-1 opacity-40">
-                <span className="text-[10px] font-bold uppercase tracking-tighter">Database matching active</span>
-                <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+              
+              <div className="pt-2">
+                <SearchableSelector 
+                  label="Search Database (Optional)"
+                  items={KIRYANA_DATABASE}
+                  keys={['name', 'company']}
+                  placeholder="Dhund kar add karein..."
+                  category="products"
+                  className="!text-[13px]"
+                  onSelect={(item) => {
+                     setName(item.name);
+                     if (item.category) setCategory(item.category);
+                     if (item.company) setCompany(item.company);
+                     if (item.unit) setUnit(item.unit as any);
+                  }}
+                  onAddNew={(newName) => {
+                     setName(newName);
+                     const suggested = guessCategory(newName);
+                     if (suggested) {
+                       setCategory(suggested);
+                       toast.success(`Category auto-selected: ${suggested}`, { icon: '🤖' });
+                     }
+                  }}
+                />
               </div>
            </div>
 
            {/* COMPANY / BRAND */}
-           <div className="space-y-2">
+           <div className="space-y-1">
               <p className="text-[11px] font-black uppercase tracking-widest px-1" style={{ color: sub }}>Company / Brand</p>
               <input 
                   value={company} onChange={e => setCompany(e.target.value)}
                   placeholder="e.g. Shan, Pepsi, National"
-                  className="w-full p-4 rounded-2xl border outline-none font-bold text-[15px] transition-all"
+                  className="w-full p-3.5 rounded-xl border outline-none font-bold text-[14px] transition-all"
                   style={{ color: text, borderColor: border, backgroundColor: input }}
               />
            </div>
 
            {/* BARCODE / SKU */}
-           <div className="space-y-2">
+           <div className="space-y-1">
               <p className="text-[11px] font-black uppercase tracking-widest px-1" style={{ color: sub }}>Barcode / SKU</p>
               <div className="relative">
                 <input 
                     value={sku} onChange={e => setSku(e.target.value)}
                     placeholder="Enter or scan barcode"
-                    className="w-full p-4 rounded-2xl border outline-none font-bold text-[15px] transition-all pr-12"
+                    className="w-full p-3.5 rounded-xl border outline-none font-bold text-[14px] transition-all pr-12"
                     style={{ color: text, borderColor: '#4BFF94', backgroundColor: input }}
                 />
                 <div className="absolute right-4 top-1/2 -translate-y-1/2 rotate-90">
-                  <Package size={18} className="text-[#4BFF94]" />
+                  <Package size={16} className="text-[#4BFF94]" />
                 </div>
               </div>
            </div>
 
            {/* CAT, UNIT & PACK SIZE */}
            <div className="grid grid-cols-1 gap-4">
-              <div className="space-y-2">
-                 <p className="text-[11px] font-black uppercase tracking-widest px-1" style={{ color: sub }}>Category</p>
-                  <div className={`relative rounded-2xl border transition-all ${categoryWarning ? 'border-orange-500 shadow-[0_0_15px_rgba(249,115,22,0.3)]' : ''}`} style={categoryWarning ? { backgroundColor: 'rgba(249,115,22,0.1)' } : { borderColor: border, backgroundColor: 'transparent' }}>
+              <div className="space-y-1">
+                 <p className="text-[11px] font-black uppercase tracking-widest px-1" style={{ color: sub }}>Category *</p>
+                  <div className={`relative rounded-xl border transition-all ${categoryWarning ? 'border-orange-500 shadow-[0_0_15px_rgba(249,115,22,0.3)]' : ''}`} style={categoryWarning ? { backgroundColor: 'rgba(249,115,22,0.1)' } : { borderColor: border, backgroundColor: 'transparent' }}>
 
                     {!showCategoryInput ? (
                         <>
@@ -293,14 +305,14 @@ export const AddItem: React.FC = () => {
                                 if (e.target.value === 'ADD_NEW') setShowCategoryInput(true);
                                 else { setCategory(e.target.value); setCategoryWarning(false); }
                             }}
-                            className="w-full p-4 rounded-2xl outline-none font-bold text-[15px] appearance-none bg-transparent"
+                            className="w-full p-3.5 rounded-xl outline-none font-bold text-[14px] appearance-none bg-transparent"
                             style={{ color: text }}
                             >
                             {KIRYANA_CATEGORIES.map(c => (
                                 <option key={c.id} value={c.name}>{c.emoji} {c.name}</option>
                             ))}
                             </select>
-                            <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: sub }} />
+                            <ChevronDown size={14} className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: sub }} />
                         </>
                     ) : (
                         <div className="relative flex gap-1">
@@ -308,13 +320,13 @@ export const AddItem: React.FC = () => {
                                 value={newCategory} 
                                 onChange={e => setNewCategory(e.target.value)}
                                 placeholder="Category name..."
-                                className="w-full p-4 rounded-2xl border outline-none font-bold text-[15px]"
+                                className="w-full p-3.5 rounded-xl border outline-none font-bold text-[14px]"
                                 style={{ backgroundColor: input, borderColor: '#4BFF94', color: text }}
                                 autoFocus
                             />
                             <button 
                                 onClick={() => setShowCategoryInput(false)}
-                                className="absolute right-4 top-1/2 -translate-y-1/2 text-red-500 font-bold text-[12px]"
+                                className="absolute right-4 top-1/2 -translate-y-1/2 text-red-500 font-bold text-[11px]"
                             >
                                 Cancel
                             </button>
@@ -324,13 +336,13 @@ export const AddItem: React.FC = () => {
               </div>
 
               <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                   <p className="text-[11px] font-black uppercase tracking-widest px-1" style={{ color: sub }}>Unit</p>
-                   <div className="relative rounded-2xl border transition-all" style={{ borderColor: border, backgroundColor: 'transparent' }}>
+                <div className="space-y-1">
+                   <p className="text-[11px] font-black uppercase tracking-widest px-1" style={{ color: sub }}>Unit *</p>
+                   <div className="relative rounded-xl border transition-all" style={{ borderColor: border, backgroundColor: 'transparent' }}>
 
                       <select 
                         value={unit} onChange={e => setUnit(e.target.value as any)}
-                        className="w-full p-4 rounded-2xl outline-none font-bold text-[15px] appearance-none bg-transparent"
+                        className="w-full p-3.5 rounded-xl outline-none font-bold text-[14px] appearance-none bg-transparent"
                         style={{ color: text }}
                       >
                          <option value="kg">kg</option>
@@ -341,15 +353,15 @@ export const AddItem: React.FC = () => {
                          <option value="dozen">dozen</option>
                          <option value="bori">bori</option>
                       </select>
-                      <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: sub }} />
+                      <ChevronDown size={14} className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: sub }} />
                    </div>
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-1">
                     <p className="text-[11px] font-black uppercase tracking-widest px-1" style={{ color: sub }}>Pack Size</p>
                     <input 
                       value={packSize} onChange={e => setPackSize(e.target.value)}
                       placeholder="e.g. 5kg, 1L"
-                      className="w-full p-4 rounded-2xl border outline-none font-bold text-[15px] transition-all"
+                      className="w-full p-3.5 rounded-xl border outline-none font-bold text-[14px] transition-all"
                       style={{ color: text, borderColor: border, backgroundColor: input }}
 
                     />
@@ -358,107 +370,88 @@ export const AddItem: React.FC = () => {
            </div>
 
            {/* LOGISTICS SECTION */}
-           <div className="rounded-[2.5rem] p-6 border space-y-5" style={{ backgroundColor: isDarkMode ? '#141414' : '#F9F9F9', borderColor: border }}>
+           <div className="rounded-[1.5rem] p-5 border space-y-4" style={{ backgroundColor: isDarkMode ? '#141414' : '#F9F9F9', borderColor: border }}>
               <div className="flex items-center gap-2">
-                 <Package size={18} style={{ color: '#0A3D24' }} />
-                 <h3 className="text-[14px] font-black uppercase tracking-wider" style={{ color: '#0A3D24' }}>Inventory Logistics</h3>
+                 <Package size={16} style={{ color: '#0A3D24' }} />
+                 <h3 className="text-[13px] font-black uppercase tracking-wider" style={{ color: '#0A3D24' }}>Inventory Logistics</h3>
               </div>
               
-              <div className="space-y-2">
-                 <p className="text-[11px] font-bold tracking-tight opacity-40 uppercase" style={{ color: text }}>Opening Stock</p>
+              <div className="space-y-1">
+                 <p className="text-[10px] font-bold tracking-tight opacity-40 uppercase" style={{ color: text }}>Opening Stock *</p>
                  <div className="relative rounded-xl border transition-all" style={{ borderColor: border, backgroundColor: 'transparent' }}>
                     <input 
                       type="number" value={openingStock} onChange={e => setOpeningStock(e.target.value)}
                       placeholder="0.00"
-                      className="w-full p-4 rounded-xl outline-none font-black text-[18px] bg-transparent"
+                      className="w-full p-3.5 rounded-xl outline-none font-black text-[16px] bg-transparent"
                       style={{ color: text }}
                     />
-                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[11px] font-black uppercase" style={{ color: sub }}>UNITS</span>
+                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-black uppercase" style={{ color: sub }}>UNITS</span>
                  </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4 pt-2">
-                 <div className="space-y-2">
-                    <p className="text-[11px] font-bold tracking-tight opacity-40 uppercase" style={{ color: text }}>Buying Price</p>
+              <div className="grid grid-cols-2 gap-4">
+                 <div className="space-y-1">
+                    <p className="text-[10px] font-bold tracking-tight opacity-40 uppercase" style={{ color: text }}>Buying Price *</p>
                     <div className="relative rounded-xl border transition-all" style={{ borderColor: border, backgroundColor: 'transparent' }}>
 
                        <input 
                          type="number" value={buyingPrice} onChange={e => setBuyingPrice(e.target.value)}
                          placeholder="0.00"
-                         className="w-full p-4 rounded-xl outline-none font-black text-[16px] pl-10 bg-transparent"
+                         className="w-full p-3.5 rounded-xl outline-none font-black text-[15px] pl-8 bg-transparent"
                          style={{ color: text }}
                        />
-                       <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[12px] font-black" style={{ color: '#00C853' }}>Rs</span>
+                       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[11px] font-black" style={{ color: '#00C853' }}>Rs</span>
                     </div>
                  </div>
-                 <div className="space-y-2">
-                    <p className="text-[11px] font-bold tracking-tight opacity-40 uppercase" style={{ color: text }}>Selling Price</p>
+                 <div className="space-y-1">
+                    <p className="text-[10px] font-bold tracking-tight opacity-40 uppercase" style={{ color: text }}>Selling Price *</p>
                     <div className="relative rounded-xl border transition-all" style={{ borderColor: border, backgroundColor: 'transparent' }}>
 
                        <input 
                          type="number" value={sellingPrice} onChange={e => setSellingPrice(e.target.value)}
                          placeholder="0.00"
-                         className="w-full p-4 rounded-xl outline-none font-black text-[16px] pl-10 bg-transparent"
+                         className="w-full p-3.5 rounded-xl outline-none font-black text-[15px] pl-8 bg-transparent"
                          style={{ color: text }}
                        />
-                       <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[12px] font-black" style={{ color: '#00C853' }}>Rs</span>
+                       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[11px] font-black" style={{ color: '#00C853' }}>Rs</span>
                     </div>
                  </div>
               </div>
-           </div>
 
-           {/* LOW STOCK ALERT CARD */}
-           <div 
-              className={`rounded-[2rem] p-6 border relative overflow-hidden transition-all duration-500`}
-              style={{ backgroundColor: (isDarkMode ? '#1A140F' : '#FFF9F4'), borderColor: border }}
-            >
-              <div className="flex items-center justify-between mb-4">
-                 <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white bg-orange-500">
-                       <AlertTriangle size={18} />
-                    </div>
+              <div className="pt-2 border-t mt-2" style={{ borderColor: border }}>
+                 <div className="flex items-center justify-between">
                     <div>
-                       <h4 className="text-[14px] font-black" style={{ color: text }}>Low Stock Alert</h4>
-                       <p className="text-[9px] font-bold uppercase leading-none text-orange-600">CRUCIAL SETTING</p>
+                       <p className="text-[10px] font-bold tracking-tight uppercase" style={{ color: text }}>Low Stock Alert</p>
+                       <p className="text-[8px] font-bold text-orange-500 uppercase">Alerts when stock drops below</p>
+                    </div>
+                    <div className="w-20">
+                       <input 
+                         type="number" value={minThreshold} onChange={e => setMinThreshold(e.target.value)}
+                         className="w-full p-2 rounded-xl outline-none font-black text-center text-[14px]"
+                         style={{ backgroundColor: input, color: text, border: `1px solid ${border}` }}
+                       />
                     </div>
                  </div>
               </div>
-               <input 
-                 type="number" value={minThreshold} onChange={e => setMinThreshold(e.target.value)}
-                 className="w-full p-4 rounded-xl outline-none font-black text-[18px] bg-transparent transition-all"
-                 style={{ color: text, borderColor: border }}
-              />
            </div>
 
            {/* STICKY SAVE BUTTON */}
-           <div className="fixed bottom-[130px] left-5 right-5 z-[85] max-w-md mx-auto">
+           <div className="fixed bottom-6 left-5 right-5 z-[85] max-w-md mx-auto">
               <button
                  onClick={handleSave}
                  disabled={loading}
-                 className="w-full bg-[#4BFF94] text-[#0A3D24] py-5 rounded-[2.2rem] font-black text-[16px] flex items-center justify-center gap-3 shadow-[0_15px_40px_rgba(75,255,148,0.25)] dark:shadow-green-900/30 disabled:opacity-50"
+                 className="w-full bg-[#4BFF94] text-[#0A3D24] py-4 rounded-xl font-black text-[15px] flex items-center justify-center gap-2 shadow-[0_10px_25px_rgba(75,255,148,0.3)] dark:shadow-green-900/40 disabled:opacity-50"
               >
                  {loading ? 'Saving...' : (
                    <>
-                     <Check size={20} strokeWidth={4} />
+                     <Check size={18} strokeWidth={4} />
                      Save Product Now
                    </>
                  )}
               </button>
            </div>
-           
-           <div className="h-56" />
+           <div className="h-24" />
         </div>
-        
-      
-        {/* FLOATING MIC BUTTON */}
-        <button
-           disabled={true}
-           className="fixed bottom-[180px] right-5 z-[80] w-[60px] h-[60px] rounded-full shadow-2xl flex items-center justify-center bg-gray-400 text-white cursor-not-allowed opacity-50"
-        >
-           <Mic size={26} />
-           <div className="absolute -top-2 bg-purple-600 text-[10px] text-white px-2 py-0.5 rounded-full font-bold shadow-sm">PRO</div>
-        </button>
-
       </div>
     </PageTransition>
   );

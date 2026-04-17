@@ -19,6 +19,7 @@ export const Stock: React.FC = () => {
   const [showFilter, setShowFilter] = useState(false);
   const [filterType, setFilterType] = useState<'all' | 'low' | 'out'>('all');
   const [isFABOpen, setIsFABOpen] = useState(false);
+  const [isScanMenu, setIsScanMenu] = useState(false);
 
   const stats = useMemo(() => {
     let totalItems = 0;
@@ -95,7 +96,7 @@ export const Stock: React.FC = () => {
         
          <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
          
-         <div className="px-5 pt-3 pb-2 flex items-center justify-between sticky top-0 z-50 transition-all duration-300" style={{ backgroundColor: bg + 'CC', backdropFilter: 'blur(10px)' }}>
+         <div className="px-5 pt-12 pb-2 flex items-center justify-between sticky top-0 z-50 transition-all duration-300" style={{ backgroundColor: bg + 'CC', backdropFilter: 'blur(10px)' }}>
           <div className="flex items-center gap-3">
             <button 
               onClick={() => setIsSidebarOpen(true)}
@@ -359,43 +360,72 @@ export const Stock: React.FC = () => {
                 exit={{ opacity: 0, y: 20, scale: 0.8 }}
                 className="flex flex-col items-end gap-3 mb-4"
               >
-              <button
-                onClick={() => navigate('/add-item')}
-                className="flex items-center gap-2 px-4 py-3 rounded-2xl bg-blue-600 text-white shadow-lg active:scale-95 transition-all text-sm font-bold border border-white/20"
-              >
-                Manual Item Dalo
-                <Plus size={18} />
-              </button>
-              <button
-                onClick={() => navigate('/bulk-scan')}
-                className="flex items-center gap-2 px-4 py-3 rounded-2xl bg-purple-600 text-white shadow-lg active:scale-95 transition-all text-sm font-bold border border-white/20"
-              >
-                <span className="bg-purple-800/50 px-2 py-0.5 rounded text-[10px] uppercase tracking-wider">Fast</span>
-                Bulk Scan Mode
-                <Zap size={18} />
-              </button>
-              <button
-                onClick={() => navigate('/stock-receive')}
-                className="flex items-center gap-2 px-4 py-3 rounded-2xl bg-emerald-950 text-emerald-400 shadow-lg active:scale-95 transition-all text-sm font-bold border border-white/20"
-              >
-                Find by Category
-                <Tag size={18} />
-              </button>
-              <button
-                onClick={() => navigate('/barcode-scan?target=stock')}
-                className="flex items-center gap-2 px-4 py-3 rounded-2xl bg-spring-green text-emerald-950 shadow-lg active:scale-95 transition-all text-sm font-bold border border-white/20"
-              >
-                Quick Barcode
-                <ScanLine size={18} />
-              </button>
-            </motion.div>
+              {isScanMenu ? (
+                <>
+                  <button
+                    onClick={() => { setIsScanMenu(false); navigate('/barcode-scan?target=stock'); }}
+                    className="flex items-center gap-2 px-4 py-3 rounded-2xl bg-[#00E676] text-[#0A3D24] shadow-lg active:scale-95 transition-all text-sm font-black border border-[#00E676]/20"
+                  >
+                    Quick Barcode
+                    <ScanLine size={18} strokeWidth={3} />
+                  </button>
+                  <button
+                    onClick={() => { setIsScanMenu(false); navigate('/bulk-scan'); }}
+                    className="flex items-center gap-2 px-4 py-3 rounded-2xl bg-purple-600 text-white shadow-lg active:scale-95 transition-all text-sm font-black border border-white/20"
+                  >
+                    <span className="bg-purple-800/50 px-2 py-0.5 rounded text-[10px] uppercase tracking-wider">Fast</span>
+                    Bulk Scan Mode
+                    <Zap size={18} strokeWidth={3} />
+                  </button>
+                  <button
+                    onClick={() => setIsScanMenu(false)}
+                    className="flex items-center gap-2 px-4 py-2 mt-1 rounded-xl bg-gray-200 dark:bg-white/10 text-gray-700 dark:text-gray-300 shadow-sm active:scale-95 transition-all text-[11px] font-black uppercase tracking-wider"
+                  >
+                    Back
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={() => navigate('/add-item')}
+                    className="flex items-center gap-2 px-4 py-3 rounded-2xl bg-blue-600 text-white shadow-lg active:scale-95 transition-all text-sm font-bold border border-white/20"
+                  >
+                    Manual Item Dalo
+                    <Plus size={18} />
+                  </button>
+                  
+                  <button
+                    onClick={() => setIsScanMenu(true)}
+                    className="flex items-center gap-2 px-4 py-3 rounded-2xl bg-[#0A3D24] text-[#4BFF94] shadow-lg active:scale-95 transition-all text-sm font-bold border border-[#4BFF94]/20"
+                  >
+                    Barcode Scanners
+                    <ScanLine size={18} />
+                  </button>
+
+                  <button
+                    onClick={() => {
+                        if (profile?.plan === 'pro' || profile?.plan === 'premium') {
+                            navigate('/stock-receive');
+                        } else {
+                            toast('Ye feature PRO plan ke liye hai', { icon: '👑' });
+                            navigate('/plans');
+                        }
+                    }}
+                    className="flex items-center gap-2 px-4 py-3 rounded-2xl bg-[#1A3D24] text-white shadow-lg active:scale-95 transition-all text-sm font-bold border border-white/10"
+                  >
+                    Find by Category
+                    {profile?.plan === 'pro' || profile?.plan === 'premium' ? <Tag size={18} /> : <div className="bg-[#FFB74D] text-[#0A0A0A] text-[9px] font-black px-1.5 py-0.5 rounded-sm uppercase">PRO</div>}
+                  </button>
+                </>
+              )}
+              </motion.div>
             )}
           </AnimatePresence>
 
           {/* Main FAB Trigger */}
           <motion.button
             whileTap={{ scale: 0.9 }}
-            onClick={() => setIsFABOpen(!isFABOpen)}
+            onClick={() => { setIsFABOpen(!isFABOpen); setIsScanMenu(false); }}
             className={`w-16 h-16 rounded-full flex items-center justify-center shadow-2xl border-4 transition-all duration-300 ${
               isFABOpen ? 'bg-red-500 border-white rotate-45' : 'bg-[#4BFF94] border-white dark:border-[#0A0A0A]'
             }`}

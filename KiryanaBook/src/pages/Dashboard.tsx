@@ -237,7 +237,7 @@ export const Dashboard: React.FC = () => {
         </div> 
 
         {/* ── PREMIUM BALANCE CARD ── */}
-        <div className="px-4 -mt-2 relative z-10">
+        <div className="px-4 mt-3 relative z-10">
           <div className="rounded-[1.8rem] px-5 py-4 transition-all duration-500 shadow-[0_12px_25px_rgba(26,92,56,0.12)] relative overflow-hidden" style={{ background: isDarkMode ? 'linear-gradient(145deg, #10251A, #0A0A0A)' : 'linear-gradient(145deg, #1A5C38, #0A3D24)' }}>
             <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-2xl -mr-12 -mt-12" />
             
