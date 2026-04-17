@@ -16,12 +16,6 @@ export const ReportsDetail: React.FC = () => {
     const navigate = useNavigate();
     const { isDarkMode } = useTheme();
     const [range, setRange] = useState<'1W' | '1M' | '1Y'>('1W');
-    const [isReady, setIsReady] = useState(false);
-
-    React.useEffect(() => {
-        const timer = setTimeout(() => setIsReady(true), 500);
-        return () => clearTimeout(timer);
-    }, []);
 
     const chartData = useMemo(() => {
         const data = [];
@@ -138,43 +132,41 @@ export const ReportsDetail: React.FC = () => {
                             </div>
                         </div>
 
-                        <div className="h-60 w-full mb-4">
-                            {isReady && (
-                                <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0} debounce={100}>
-                                    <AreaChart data={chartData} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
-                                        <defs>
-                                            <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
-                                                <stop offset="5%" stopColor={colors.primary} stopOpacity={0.3}/>
-                                                <stop offset="95%" stopColor={colors.primary} stopOpacity={0}/>
-                                            </linearGradient>
-                                            <linearGradient id="colorExp" x1="0" y1="0" x2="0" y2="1">
-                                                <stop offset="5%" stopColor={colors.secondary} stopOpacity={0.3}/>
-                                                <stop offset="95%" stopColor={colors.secondary} stopOpacity={0}/>
-                                            </linearGradient>
-                                        </defs>
-                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDarkMode ? '#2A2A2A' : '#F3F4F6'} />
-                                        <XAxis 
-                                            dataKey="name" 
-                                            axisLine={false} 
-                                            tickLine={false} 
-                                            tick={{ fontSize: 9, fill: colors.sub, fontWeight: 700 }}
-                                            interval={range === '1W' ? 0 : range === '1M' ? 5 : 2}
-                                        />
-                                        <YAxis 
-                                            axisLine={false} 
-                                            tickLine={false} 
-                                            tick={{ fontSize: 9, fill: colors.sub, fontWeight: 700 }}
-                                            tickFormatter={(val) => val >= 1000 ? `${val/1000}K` : val}
-                                        />
-                                        <Tooltip 
-                                            contentStyle={{ backgroundColor: colors.card, border: 'none', borderRadius: '16px', boxShadow: '0 10px 40px -10px rgba(0,0,0,0.1)' }}
-                                            itemStyle={{ fontSize: '10px', fontWeight: 'bold' }}
-                                        />
-                                        <Area type="monotone" dataKey="sales" stroke={colors.primary} strokeWidth={3} fillOpacity={1} fill="url(#colorSales)" />
-                                        <Area type="monotone" dataKey="expenses" stroke={colors.secondary} strokeWidth={2} strokeDasharray="5 5" fillOpacity={1} fill="url(#colorExp)" />
-                                    </AreaChart>
-                                </ResponsiveContainer>
-                            )}
+                        <div className="h-60 w-full mb-4" style={{ width: '100%', height: 240 }}>
+                            <ResponsiveContainer width="99%" height="100%">
+                                <AreaChart data={chartData} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
+                                    <defs>
+                                        <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor={colors.primary} stopOpacity={0.3}/>
+                                            <stop offset="95%" stopColor={colors.primary} stopOpacity={0}/>
+                                        </linearGradient>
+                                        <linearGradient id="colorExp" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor={colors.secondary} stopOpacity={0.3}/>
+                                            <stop offset="95%" stopColor={colors.secondary} stopOpacity={0}/>
+                                        </linearGradient>
+                                    </defs>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDarkMode ? '#2A2A2A' : '#F3F4F6'} />
+                                    <XAxis 
+                                        dataKey="name" 
+                                        axisLine={false} 
+                                        tickLine={false} 
+                                        tick={{ fontSize: 9, fill: colors.sub, fontWeight: 700 }}
+                                        interval={range === '1W' ? 0 : range === '1M' ? 5 : 2}
+                                    />
+                                    <YAxis 
+                                        axisLine={false} 
+                                        tickLine={false} 
+                                        tick={{ fontSize: 9, fill: colors.sub, fontWeight: 700 }}
+                                        tickFormatter={(val) => val >= 1000 ? `${val/1000}K` : val}
+                                    />
+                                    <Tooltip 
+                                        contentStyle={{ backgroundColor: colors.card, border: 'none', borderRadius: '16px', boxShadow: '0 10px 40px -10px rgba(0,0,0,0.1)' }}
+                                        itemStyle={{ fontSize: '10px', fontWeight: 'bold' }}
+                                    />
+                                    <Area type="monotone" dataKey="sales" stroke={colors.primary} strokeWidth={3} fillOpacity={1} fill="url(#colorSales)" />
+                                    <Area type="monotone" dataKey="expenses" stroke={colors.secondary} strokeWidth={2} strokeDasharray="5 5" fillOpacity={1} fill="url(#colorExp)" />
+                                </AreaChart>
+                            </ResponsiveContainer>
                         </div>
 
                         <div className="flex items-center gap-6 justify-center">
