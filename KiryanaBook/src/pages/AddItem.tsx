@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { PageTransition } from '../components/PageTransition';
 import { useShop } from '../context/ShopContext';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Package, AlertTriangle, Check, ChevronDown, Mic, Camera } from 'lucide-react';
+import { ArrowLeft, Package, Check, ChevronDown, Camera } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import toast from 'react-hot-toast';
 import { SearchableSelector } from '../components/SearchableSelector';

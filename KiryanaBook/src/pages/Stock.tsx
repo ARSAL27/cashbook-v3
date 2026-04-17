@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Sidebar } from '../components/Sidebar';
 import { useTheme } from '../context/ThemeContext';
 import { getBrandStyle } from '../data/kiryanaDatabase';
+import toast from 'react-hot-toast';
 
 export const Stock: React.FC = () => {
   const { stock, profile, categories, addCategory, deleteCategory } = useShop();
