@@ -265,19 +265,19 @@ export const Settings: React.FC = () => {
     <PageTransition>
       <div className="w-full bg-[#FAFAFA] dark:bg-[#0A0A0A] font-outfit max-w-md mx-auto pb-8 transition-colors duration-300 min-h-screen">
         {/* HEADER */}
-        <div className="sticky top-0 z-50 transition-colors duration-300 px-6 py-5 flex items-center gap-4 bg-background/80 backdrop-blur-xl border-b border-border/40">
-          <button onClick={() => navigate(-1)} className="w-10 h-10 flex items-center justify-center rounded-2xl bg-card border border-border shadow-sm active:scale-95 transition-all text-text-primary">
-            <ArrowLeft size={20} strokeWidth={2.5} />
+        <div className="sticky top-0 z-50 transition-colors duration-300 px-5 py-4 flex items-center gap-4 bg-background/80 backdrop-blur-xl border-b border-border/40">
+          <button onClick={() => navigate(-1)} className="w-9 h-9 flex items-center justify-center rounded-xl bg-card border border-border shadow-sm active:scale-95 transition-all text-text-primary">
+            <ArrowLeft size={18} strokeWidth={2.5} />
           </button>
-          <h1 className="text-text-primary font-black text-[20px] tracking-tight">{t('settings')}</h1>
+          <h1 className="text-text-primary font-black text-[18px] tracking-tight">{t('settings')}</h1>
         </div>
 
-        <div className="px-6 py-6 space-y-10">
+        <div className="px-5 py-6 space-y-8">
             
             {/* SHOP PROFILE CARD */}
             <section>
                 <div 
-                  className="relative overflow-hidden rounded-[2.5rem] p-6 border shadow-2xl transition-all active:scale-[0.98]"
+                  className="relative overflow-hidden rounded-[1.8rem] p-5 border shadow-xl transition-all active:scale-[0.98]"
                   style={{ 
                     background: isDarkMode 
                       ? 'linear-gradient(135deg, #10251A 0%, #0A0A0A 100%)' 
@@ -286,91 +286,87 @@ export const Settings: React.FC = () => {
                   }}
                   onClick={() => navigate('/profile-settings')}
                 >
-                    {/* Decorative Blobs */}
-                    <div className="absolute -top-10 -right-10 w-32 h-32 bg-white/5 rounded-full blur-3xl" />
-                    <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-[#4BFF94]/10 rounded-full blur-3xl" />
-
-                    <div className="relative z-10 flex items-center gap-5">
-                        <div className="w-[72px] h-[72px] bg-white/10 backdrop-blur-md border border-white/20 rounded-[1.8rem] flex items-center justify-center shadow-2xl shrink-0 overflow-hidden">
+                    <div className="relative z-10 flex items-center gap-4">
+                        <div className="w-[60px] h-[60px] bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl flex items-center justify-center shadow-2xl shrink-0 overflow-hidden">
                             {profile?.logoUrl ? (
                                 <img src={profile.logoUrl} alt="Shop Logo" className="w-full h-full object-cover" />
                             ) : (
-                                <Store size={32} className="text-[#4BFF94]" strokeWidth={2.5} />
+                                <Store size={28} className="text-[#4BFF94]" strokeWidth={2.5} />
                             )}
                         </div>
                         <div className="flex-1 min-w-0">
-                            <h2 className="text-[18px] font-black text-white leading-tight mb-1 truncate">
+                            <h2 className="text-[17px] font-black text-white leading-tight mb-0.5 truncate">
                               {profile?.name || 'My Shop'}
                             </h2>
-                            <div className="flex items-center gap-2 text-white/60 mb-1">
-                                <User size={12} strokeWidth={3} />
-                                <span className="text-[11px] font-bold uppercase tracking-wider truncate">{profile?.owner || 'Setup Owner Name'}</span>
+                            <div className="flex items-center gap-1.5 text-white/60 mb-1">
+                                <User size={10} strokeWidth={3} />
+                                <span className="text-[10px] font-bold uppercase tracking-wider truncate">{profile?.owner || 'Setup Owner'}</span>
                             </div>
-                            <div className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-[#4BFF94] text-[#0A3D24] rounded-md">
-                                <span className="text-[9px] font-black uppercase tracking-widest">{profile?.plan || 'Free'} Member</span>
+                            <div className="inline-flex items-center px-1.5 py-0.5 bg-[#4BFF94] text-[#0A3D24] rounded-md">
+                                <span className="text-[8px] font-black uppercase tracking-widest">{profile?.plan || 'Free'}</span>
                             </div>
                         </div>
-                        <ChevronRight size={20} className="text-white/40" />
+                        <ChevronRight size={18} className="text-white/40" />
                     </div>
                 </div>
             </section>
 
             {/* QUICK STATS / STORAGE */}
-            <div className="grid grid-cols-2 gap-4">
-                <div className="bg-card border border-border/60 rounded-[2rem] p-5 shadow-sm">
-                    <div className="w-10 h-10 bg-blue-500/10 text-blue-500 rounded-2xl flex items-center justify-center mb-3">
-                        <Database size={20} strokeWidth={2.5} />
+            <div className="grid grid-cols-2 gap-3">
+                <div className="bg-card border border-border/60 rounded-3xl p-4 shadow-sm">
+                    <div className="w-8 h-8 bg-blue-500/10 text-blue-500 rounded-xl flex items-center justify-center mb-2.5">
+                        <Database size={16} strokeWidth={2.5} />
                     </div>
-                    <p className="text-[10px] font-black text-text-muted uppercase tracking-widest leading-none mb-1">Storage</p>
-                    <h4 className="text-[16px] font-black text-text-primary">{storageUsed} <span className="text-[10px] opacity-40">KB</span></h4>
+                    <p className="text-[9px] font-black text-text-muted uppercase tracking-widest leading-none mb-1">Storage</p>
+                    <h4 className="text-[14px] font-black text-text-primary">{storageUsed} <span className="text-[9px] opacity-40">KB</span></h4>
                 </div>
-                <div className="bg-card border border-border/60 rounded-[2rem] p-5 shadow-sm">
-                    <div className="w-10 h-10 bg-orange-500/10 text-orange-500 rounded-2xl flex items-center justify-center mb-3">
-                        <Crown size={20} strokeWidth={2.5} />
+                <div className="bg-card border border-border/60 rounded-3xl p-4 shadow-sm">
+                    <div className="w-8 h-8 bg-orange-500/10 text-orange-500 rounded-xl flex items-center justify-center mb-2.5">
+                        <Crown size={16} strokeWidth={2.5} />
                     </div>
-                    <p className="text-[10px] font-black text-text-muted uppercase tracking-widest leading-none mb-1">Plan</p>
-                    <h4 className="text-[16px] font-black text-text-primary">{profile?.plan?.toUpperCase() || 'FREE'}</h4>
+                    <p className="text-[9px] font-black text-text-muted uppercase tracking-widest leading-none mb-1">Plan</p>
+                    <h4 className="text-[14px] font-black text-text-primary">{profile?.plan?.toUpperCase() || 'FREE'}</h4>
                 </div>
             </div>
 
             {/* SETTINGS GROUPS */}
             <div className="space-y-4">
                 {/* ── DATA & EXPORTS ── */}
-                <h3 className="text-[11px] font-black text-text-muted uppercase tracking-[0.2em] ml-2 mt-8 opacity-50">Data & Backup</h3>
-                <div className="bg-card border border-border/60 rounded-[2.5rem] p-5 space-y-4 shadow-sm">
+                <h3 className="text-[10px] font-black text-text-muted uppercase tracking-[0.2em] ml-2 mt-4 opacity-50">Data & Backup</h3>
+                <div className="bg-card border border-border/60 rounded-[1.8rem] p-4 space-y-4 shadow-sm">
                     <div className="flex gap-3">
-                        <button onClick={handleExportExcel} className="flex-1 bg-green-500/10 text-green-600 dark:text-[#4BFF94] rounded-[1.8rem] py-5 flex flex-col items-center gap-2 border border-green-500/20 active:scale-95 transition-all">
-                            <FileSpreadsheet size={24} strokeWidth={2.5} />
-                            <span className="text-[10px] font-black uppercase tracking-widest">Excel Export</span>
+                        <button onClick={handleExportExcel} className="flex-1 bg-green-500/10 text-green-600 dark:text-[#4BFF94] rounded-2xl py-4 flex flex-col items-center gap-2 border border-green-500/20 active:scale-95 transition-all">
+                            <FileSpreadsheet size={20} strokeWidth={2.5} />
+                            <span className="text-[9px] font-black uppercase tracking-widest">Excel</span>
                         </button>
-                        <button onClick={handleExportPDF} className="flex-1 bg-red-500/10 text-red-600 rounded-[1.8rem] py-5 flex flex-col items-center gap-2 border border-red-500/20 active:scale-95 transition-all">
-                            <FileText size={24} strokeWidth={2.5} />
-                            <span className="text-[10px] font-black uppercase tracking-widest">PDF Audit</span>
+                        <button onClick={handleExportPDF} className="flex-1 bg-red-500/10 text-red-600 rounded-2xl py-4 flex flex-col items-center gap-2 border border-red-500/20 active:scale-95 transition-all">
+                            <FileText size={20} strokeWidth={2.5} />
+                            <span className="text-[9px] font-black uppercase tracking-widest">Audit PDF</span>
                         </button>
                     </div>
                 </div>
 
                 {/* ── PREFERENCES ── */}
-                <h3 className="text-[11px] font-black text-text-muted uppercase tracking-[0.2em] ml-2 mt-8 opacity-50">Preferences</h3>
-                <div className="bg-card border border-border/60 rounded-[2.5rem] p-5 space-y-6 shadow-sm">
+                <h3 className="text-[10px] font-black text-text-muted uppercase tracking-[0.2em] ml-2 mt-4 opacity-50">Preferences</h3>
+                <div className="bg-card border border-border/60 rounded-[1.8rem] p-4 space-y-5 shadow-sm">
                     <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                            <div className="w-11 h-11 bg-gray-500/10 text-gray-500 rounded-2xl flex items-center justify-center">
-                                <Moon size={20} strokeWidth={2.5} />
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-gray-500/10 text-gray-500 rounded-xl flex items-center justify-center">
+                                <Moon size={18} strokeWidth={2.5} />
                             </div>
                             <div className="text-left">
-                                <p className="text-[14px] font-black text-text-primary leading-tight">{t('dark_mode')}</p>
-                                <p className="text-[10px] font-bold text-text-muted opacity-60 uppercase tracking-tight">Sleek visual style</p>
+                                <p className="text-[13px] font-black text-text-primary leading-tight">{t('dark_mode')}</p>
+                                <p className="text-[9px] font-bold text-text-muted opacity-60 uppercase tracking-tight">Sleek style</p>
                             </div>
                         </div>
                         <Toggle active={isDarkMode} onClick={() => setMode(isDarkMode ? 'light' : 'dark')} />
                     </div>
 
-                    <div className="space-y-3">
-                        <p className="text-[11px] font-black text-text-muted uppercase tracking-widest ml-1">{t('language')}</p>
-                        <div className="flex gap-2 p-1.5 bg-background rounded-2xl border border-border/60">
-                            <button onClick={() => setLanguage('English')} className={`flex-1 py-3 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all ${language === 'English' ? 'bg-[#0A3D24] dark:bg-[#4BFF94] text-white dark:text-[#0A3D24] shadow-lg' : 'text-text-muted opacity-40'}`}>English</button>
-                            <button onClick={() => setLanguage('Urdu')} className={`flex-1 py-3 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all ${language === 'Urdu' ? 'bg-[#0A3D24] dark:bg-[#4BFF94] text-white dark:text-[#0A3D24] shadow-lg' : 'text-text-muted opacity-40'}`}>Urdu</button>
+                    <div className="space-y-2.5">
+                        <p className="text-[9px] font-black text-text-muted uppercase tracking-widest ml-1">{t('language')}</p>
+                        <div className="flex gap-2 p-1 bg-background rounded-xl border border-border/60">
+                            <button onClick={() => setLanguage('English')} className={`flex-1 py-2.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${language === 'English' ? 'bg-[#0A3D24] dark:bg-[#4BFF94] text-white dark:text-[#0A3D24] shadow-lg' : 'text-text-muted opacity-40'}`}>EN</button>
+                            <button onClick={() => setLanguage('Urdu')} className={`flex-1 py-2.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${language === 'Urdu' ? 'bg-[#0A3D24] dark:bg-[#4BFF94] text-white dark:text-[#0A3D24] shadow-lg' : 'text-text-muted opacity-40'}`}>UR</button>
                         </div>
                     </div>
                 </div>
@@ -383,7 +379,7 @@ export const Settings: React.FC = () => {
                     <ChevronRight size={16} className="opacity-20" />
                 </button>
                 <div className="text-center py-6">
-                    <p className="text-[9px] font-black text-text-muted opacity-30 uppercase tracking-[0.3em]">KiryanaBook v3.3.18 Premium</p>
+                    <p className="text-[9px] font-black text-text-muted opacity-30 uppercase tracking-[0.3em]">ulooo v3.4 PRO</p>
                     <p className="text-[8px] font-bold text-text-muted opacity-20 uppercase tracking-widest mt-1">© 2026 Indus Ledger Tech</p>
                 </div>
             </div>
