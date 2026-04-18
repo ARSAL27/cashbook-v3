@@ -76,8 +76,7 @@ export const Invoices: React.FC = () => {
   };
 
   return (
-    <PageTransition>
-      <div className="w-full font-outfit max-w-md mx-auto relative pb-32" style={{ backgroundColor: bg }}>
+    <PageTransition> <div className="w-full font-outfit max-w-md mx-auto relative " style={{ backgroundColor: bg }}>
         
         <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
 

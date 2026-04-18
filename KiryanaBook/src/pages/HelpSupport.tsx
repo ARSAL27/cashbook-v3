@@ -21,8 +21,7 @@ export const HelpSupport: React.FC = () => {
   ];
 
   return (
-    <PageTransition>
-      <div className="w-full bg-background font-outfit pb-32">
+    <PageTransition> <div className="w-full bg-background font-outfit ">
         {/* HEADER */}
         <header className="pt-12 pb-3 shrink-0 flex items-center justify-between px-4 sticky top-0 bg-background/80 backdrop-blur-md z-40 border-b border-border/10">
           <div className="flex items-center space-x-3">

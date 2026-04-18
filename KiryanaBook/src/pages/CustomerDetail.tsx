@@ -165,10 +165,7 @@ export const CustomerDetail: React.FC = () => {
     };
 
     return (
-        <PageTransition>
-            <div className={`w-full min-h-screen pb-32 font-outfit max-w-md mx-auto ${isDarkMode ? 'bg-[#050505]' : 'bg-[#FAFAFA]'}`}>
-                {/* DYNAMIC METALLIC HEADER */}
-                <div className="bg-gradient-to-b from-[#0A3D24] to-[#0D4B2D] px-6 pt-6 relative overflow-hidden flex flex-col justify-between pb-32">
+        <PageTransition> <div className={`w-full min-h-screen pb-32 font-outfit max-w-md mx-auto ${isDarkMode ? 'bg-[#050505]' : 'bg-[#FAFAFA]'}`}> {/* DYNAMIC METALLIC HEADER */} <div className="bg-gradient-to-b from-[#0A3D24] to-[#0D4B2D] px-6 pt-6 relative overflow-hidden flex flex-col justify-between ">
                     <div className="absolute inset-0 bg-black/10 backdrop-blur-sm" />
                     <div className="absolute top-10 right-0 w-64 h-64 bg-emerald-500/10 blur-[80px] rounded-full" />
                     

@@ -59,16 +59,18 @@ export const MainLayout: React.FC = () => {
     { to: '/settings', icon: Settings, label: 'More' },
   ];
 
+  const isMainTab = ['/', '/customers', '/manager', '/stock', '/settings'].includes(location.pathname);
+
   return (
     <div className="min-h-screen bg-[#F8F9FB] dark:bg-[#050510] transition-colors duration-500 font-outfit">
       
       {/* MAIN CONTENT AREA */}
-      <main className="flex-1 pb-[100px]">
+      <main className={`flex-1 ${isMainTab ? 'pb-[100px]' : 'pb-safe'}`}>
         <Outlet />
       </main>
 
       {/* FLOATING PREMIUM BOTTOM NAVIGATION (Only visible on main tabs) */}
-      {['/', '/customers', '/manager', '/stock', '/settings'].includes(location.pathname) && (
+      {isMainTab && (
         <div className="fixed bottom-6 inset-x-5 z-[150] max-w-md mx-auto">
           <nav className="glass-card bg-white/80 dark:bg-black/40 backdrop-blur-2xl border border-white/40 dark:border-white/5 rounded-[1.5rem] px-4 py-2 shadow-[0_20px_50px_rgba(0,0,0,0.15)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.4)] flex items-center justify-between">
           

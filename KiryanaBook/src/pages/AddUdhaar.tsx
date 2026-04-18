@@ -101,16 +101,7 @@ export const AddUdhaar: React.FC = () => {
   const glowColorType = type === 'diye' ? 'shadow-emerald-500/50' : 'shadow-rose-500/50';
 
   return (
-    <PageTransition>
-      <div className={`w-full min-h-screen pb-[350px] transition-colors duration-500 font-outfit max-w-md mx-auto ${isDarkMode ? 'bg-[#050505]' : 'bg-[#FAFAFA]'}`}>
-        
-        {/* PREMIUM DYNAMIC HEADER */}
-        <motion.div 
-           layout 
-           className={`relative overflow-hidden pt-8 pb-10 px-6 rounded-b-[2.5rem] bg-gradient-to-br ${bgGradientType} text-white shadow-2xl transition-all duration-500 min-h-[220px] z-10 flex flex-col justify-between`}
-        >
-            {/* Glossy Overlay */}
-            <div className="absolute inset-0 bg-white/10 backdrop-blur-[2px] opacity-20 pointer-events-none pb-32" />
+    <PageTransition> <div className={`w-full min-h-screen pb-[350px] transition-colors duration-500 font-outfit max-w-md mx-auto ${isDarkMode ? 'bg-[#050505]' : 'bg-[#FAFAFA]'}`}> {/* PREMIUM DYNAMIC HEADER */} <motion.div layout className={`relative overflow-hidden pt-8 pb-10 px-6 rounded-b-[2.5rem] bg-gradient-to-br ${bgGradientType} text-white shadow-2xl transition-all duration-500 min-h-[220px] z-10 flex flex-col justify-between`} > {/* Glossy Overlay */} <div className="absolute inset-0 bg-white/10 backdrop-blur-[2px] opacity-20 pointer-events-none " />
             <div className="absolute -top-24 -right-10 w-48 h-48 bg-white/20 blur-3xl rounded-full" />
             <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-black/20 blur-2xl rounded-full" />
 

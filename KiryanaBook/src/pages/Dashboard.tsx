@@ -194,8 +194,7 @@ export const Dashboard: React.FC = () => {
   }, [stats]);
 
   return (
-    <PageTransition>
-      <div className="w-full bg-[#F2F2F7] dark:bg-[#0A0A0A] font-outfit max-w-md mx-auto transition-colors duration-300 pb-32">
+    <PageTransition> <div className="w-full bg-[#F2F2F7] dark:bg-[#0A0A0A] font-outfit max-w-md mx-auto transition-colors duration-300 ">
 
         {/* ── STICKY HEADER ── */}
         <div className="pt-12 pb-3 sticky top-0 z-50 px-5 border-b transition-all duration-300 dark:border-white/5 shadow-sm" style={{ backgroundColor: isDarkMode ? '#0A0A0A' : '#1A5C38' }}>

@@ -108,8 +108,7 @@ export const CashFlow: React.FC = () => {
 
 
     return (
-        <PageTransition>
-            <div className="w-full font-outfit max-w-md mx-auto pb-32" style={{ backgroundColor: bg }}>
+        <PageTransition> <div className="w-full font-outfit max-w-md mx-auto " style={{ backgroundColor: bg }}>
 
                 {/* HEADER */}
                 <div style={{ backgroundColor: headerBg }} className="px-5 pt-6 pb-8">
@@ -258,7 +257,7 @@ export const CashFlow: React.FC = () => {
 
                 {/* STICKY TOTAL FOOTER */}
                 {filtered.length > 0 && (
-                    <div className="fixed bottom-[90px] inset-x-0 max-w-md mx-auto px-4 z-30">
+                    <div className="fixed bottom-6 inset-x-0 max-w-md mx-auto px-4 z-30">
                         <div className="rounded-2xl p-4 shadow-xl flex items-center justify-between border"
                             style={{ backgroundColor: card, borderColor: border }}>
                             <div className="flex items-center gap-2">

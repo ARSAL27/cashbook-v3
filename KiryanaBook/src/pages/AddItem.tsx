@@ -149,8 +149,7 @@ export const AddItem: React.FC = () => {
   };
 
   return (
-    <PageTransition>
-      <div className="w-full font-outfit max-w-md mx-auto relative min-h-screen pb-32" style={{ backgroundColor: bg }}>
+    <PageTransition> <div className="w-full font-outfit max-w-md mx-auto relative min-h-screen " style={{ backgroundColor: bg }}>
         
         {/* HEADER */}
         <div className="pt-12 pb-3 sticky top-0 z-50 transition-colors duration-300 px-5 flex items-center justify-between shadow-[0_2px_15px_rgba(0,0,0,0.05)]" style={{ backgroundColor: isDarkMode ? '#10251A' : '#0A3D24' }}>

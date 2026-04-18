@@ -137,8 +137,7 @@ export const ProfileSettings: React.FC = () => {
   };
 
   return (
-    <PageTransition>
-      <div className="w-full bg-[#FAFAFA] dark:bg-[#0A0A0A] font-outfit max-w-md mx-auto overflow-x-hidden min-h-screen pb-32">
+    <PageTransition> <div className="w-full bg-[#FAFAFA] dark:bg-[#0A0A0A] font-outfit max-w-md mx-auto overflow-x-hidden min-h-screen ">
         {/* HEADER */}
         <header className="pt-12 pb-3 px-6 flex items-center justify-between sticky top-0 bg-background/80 backdrop-blur-xl z-50 border-b border-border/10">
           <div className="flex items-center space-x-4">

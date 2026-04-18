@@ -71,8 +71,7 @@ export const RolePermissions: React.FC = () => {
   );
 
   return (
-    <PageTransition>
-      <div className="w-full font-outfit max-w-md mx-auto pb-32" style={{ backgroundColor: bg }}>
+    <PageTransition> <div className="w-full font-outfit max-w-md mx-auto " style={{ backgroundColor: bg }}>
         <div className="px-5 pt-6 flex items-center justify-between">
           <button onClick={() => navigate(-1)} className="text-gray-400">
             <ArrowLeft size={22} />
@@ -136,7 +135,7 @@ export const RolePermissions: React.FC = () => {
           </div>
         </div>
 
-        <div className="fixed bottom-[90px] inset-x-0 max-w-md mx-auto px-4 z-50">
+        <div className="fixed bottom-6 inset-x-0 max-w-md mx-auto px-4 z-50">
           <div className="rounded-3xl p-3" style={{ backgroundColor: card }}>
             <div className="flex items-center justify-between px-4 mb-3">
               <p className="text-[11px] font-bold" style={{ color: sub }}>Changes will be applied instantly</p>

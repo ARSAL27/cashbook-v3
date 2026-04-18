@@ -31,8 +31,7 @@ export const StaffDirectory: React.FC = () => {
   // ── FREE PLAN LOCK SCREEN ──────────────────────────────────────────
   if (isLocked) {
     return (
-      <PageTransition>
-        <div className="w-full font-outfit max-w-md mx-auto flex flex-col pb-32" style={{ backgroundColor: bg }}>
+      <PageTransition> <div className="w-full font-outfit max-w-md mx-auto flex flex-col " style={{ backgroundColor: bg }}>
           {/* HEADER */}
           <div className="bg-[#0A3D24] px-5 pt-6 pb-6 rounded-b-[2rem]">
             <div className="flex items-center justify-between mb-2">

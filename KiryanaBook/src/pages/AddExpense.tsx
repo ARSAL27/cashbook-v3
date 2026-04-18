@@ -52,8 +52,7 @@ export const AddExpense: React.FC = () => {
     };
 
     return (
-        <PageTransition>
-            <div className="w-full font-outfit max-w-md mx-auto bg-background text-text-primary pb-32">
+        <PageTransition> <div className="w-full font-outfit max-w-md mx-auto bg-background text-text-primary ">
                 {/* HEADER */}
                 <div className="pt-12 pb-3 px-5 flex items-center justify-between sticky top-0 z-50 bg-inherit border-b border-border">
                     <button onClick={() => navigate(-1)} className="p-2.5 rounded-2xl bg-card shadow-sm border border-border text-text-primary">
@@ -141,7 +140,7 @@ export const AddExpense: React.FC = () => {
                 </div>
 
                 {/* SAVE BUTTON */}
-                <div className="fixed bottom-[90px] inset-x-0 max-w-md mx-auto px-5 bg-inherit z-50">
+                <div className="fixed bottom-6 inset-x-0 max-w-md mx-auto px-5 bg-inherit z-50">
                     <motion.button 
                         whileTap={{ scale: 0.98 }}
                         disabled={loading}

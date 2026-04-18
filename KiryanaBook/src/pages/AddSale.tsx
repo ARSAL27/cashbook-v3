@@ -180,8 +180,7 @@ export const AddSale: React.FC = () => {
 
 
     return (
-        <PageTransition>
-            <div className="w-full transition-colors duration-300 font-outfit max-w-md mx-auto bg-background text-text-primary pb-32">
+        <PageTransition> <div className="w-full transition-colors duration-300 font-outfit max-w-md mx-auto bg-background text-text-primary ">
                 {/* HEADER */}
                 <div className="pt-12 pb-3 px-5 flex items-center justify-between sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b border-border">
                     <button onClick={() => navigate(-1)} className="p-2 rounded-xl bg-card border border-border text-text-primary active:scale-90 transition-transform">
@@ -270,7 +269,7 @@ export const AddSale: React.FC = () => {
                     )}
                 </div>
 
-                <div className="fixed bottom-[120px] inset-x-0 mx-auto max-w-md p-6 rounded-t-[3.5rem] shadow-[0_-20px_50px_rgba(0,0,0,0.2)] border-t transition-all duration-500 bg-card border-border z-40">
+                <div className="fixed bottom-6 inset-x-0 mx-auto max-w-md p-6 rounded-t-[3.5rem] shadow-[0_-20px_50px_rgba(0,0,0,0.2)] border-t transition-all duration-500 bg-card border-border z-40">
                     {view === 'add' ? (
                         <>
                             <div className="relative mb-6">

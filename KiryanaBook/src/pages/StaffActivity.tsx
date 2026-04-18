@@ -47,8 +47,7 @@ export const StaffActivity: React.FC = () => {
   };
 
   return (
-    <PageTransition>
-      <div className="w-full font-outfit max-w-md mx-auto pb-32" style={{ backgroundColor: bg }}>
+    <PageTransition> <div className="w-full font-outfit max-w-md mx-auto " style={{ backgroundColor: bg }}>
 
         {/* HEADER */}
         <div className="px-5 pt-6 flex items-center justify-between">

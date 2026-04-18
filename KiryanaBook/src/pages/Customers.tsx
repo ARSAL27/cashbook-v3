@@ -125,8 +125,7 @@ export const Customers: React.FC = () => {
   const sub = isDarkMode ? '#B0B0B0' : '#888888';
 
   return (
-    <PageTransition>
-      <div className="w-full font-outfit max-w-md mx-auto transition-colors pb-32" style={{ backgroundColor: bg }}>
+    <PageTransition> <div className="w-full font-outfit max-w-md mx-auto transition-colors " style={{ backgroundColor: bg }}>
 
         <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
 

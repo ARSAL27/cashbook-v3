@@ -49,8 +49,7 @@ export const OwnerProfile: React.FC = () => {
   const initials = name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'ID';
 
   return (
-    <PageTransition>
-      <div className="w-full bg-background font-outfit pb-32">
+    <PageTransition> <div className="w-full bg-background font-outfit ">
         {/* HEADER */}
         <header className="pt-12 pb-3 px-6 flex items-center justify-between border-b border-border bg-white sticky top-0 z-50">
           <div className="flex items-center space-x-4">

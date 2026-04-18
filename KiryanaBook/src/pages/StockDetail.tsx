@@ -64,8 +64,7 @@ export const StockDetail: React.FC = () => {
   const text = isDarkMode ? '#FFFFFF' : '#0A0A0A';
 
   return (
-    <PageTransition>
-      <div className="w-full font-outfit max-w-md mx-auto relative overflow-x-hidden min-h-screen pb-32" style={{ backgroundColor: bg }}>
+    <PageTransition> <div className="w-full font-outfit max-w-md mx-auto relative overflow-x-hidden min-h-screen " style={{ backgroundColor: bg }}>
         
         {/* TOP NAV */}
         <div className="pt-12 pb-3 px-4 flex items-center justify-between sticky top-0 z-50 backdrop-blur-md" style={{ backgroundColor: bg + 'E6' }}>

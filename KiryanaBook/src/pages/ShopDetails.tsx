@@ -81,8 +81,7 @@ export const ShopDetails: React.FC = () => {
   };
 
   return (
-    <PageTransition>
-      <div className="w-full bg-background font-outfit pb-32">
+    <PageTransition> <div className="w-full bg-background font-outfit ">
         {/* HEADER */}
         <header className="pt-12 pb-3 px-4 border-b border-border/10 bg-background/80 backdrop-blur-md sticky top-0 z-50 flex items-center justify-between">
           <div className="flex items-center space-x-3">

@@ -32,8 +32,7 @@ export const BrandDetail: React.FC = () => {
     const text = isDarkMode ? '#FFFFFF' : '#0A0A0A';
 
     return (
-        <PageTransition>
-            <div className="w-full font-outfit max-w-md mx-auto min-h-screen pb-32" style={{ backgroundColor: bg }}>
+        <PageTransition> <div className="w-full font-outfit max-w-md mx-auto min-h-screen " style={{ backgroundColor: bg }}>
                 
                 {/* HEAD & THEME HEADER */}
                 <div className="relative pt-12 pb-24 px-6 overflow-hidden transition-colors duration-500" 

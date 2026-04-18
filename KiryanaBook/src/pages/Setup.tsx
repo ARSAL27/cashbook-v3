@@ -63,8 +63,7 @@ export const Setup: React.FC = () => {
   };
 
   return (
-    <PageTransition>
-      <div className="w-full bg-[#FAFAFA] dark:bg-[#0A0A0A] flex flex-col font-outfit max-w-md mx-auto pb-32">
+    <PageTransition> <div className="w-full bg-[#FAFAFA] dark:bg-[#0A0A0A] flex flex-col font-outfit max-w-md mx-auto ">
         
         {/* ── HEADER ── */}
         <div className="px-6 pt-5 pb-4 flex items-center justify-center relative">

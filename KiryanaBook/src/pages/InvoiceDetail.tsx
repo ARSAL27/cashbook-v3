@@ -118,8 +118,7 @@ export const InvoiceDetail: React.FC = () => {
   */
 
   return (
-    <PageTransition>
-      <div className="w-full font-outfit max-w-md mx-auto pb-32" style={{ backgroundColor: bg }}>
+    <PageTransition> <div className="w-full font-outfit max-w-md mx-auto " style={{ backgroundColor: bg }}>
 
         {/* HEADER */}
         <div className="pt-12 pb-3 sticky top-0 z-40 flex items-center justify-between px-5 " style={{ backgroundColor: isDarkMode ? '#141414' : '#FFFFFF', borderBottom: `1px solid ${border}` }}>
@@ -291,7 +290,7 @@ export const InvoiceDetail: React.FC = () => {
         </div>
 
         {/* NEW ACTION BUTTON - BACK TO HOME */}
-        <div className="fixed bottom-[110px] inset-x-0 max-w-md mx-auto px-6 z-[85]">
+        <div className="fixed bottom-6 inset-x-0 max-w-md mx-auto px-6 z-[85]">
           <motion.button
             whileTap={{ scale: 0.97 }}
             onClick={() => navigate('/')}

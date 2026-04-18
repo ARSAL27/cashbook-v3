@@ -57,8 +57,7 @@ export const Plans: React.FC = () => {
   };
 
   return (
-    <PageTransition>
-      <div className="w-full bg-background font-outfit pb-32">
+    <PageTransition> <div className="w-full bg-background font-outfit ">
         {/* HEADER */}
         <header className="pt-12 pb-3 shrink-0 sticky top-0 z-40 bg-card/80 backdrop-blur-md border-b border-border px-4 flex items-center justify-between shadow-sm">
           <div className="flex items-center space-x-3">

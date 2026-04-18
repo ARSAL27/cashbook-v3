@@ -262,8 +262,7 @@ export const Settings: React.FC = () => {
   );
 
   return (
-    <PageTransition>
-      <div className="w-full bg-[#FAFAFA] dark:bg-[#0A0A0A] font-outfit max-w-md mx-auto transition-colors duration-300 min-h-screen pb-32">
+    <PageTransition> <div className="w-full bg-[#FAFAFA] dark:bg-[#0A0A0A] font-outfit max-w-md mx-auto transition-colors duration-300 min-h-screen ">
         {/* HEADER */}
         <div className="pt-12 pb-3 sticky top-0 z-50 transition-colors duration-300 px-5 flex items-center gap-4 bg-background/80 backdrop-blur-xl border-b border-border/40 shadow-[0_2px_15px_rgba(0,0,0,0.02)]">
           <button onClick={() => navigate(-1)} className="w-9 h-9 flex items-center justify-center rounded-xl bg-card border border-border shadow-sm active:scale-95 transition-all text-text-primary">

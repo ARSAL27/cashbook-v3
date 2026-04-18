@@ -111,11 +111,7 @@ export const NewInvoice: React.FC = () => {
 
 
   return (
-    <PageTransition>
-      <div className={`min-h-screen font-outfit pb-40 ${isDarkMode ? 'bg-[#0A0A0A] text-white' : 'bg-[#FAFAFA] text-[#0A3D24]'}`}>
-        
-        {/* APP BAR */}
-        <div className="pt-12 sticky top-0 z-[60] bg-white/80 dark:bg-[#0A0A0A]/80 backdrop-blur-2xl border-b dark:border-white/5 px-6 flex items-center justify-between pb-32">
+    <PageTransition> <div className={`min-h-screen font-outfit pb-40 ${isDarkMode ? 'bg-[#0A0A0A] text-white' : 'bg-[#FAFAFA] text-[#0A3D24]'}`}> {/* APP BAR */} <div className="pt-12 sticky top-0 z-[60] bg-white/80 dark:bg-[#0A0A0A]/80 backdrop-blur-2xl border-b dark:border-white/5 px-6 flex items-center justify-between ">
             <button onClick={() => navigate(-1)} className="w-11 h-11 rounded-2xl bg-gray-100 dark:bg-white/5 flex items-center justify-center active:scale-95 transition-transform">
                 <ArrowLeft size={20} />
             </button>
@@ -312,7 +308,7 @@ export const NewInvoice: React.FC = () => {
         </div>
 
         {/* FLOATING ACTION BAR - Increased height for Redmi/Xiaomi devices */}
-        <div className="fixed bottom-[145px] left-6 right-6 z-[80]">
+        <div className="fixed bottom-6 left-6 right-6 z-[80]">
             <motion.button 
                 whileTap={{ scale: 0.95 }}
                 onClick={handleSave}
