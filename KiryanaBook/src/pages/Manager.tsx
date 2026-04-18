@@ -579,7 +579,7 @@ export const Manager: React.FC = () => {
   };
 
   return (
-    <div className="w-full max-w-md mx-auto h-[calc(100vh-90px)] flex flex-col bg-[#F9F9FB] dark:bg-[#0A0A0A] relative overflow-hidden">
+    <div className="w-full max-w-md mx-auto h-screen flex flex-col bg-[#F9F9FB] dark:bg-[#0A0A0A] relative overflow-hidden overscroll-behavior-contain">
 
       {/* ── Header (Slim & Pro) ─────────────────────────────────────────────────── */}
       <div className="shrink-0 bg-white dark:bg-[#0A0A0A] px-5 pb-3 border-b dark:border-white/5 shadow-[0_2px_15px_rgba(0,0,0,0.02)]">
@@ -612,9 +612,9 @@ export const Manager: React.FC = () => {
         {(messages || []).map((msg) => (
           <motion.div
             key={msg?.id || Math.random()}
-            initial={{ opacity: 0, y: 15, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            transition={{ duration: 0.25 }}
+            initial={{ opacity: 0, scale: 0.98 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.2 }}
             className={`flex items-start gap-3 ${msg?.isBot ? 'justify-start pr-8' : 'justify-end pl-8'}`}
           >
             {msg?.isBot && (

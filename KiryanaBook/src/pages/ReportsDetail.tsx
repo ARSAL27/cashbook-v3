@@ -7,7 +7,6 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts'
 import { motion } from 'framer-motion';
 import { useTheme } from '../context/ThemeContext';
 import toast from 'react-hot-toast';
-import * as XLSX from 'xlsx';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
@@ -59,18 +58,7 @@ export const ReportsDetail: React.FC = () => {
         return { totalSales, totalExpenses, profit };
     }, [chartData]);
 
-    const exportToExcel = () => {
-        const ws = XLSX.utils.json_to_sheet(chartData.map(d => ({
-            Date: d.date,
-            'Total Sales (Rs)': d.sales,
-            'Total Expenses (Rs)': d.expenses,
-            'Net Profit (Rs)': d.sales - d.expenses
-        })));
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Reports");
-        XLSX.writeFile(wb, `Report_${range}_${new Date().getTime()}.xlsx`);
-        toast.success("Excel file download ho rahi hai!");
-    };
+
 
     const exportToPDF = () => {
         const doc = new jsPDF();
@@ -104,7 +92,7 @@ export const ReportsDetail: React.FC = () => {
     return (
         <PageTransition> <div className="w-full font-outfit max-w-md mx-auto bg-background text-text-primary ">
                 {/* HEADER */}
-                <div className="pt-12 pb-3 px-5 flex items-center justify-between sticky top-0 bg-background/80 backdrop-blur-md z-40">
+                <div className="pt-16 pb-4 px-5 flex items-center justify-between sticky top-0 bg-background/80 backdrop-blur-md z-40">
                     <button onClick={() => navigate(-1)} className="p-2.5 rounded-2xl bg-card shadow-sm border border-border text-text-primary active:scale-90 transition-transform">
                         <ArrowLeft size={20} />
                     </button>
@@ -202,22 +190,14 @@ export const ReportsDetail: React.FC = () => {
                 {/* EXPORT OPTIONS */}
                 <div className="px-5 space-y-3">
                     <h3 className="text-[13px] font-black uppercase tracking-[0.2em] mb-4 text-center" style={{ color: colors.sub }}>Export Options</h3>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="flex flex-col gap-4">
                         <motion.button 
                             whileTap={{ scale: 0.95 }}
                             onClick={exportToPDF}
-                            className="bg-red-500 text-white p-5 rounded-[2rem] flex flex-col items-center gap-3 shadow-xl shadow-red-500/20 active:bg-red-600 transition-colors"
+                            className="bg-red-500 text-white p-5 rounded-[2rem] flex items-center justify-center gap-3 shadow-xl shadow-red-500/20 active:bg-red-600 transition-colors"
                         >
-                            <FileText size={28} strokeWidth={2.5} />
-                            <span className="text-[11px] font-black uppercase tracking-widest">PDF Report</span>
-                        </motion.button>
-                        <motion.button 
-                            whileTap={{ scale: 0.95 }}
-                            onClick={exportToExcel}
-                            className="bg-[#1A5C38] dark:bg-[#00E676] text-white dark:text-black p-5 rounded-[2rem] flex flex-col items-center gap-3 shadow-xl shadow-green-500/20 active:opacity-90 transition-all"
-                        >
-                            <FileSpreadsheet size={28} strokeWidth={2.5} />
-                            <span className="text-[11px] font-black uppercase tracking-widest">Excel Sheet</span>
+                            <FileText size={20} strokeWidth={2.5} />
+                            <span className="text-[11px] font-black uppercase tracking-widest">Professional Audit PDF</span>
                         </motion.button>
                     </div>
                 </div>

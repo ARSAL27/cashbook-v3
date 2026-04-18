@@ -2,8 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { PageTransition } from '../components/PageTransition';
 import { useShop } from '../context/ShopContext';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid } from 'recharts';
-import { Calendar, Bell, FileText, FileSpreadsheet, AlertTriangle, TrendingUp, TrendingDown, ArrowUpRight } from 'lucide-react';
-import * as XLSX from 'xlsx';
+import { Calendar, Bell, FileText, AlertTriangle, TrendingUp, TrendingDown, ArrowUpRight } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { useTheme } from '../context/ThemeContext';
@@ -114,49 +113,6 @@ export const Reports: React.FC = () => {
   });
   const bestSelling = Object.values(itemSalesCount).sort((a, b) => b.qty - a.qty).slice(0, 5);
   const topDebtors = [...udhaars].sort((a, b) => b.amount - a.amount).slice(0, 5);
-
-  const exportToExcel = () => {
-    try {
-      const wb = XLSX.utils.book_new();
-
-      // 1. Sales Sheet
-      const salesHeader = [["Date", "Payment Type", "Total Amount", "Items Sold"]];
-      const salesRows = filteredData.s.map(s => [
-        new Date(s.date).toLocaleDateString(),
-        s.type.toUpperCase(),
-        s.total,
-        s.items?.map(i => `${i.name} (x${i.qty})`).join(', ') || 'None'
-      ]);
-      const salesWs = XLSX.utils.aoa_to_sheet([...salesHeader, ...salesRows]);
-      XLSX.utils.book_append_sheet(wb, salesWs, "Sales History");
-
-      // 2. Expenses Sheet
-      const expenseHeader = [["Date", "Description", "Amount"]];
-      const expenseRows = filteredData.e.map(e => [
-        new Date(e.date).toLocaleDateString(),
-        e.description || 'N/A',
-        e.amount
-      ]);
-      const expenseWs = XLSX.utils.aoa_to_sheet([...expenseHeader, ...expenseRows]);
-      XLSX.utils.book_append_sheet(wb, expenseWs, "Expenses");
-
-      // 3. Udhaar Sheet
-      const udhaarHeader = [["Date", "Customer Name", "Pending Amount"]];
-      const udhaarRows = filteredData.u.map(u => [
-        new Date(u.date).toLocaleDateString(),
-        u.customerName,
-        u.amount
-      ]);
-      const udhaarWs = XLSX.utils.aoa_to_sheet([...udhaarHeader, ...udhaarRows]);
-      XLSX.utils.book_append_sheet(wb, udhaarWs, "Udhaar Records");
-
-      XLSX.writeFile(wb, `KiryanaBook_Audit_${activeTab}.xlsx`);
-      toast.success("Excel report downloaded successfully!");
-    } catch (err) {
-      console.error(err);
-      toast.error("Excel download failed.");
-    }
-  };
 
   const exportToPDF = () => {
     const doc = new jsPDF() as any;
@@ -420,13 +376,6 @@ export const Reports: React.FC = () => {
             >
                 <FileText size={16} />
                 <span>PDF Download</span>
-            </button>
-            <button 
-                onClick={exportToExcel}
-                className="flex-1 bg-white border border-[#E2FFED] shadow-[0_8px_30px_rgba(0,0,0,0.08)] dark:bg-[#111A14] dark:border-green-900/30 rounded-2xl py-3.5 flex items-center gap-2 justify-center pointer-events-auto active:scale-95 transition-all text-[#0A3D24] dark:text-[#4BFF94] font-black text-[12px] uppercase tracking-wide"
-            >
-                <FileSpreadsheet size={16} />
-                <span>Excel Download</span>
             </button>
         </div>
 

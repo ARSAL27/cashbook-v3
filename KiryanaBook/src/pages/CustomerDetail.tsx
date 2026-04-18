@@ -165,11 +165,11 @@ export const CustomerDetail: React.FC = () => {
     };
 
     return (
-        <PageTransition> <div className={`w-full min-h-screen pb-32 font-outfit max-w-md mx-auto ${isDarkMode ? 'bg-[#050505]' : 'bg-[#FAFAFA]'}`}> {/* DYNAMIC METALLIC HEADER */} <div className="bg-gradient-to-b from-[#0A3D24] to-[#0D4B2D] px-6 pt-6 relative overflow-hidden flex flex-col justify-between ">
+        <PageTransition> <div className={`w-full min-h-screen pb-20 font-outfit max-w-md mx-auto ${isDarkMode ? 'bg-[#050505]' : 'bg-[#FAFAFA]'}`}> {/* DYNAMIC METALLIC HEADER */} <div className="bg-gradient-to-b from-[#0A3D24] to-[#0D4B2D] px-6 pt-12 relative overflow-hidden flex flex-col justify-between ">
                     <div className="absolute inset-0 bg-black/10 backdrop-blur-sm" />
                     <div className="absolute top-10 right-0 w-64 h-64 bg-emerald-500/10 blur-[80px] rounded-full" />
                     
-                    <div className="relative flex items-center justify-between mb-8 z-10 top-2">
+                    <div className="relative flex items-center justify-between mb-4 z-10">
                         <button onClick={() => navigate(-1)} className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center text-white active:scale-95 transition-transform border border-white/20">
                             <ArrowLeft size={20} />
                         </button>
@@ -190,8 +190,8 @@ export const CustomerDetail: React.FC = () => {
                         </div>
                     </div>
 
-                    <div className="relative flex items-center gap-5 mb-6 z-10">
-                        <div className="w-20 h-20 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-[1.5rem] flex items-center justify-center text-white text-[28px] font-black shadow-[0_10px_25px_rgba(16,185,129,0.4)] border border-emerald-300 drop-shadow-xl relative overflow-hidden">
+                    <div className="relative flex items-center gap-4 mb-4 z-10">
+                        <div className="w-16 h-16 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-2xl flex items-center justify-center text-white text-[22px] font-black shadow-lg border border-emerald-300 drop-shadow-xl relative overflow-hidden">
                             <div className="absolute inset-0 bg-white/20 skew-x-[-20deg] translate-x-[-150%]" />
                             {initials}
                         </div>
@@ -217,18 +217,18 @@ export const CustomerDetail: React.FC = () => {
                                 if (!p) return toast.error('Number nahi hai');
                                 window.location.href=`tel:${p}`;
                             }} 
-                            className="bg-white/10 hover:bg-white/20 border border-white/20 rounded-[1.25rem] py-3.5 flex flex-col items-center gap-1.5 shadow-lg active:scale-95 transition-all"
+                            className="bg-white/10 hover:bg-white/20 border border-white/20 rounded-2xl py-2 flex flex-col items-center gap-1 shadow-md active:scale-95 transition-all text-white"
                         >
-                            <Phone size={20} className="text-emerald-100" />
-                            <span className="text-emerald-100 text-[11px] font-black uppercase tracking-wider">Call</span>
+                            <Phone size={18} />
+                            <span className="text-[9px] font-black uppercase tracking-wider">Call</span>
                         </button>
-                        <button onClick={handleWhatsApp} className="bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-400/40 rounded-[1.25rem] py-3.5 flex flex-col items-center gap-1.5 shadow-[0_8px_20px_rgba(16,185,129,0.2)] active:scale-95 transition-all">
-                            <MessageSquare size={20} className="text-emerald-300" />
-                            <span className="text-emerald-300 text-[11px] font-black uppercase tracking-wider">WhatsApp</span>
+                        <button onClick={handleWhatsApp} className="bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-400/40 rounded-2xl py-2 flex flex-col items-center gap-1 shadow-md active:scale-95 transition-all text-emerald-300">
+                            <MessageSquare size={18} />
+                            <span className="text-[9px] font-black uppercase tracking-wider">WhatsApp</span>
                         </button>
-                        <button onClick={generateStatement} className="bg-white/10 hover:bg-white/20 border border-white/20 rounded-[1.25rem] py-3.5 flex flex-col items-center gap-1.5 shadow-lg active:scale-95 transition-all">
-                            <FileText size={20} className="text-emerald-100" />
-                            <span className="text-emerald-100 text-[11px] font-black uppercase tracking-wider">Statement</span>
+                        <button onClick={generateStatement} className="bg-white/10 hover:bg-white/20 border border-white/20 rounded-2xl py-2 flex flex-col items-center gap-1 shadow-md active:scale-95 transition-all text-white">
+                            <FileText size={18} />
+                            <span className="text-[9px] font-black uppercase tracking-wider">Msg</span>
                         </button>
                     </div>
                 </div>
@@ -245,7 +245,7 @@ export const CustomerDetail: React.FC = () => {
                         <div className="flex items-center justify-between mb-5 relative z-10">
                             <div>
                                 <p className="text-[11px] font-black uppercase tracking-[0.2em] text-gray-500 dark:text-gray-400 mb-1">Final Balance</p>
-                                <p className={`text-[40px] font-black leading-none tracking-tighter drop-shadow-sm ${
+                                <p className={`text-[32px] font-black leading-none tracking-tighter drop-shadow-sm ${
                                     isSupplier 
                                     ? (stats.netBalance < 0 ? 'text-rose-500' : stats.netBalance > 0 ? 'text-emerald-500' : 'text-gray-400')
                                     : (stats.netBalance > 0 ? 'text-rose-500' : stats.netBalance < 0 ? 'text-emerald-500' : 'text-gray-400')

@@ -7,7 +7,6 @@ import { useAuth } from '../context/AuthContext';
 import { useShop } from '../context/ShopContext';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
-import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { Capacitor } from '@capacitor/core';
@@ -331,16 +330,12 @@ export const Settings: React.FC = () => {
             {/* SETTINGS GROUPS */}
             <div className="space-y-4">
                 {/* ── DATA & EXPORTS ── */}
-                <h3 className="text-[10px] font-black text-text-muted uppercase tracking-[0.2em] ml-2 mt-4 opacity-50">Data & Backup</h3>
+                <h3 className="text-[10px] font-black text-text-muted uppercase tracking-[0.2em] ml-2 mt-4 opacity-50">Reports & Data</h3>
                 <div className="bg-card border border-border/60 rounded-[1.8rem] p-4 space-y-4 shadow-sm">
                     <div className="flex gap-3">
-                        <button onClick={handleExportExcel} className="flex-1 bg-green-500/10 text-green-600 dark:text-[#4BFF94] rounded-2xl py-4 flex flex-col items-center gap-2 border border-green-500/20 active:scale-95 transition-all">
-                            <FileSpreadsheet size={20} strokeWidth={2.5} />
-                            <span className="text-[9px] font-black uppercase tracking-widest">Excel</span>
-                        </button>
-                        <button onClick={handleExportPDF} className="flex-1 bg-red-500/10 text-red-600 rounded-2xl py-4 flex flex-col items-center gap-2 border border-red-500/20 active:scale-95 transition-all">
+                        <button onClick={handleExportPDF} className="w-full bg-red-500/10 text-red-600 rounded-2xl py-4 flex items-center justify-center gap-2 border border-red-500/20 active:scale-95 transition-all">
                             <FileText size={20} strokeWidth={2.5} />
-                            <span className="text-[9px] font-black uppercase tracking-widest">Audit PDF</span>
+                            <span className="text-[9px] font-black uppercase tracking-widest">Full Audit PDF</span>
                         </button>
                     </div>
                 </div>
@@ -377,13 +372,13 @@ export const Settings: React.FC = () => {
                     <span className="text-[12px] font-black uppercase tracking-widest text-text-muted">Help & Support</span>
                     <ChevronRight size={16} className="opacity-20" />
                 </button>
-                <div className="text-center py-6">
+                <div className="text-center py-4">
                     <p className="text-[9px] font-black text-text-muted opacity-30 uppercase tracking-[0.3em]">ulooo v3.4 PRO</p>
                     <p className="text-[8px] font-bold text-text-muted opacity-20 uppercase tracking-widest mt-1">© 2026 Indus Ledger Tech</p>
                 </div>
             </div>
 
-            <div className="h-20" />
+
         </div>
       </div>
     </PageTransition>
