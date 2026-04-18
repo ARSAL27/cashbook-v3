@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, User, Store, ChevronRight, Database, FileSpreadsheet, FileText, Moon, Crown } from 'lucide-react';
+import { ArrowLeft, User, Store, ChevronRight, Database, FileText, Moon, Crown } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { PageTransition } from '../components/PageTransition';
 import { useAuth } from '../context/AuthContext';
@@ -28,56 +28,7 @@ export const Settings: React.FC = () => {
 
 
 
-  const handleExportExcel = async () => {
-    try {
-      const wb = XLSX.utils.book_new();
-      
-      // 1. Sales Sheet
-      const salesHeader = [["Date", "Payment Type", "Amount", "Items Count"]];
-      const salesRows = sales.map(s => [s.date, s.type.toUpperCase(), s.total, s.items?.length || 0]);
-      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([...salesHeader, ...salesRows]), "Sales");
 
-      // 2. Expenses Sheet
-      const expenseHeader = [["Date", "Description", "Amount"]];
-      const expenseRows = expenses.map(e => [e.date, e.description, e.amount]);
-      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([...expenseHeader, ...expenseRows]), "Expenses");
-
-      // 3. Stock Sheet
-      const stockHeader = [["Name", "Price", "Quantity", "Unit"]];
-      const stockRows = stock.map(s => [s.name, s.price, s.quantity, s.unit]);
-      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([...stockHeader, ...stockRows]), "Stock");
-
-      // 4. Contacts Sheet
-      const contactHeader = [["Name", "Phone", "Type", "Balance"]];
-      const contactRows = contacts.map(c => [c.name, c.phone, c.type, c.initialBalance]);
-      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([...contactHeader, ...contactRows]), "Contacts");
-
-      const fileName = `${profile?.name || 'KiryanaBook'}_Backup.xlsx`;
-
-      if (Capacitor.isNativePlatform()) {
-        const base64Data = XLSX.write(wb, { type: 'base64', bookType: 'xlsx' });
-        const savedFile = await Filesystem.writeFile({
-          path: fileName.replace(/[^a-z0-9_.-]/gi, '_'),
-          data: base64Data,
-          directory: Directory.Documents,
-        });
-
-        await Share.share({
-          title: 'KiryanaBook Backup',
-          text: 'Here is your Excel backup',
-          url: savedFile.uri,
-          dialogTitle: 'Save or Share Excel'
-        });
-        import('react-hot-toast').then(t => t.default.success('Excel backup generated!'));
-      } else {
-        XLSX.writeFile(wb, fileName);
-        import('react-hot-toast').then(t => t.default.success('Full Excel backup ready!'));
-      }
-    } catch (err) {
-      console.error(err);
-      import('react-hot-toast').then(t => t.default.error('Excel export failed.'));
-    }
-  };
 
   const handleExportPDF = async () => {
     const doc = new jsPDF() as any;
