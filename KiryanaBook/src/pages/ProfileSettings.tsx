@@ -29,7 +29,7 @@ export const ProfileSettings: React.FC = () => {
   };
 
   useEffect(() => {
-    if (profile) {
+    if (profile && !isSaving) {
       setFormData({
         name: profile.name,
         owner: profile.owner,
@@ -39,40 +39,26 @@ export const ProfileSettings: React.FC = () => {
         logoUrl: profile.logoUrl || ''
       });
     }
-  }, [profile]);
+  }, [profile, isSaving]);
 
-  // Debounced Auto-Save
-  useEffect(() => {
-    const timer = setTimeout(async () => {
-      // Don't save if nothing changed or if initial load
-      if (JSON.stringify(formData) === JSON.stringify({
-        name: profile?.name,
-        owner: profile?.owner,
-        phone: profile?.phone,
-        city: profile?.city,
-        currency: profile?.currency,
-        logoUrl: profile?.logoUrl || ''
-      })) return;
-
-      // Only save if name at least exists, others can be empty/updated later
-      if (!formData.name.trim()) return;
-
-      setIsSaving(true);
-      try {
-        await updateProfile({
-          ...profile,
-          ...formData
-        } as any);
-        setLastSaved(Date.now());
-      } catch (e) {
-        console.error("Auto-save failed", e);
-      } finally {
-        setIsSaving(false);
-      }
-    }, 1000); 
-
-    return () => clearTimeout(timer);
-  }, [formData, profile, updateProfile]);
+  const handleSave = async () => {
+    if (!formData.name.trim()) return toast.error('Shop ka naam zaruri hai');
+    
+    triggerHaptic(ImpactStyle.Heavy);
+    setIsSaving(true);
+    try {
+      await updateProfile({
+        ...profile,
+        ...formData
+      } as any);
+      setLastSaved(Date.now());
+      toast.success('Profile Mehfooz Kar Liya Gaya!');
+    } catch (e) {
+      toast.error('Save fail ho gaya. Internet check karein.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -118,8 +104,6 @@ export const ProfileSettings: React.FC = () => {
     reader.readAsDataURL(file);
   };
 
-
-
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let val = e.target.value;
     if (!val.startsWith('+92')) {
@@ -137,7 +121,8 @@ export const ProfileSettings: React.FC = () => {
   };
 
   return (
-    <PageTransition> <div className="w-full bg-[#FAFAFA] dark:bg-[#0A0A0A] font-outfit max-w-md mx-auto overflow-x-hidden min-h-screen ">
+    <PageTransition> 
+      <div className="w-full bg-[#FAFAFA] dark:bg-[#0A0A0A] font-outfit max-w-md mx-auto overflow-x-hidden min-h-screen pb-32">
         {/* HEADER */}
         <header className="pt-12 pb-3 px-6 flex items-center justify-between sticky top-0 bg-background/80 backdrop-blur-xl z-50 border-b border-border/10">
           <div className="flex items-center space-x-4">
@@ -261,6 +246,17 @@ export const ProfileSettings: React.FC = () => {
           <div className="text-center pt-6 opacity-30">
             <p className="text-[9px] font-black text-text-muted uppercase tracking-[0.4em]">Hardware Encryption Active</p>
           </div>
+        </div>
+        
+        {/* FIXED SAVE BUTTON */}
+        <div className="fixed bottom-8 left-6 right-6 z-[60]">
+             <button 
+               onClick={handleSave}
+               disabled={isSaving}
+               className="w-full py-5 rounded-[2rem] bg-[#0A3D24] dark:bg-[#4BFF94] text-white dark:text-[#0A3D24] font-black text-[15px] uppercase tracking-widest shadow-2xl active:scale-95 transition-all disabled:opacity-50"
+             >
+                {isSaving ? 'Saving...' : 'Save Changes'}
+             </button>
         </div>
       </div>
     </PageTransition>

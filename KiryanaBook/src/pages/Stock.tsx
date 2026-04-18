@@ -28,9 +28,9 @@ export const Stock: React.FC = () => {
     let lowStockCount = 0;
     
     (stock || []).forEach(item => {
-      totalItems += (item.quantity || 0);
-      totalValue += (item.quantity || 0) * (item.price || 0);
-      if ((item.quantity || 0) <= (item.minThreshold || 5)) lowStockCount++;
+      totalItems += Number(item.quantity || 0);
+      totalValue += Number(item.quantity || 0) * Number(item.price || 0);
+      if (Number(item.quantity || 0) <= Number(item.minThreshold || 5)) lowStockCount++;
     });
 
     return { totalItems, totalValue, lowStockCount };
@@ -53,8 +53,8 @@ export const Stock: React.FC = () => {
   const filteredStock = useMemo(() => {
     const s = deferredSearch.toLowerCase();
     const filtered = (stock || []).filter(item => {
-      const matchSearch = item.name.toLowerCase().includes(s) || 
-                          item.sku?.toLowerCase().includes(s);
+      const matchSearch = (item.name || '').toLowerCase().includes(s) || 
+                          (item.sku || '').toLowerCase().includes(s);
       const matchCat = activeCategory === 'All Items' || item.category === activeCategory;
       
       let matchFilter = true;
@@ -66,18 +66,17 @@ export const Stock: React.FC = () => {
 
     return [...filtered].sort((a, b) => {
         const getTs = (item: any) => {
-            if (!item.createdAt) return 1; 
-            // Firestore Timestamp or ISO String
+            if (!item.createdAt) return parseInt(item.id.split('-').pop() || '0') || 0; 
             if (typeof item.createdAt === 'string') return new Date(item.createdAt).getTime();
-            if ((item.createdAt as any).seconds) return (item.createdAt as any).seconds * 1000 + ((item.createdAt as any).nanoseconds / 1000000);
-            return 1;
+            if (item.createdAt && item.createdAt.seconds) return item.createdAt.seconds * 1000;
+            return 0;
         };
         
         const timeA = getTs(a);
         const timeB = getTs(b);
         
         if (timeB !== timeA) return timeB - timeA;
-        return a.name.localeCompare(b.name);
+        return (a.name || '').localeCompare(b.name || '');
     });
   }, [stock, deferredSearch, activeCategory, filterType]);
 
@@ -88,7 +87,8 @@ export const Stock: React.FC = () => {
   const sub = isDarkMode ? '#B0B0B0' : '#888888';
 
   return (
-    <PageTransition> <div className="w-full font-outfit max-w-md mx-auto relative " style={{ backgroundColor: bg }}>
+    <PageTransition> 
+      <div className="w-full font-outfit max-w-md mx-auto relative min-h-screen" style={{ backgroundColor: bg }}>
         
          <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
          
@@ -111,14 +111,15 @@ export const Stock: React.FC = () => {
           </button>
         </div>
 
+        {/* STATS CARDS */}
         <div className="px-5 grid grid-cols-3 gap-2 mt-2">
            <motion.div 
              initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-             className="rounded-xl p-2.5 relative overflow-hidden shadow-sm"
+             className="rounded-xl p-2.5 relative overflow-hidden shadow-sm border border-white/10"
              style={{ backgroundColor: isDarkMode ? '#1A3D30' : '#C1F0DB' }}
            >
-              <p className="text-[7px] font-black uppercase tracking-wider mb-0.5" style={{ color: isDarkMode ? '#4BFF94' : '#0A3D24', opacity: 0.6 }}>Items</p>
-              <h2 className="text-[14px] font-black leading-none" style={{ color: isDarkMode ? '#FFFFFF' : '#0A3D24' }}>{stats.totalItems.toLocaleString()}</h2>
+              <p className="text-[7px] font-black uppercase tracking-wider mb-0.5" style={{ color: isDarkMode ? '#4BFF94' : '#0A3D24', opacity: 0.6 }}>Total Stock</p>
+              <h2 className="text-[14px] font-black leading-none tabular-nums" style={{ color: isDarkMode ? '#FFFFFF' : '#0A3D24' }}>{stats.totalItems.toLocaleString()}</h2>
               <div className="absolute right-[-4px] bottom-[-4px] opacity-10">
                 <Package size={30} style={{ color: isDarkMode ? '#FFFFFF' : '#0A3D24' }} />
               </div>
@@ -126,11 +127,11 @@ export const Stock: React.FC = () => {
 
            <motion.div 
              initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-             className="rounded-xl p-2.5 relative overflow-hidden shadow-sm transition-colors duration-300"
+             className="rounded-xl p-2.5 relative overflow-hidden shadow-sm transition-colors duration-300 border border-white/10"
              style={{ backgroundColor: isDarkMode ? '#10251A' : '#0A3D24' }}
            >
-              <p className="text-[7px] font-black uppercase tracking-wider mb-0.5 text-white/50">Value</p>
-              <h2 className="text-[14px] font-black leading-none text-[#4BFF94]">
+              <p className="text-[7px] font-black uppercase tracking-wider mb-0.5 text-white/50">Stock Value</p>
+              <h2 className="text-[14px] font-black leading-none text-[#4BFF94] tabular-nums">
                  Rs.{stats.totalValue >= 1000000 ? (stats.totalValue / 1000000).toFixed(1) + 'M' : stats.totalValue >= 1000 ? (stats.totalValue / 1000).toFixed(0) + 'k' : stats.totalValue.toLocaleString()}
               </h2>
               <div className="absolute right-[-4px] bottom-[-4px] opacity-10">
@@ -140,11 +141,11 @@ export const Stock: React.FC = () => {
 
            <motion.div 
              initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
-             className="rounded-xl p-2.5 relative overflow-hidden shadow-sm"
+             className="rounded-xl p-2.5 relative overflow-hidden shadow-sm border border-white/10"
              style={{ backgroundColor: isDarkMode ? '#3D1A1A' : '#FFD9D9' }}
            >
-              <p className="text-[7px] font-black uppercase tracking-wider mb-0.5" style={{ color: isDarkMode ? '#FF4B4B' : '#8A0000', opacity: 0.6 }}>Low</p>
-              <h2 className="text-[14px] font-black leading-none" style={{ color: isDarkMode ? '#FFFFFF' : '#8A0000' }}>{stats.lowStockCount}</h2>
+              <p className="text-[7px] font-black uppercase tracking-wider mb-0.5" style={{ color: isDarkMode ? '#FF4B4B' : '#8A0000', opacity: 0.6 }}>Low Stock</p>
+              <h2 className="text-[14px] font-black leading-none tabular-nums" style={{ color: isDarkMode ? '#FFFFFF' : '#8A0000' }}>{stats.lowStockCount}</h2>
               <div className="absolute right-[-4px] bottom-[-4px] opacity-10">
                 <AlertTriangle size={30} style={{ color: isDarkMode ? '#FFFFFF' : '#8A0000' }} />
               </div>
@@ -290,7 +291,7 @@ export const Stock: React.FC = () => {
            </button>
         </div>
 
-        <div className="px-5 mt-6 space-y-2.5">
+        <div className="px-5 mt-6 space-y-2.5 pb-24">
            {filteredStock.map((item, i) => (
              <motion.div
                key={item.id}
@@ -301,11 +302,11 @@ export const Stock: React.FC = () => {
                className="rounded-2xl p-3 border flex flex-col gap-1.5 relative overflow-hidden transition-all active:scale-[0.98]"
                style={{ backgroundColor: card, borderColor: border }}
              >
-                <div className={`absolute left-0 top-1/2 -translate-y-1/2 w-1 h-10 rounded-r-full ${item.quantity <= 0 ? 'bg-red-500' : item.quantity <= (item.minThreshold || 5) ? 'bg-orange-500' : 'bg-[#4BFF94]'}`} />
+                <div className={`absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-10 rounded-r-full ${item.quantity <= 0 ? 'bg-red-500' : item.quantity <= (item.minThreshold || 5) ? 'bg-orange-500' : 'bg-[#4BFF94]'}`} />
                 
                 <div className="flex items-start justify-between">
                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-lg bg-gray-50 dark:bg-[#1E1E1E] flex items-center justify-center border border-gray-100 dark:border-white/5 overflow-hidden shrink-0">
+                      <div className="w-10 h-10 rounded-xl bg-gray-50 dark:bg-[#1E1E1E] flex items-center justify-center border border-gray-100 dark:border-white/5 overflow-hidden shrink-0 shadow-inner">
                          {item.imageUrl ? (
                            <img 
                              src={item.imageUrl} 
@@ -314,36 +315,43 @@ export const Stock: React.FC = () => {
                              onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
                            />
                          ) : (
-                           <Package size={16} style={{ color: sub }} />
+                           <Package size={20} style={{ color: sub }} />
                          )}
                       </div>
                       <div className="min-w-0 pr-2">
-                         <h3 className="text-[14px] font-black leading-tight truncate" style={{ color: text }}>{item.name}</h3>
-                         <p className="text-[8px] font-bold mt-0.5 tracking-wider uppercase truncate" style={{ color: sub }}>{item.category} • {item.sku || 'N/A'}</p>
+                         <h3 className="text-[14px] font-black leading-tight truncate uppercase tracking-tight" style={{ color: text }}>{item.name}</h3>
+                         <p className="text-[8px] font-bold mt-0.5 tracking-wider uppercase truncate opacity-50" style={{ color: sub }}>{item.category} • {item.sku || 'N/A'}</p>
                       </div>
                    </div>
                 </div>
 
-                <div className="grid grid-cols-3 gap-1 px-1">
+                <div className="grid grid-cols-3 gap-1 px-1 mt-1 border-t border-gray-100/5 pt-2">
                    <div>
-                      <p className="text-[8px] font-black uppercase tracking-widest mb-0.5" style={{ color: sub }}>Stock</p>
-                      <p className={`text-[12px] font-black leading-none ${item.quantity <= 0 ? 'text-red-500' : item.quantity <= (item.minThreshold || 5) ? 'text-orange-500' : text}`}>
-                        {item.quantity} <span className="text-[8px] font-bold opacity-60">{item.unit || 'units'}</span>
+                      <p className="text-[8px] font-black uppercase tracking-widest mb-0.5 opacity-40" style={{ color: sub }}>Quantity</p>
+                      <p className={`text-[12px] font-black leading-none tabular-nums ${item.quantity <= 0 ? 'text-red-500' : item.quantity <= (item.minThreshold || 5) ? 'text-orange-500' : text}`}>
+                        {item.quantity} <span className="text-[8px] font-bold opacity-40">{item.unit || 'units'}</span>
                       </p>
                    </div>
                    <div>
-                      <p className="text-[8px] font-black uppercase tracking-widest mb-0.5" style={{ color: sub }}>Price</p>
-                      <p className="text-[12px] font-black leading-none" style={{ color: text }}>Rs {item.price.toLocaleString()}</p>
+                      <p className="text-[8px] font-black uppercase tracking-widest mb-0.5 opacity-40" style={{ color: sub }}>Sale Price</p>
+                      <p className="text-[12px] font-black leading-none tabular-nums" style={{ color: text }}>Rs {Number(item.price || 0).toLocaleString()}</p>
                    </div>
                    <div>
-                      <p className="text-[8px] font-black uppercase tracking-widest mb-0.5" style={{ color: sub }}>Value</p>
-                      <p className="text-[12px] font-black leading-none" style={{ color: text }}>Rs {(item.quantity * item.price > 1000 ? `${(item.quantity * item.price / 1000).toFixed(1)}k` : (item.quantity * item.price).toLocaleString())}</p>
+                      <p className="text-[8px] font-black uppercase tracking-widest mb-0.5 opacity-40" style={{ color: sub }}>Inv. Value</p>
+                      <p className="text-[12px] font-black leading-none tabular-nums" style={{ color: text }}>Rs {((item.quantity || 0) * (item.price || 0) > 10000 ? `${((item.quantity || 0) * (item.price || 0) / 1000).toFixed(1)}k` : ((item.quantity || 0) * (item.price || 0)).toLocaleString())}</p>
                    </div>
                 </div>
 
-                <div className={`absolute bottom-2.5 right-2.5 w-1.5 h-1.5 rounded-full ${item.quantity <= 0 ? 'bg-red-500' : item.quantity <= (item.minThreshold || 5) ? 'bg-orange-500' : 'bg-[#4BFF94]'}`} />
+                <div className={`absolute bottom-2.5 right-2.5 w-1.5 h-1.5 rounded-full ${item.quantity <= 0 ? 'bg-red-500 animate-pulse' : item.quantity <= (item.minThreshold || 5) ? 'bg-orange-500 animate-pulse' : 'bg-[#4BFF94]'}`} />
              </motion.div>
            ))}
+           
+           {filteredStock.length === 0 && (
+              <div className="py-20 flex flex-col items-center justify-center opacity-30 text-center">
+                 <Package size={48} className="mb-4" />
+                 <p className="text-[14px] font-black uppercase tracking-widest">No matching items</p>
+              </div>
+           )}
         </div>
 
         {/* ── MODERN FAB MENU ── */}
@@ -360,16 +368,15 @@ export const Stock: React.FC = () => {
                 <>
                   <button
                     onClick={() => { setIsScanMenu(false); navigate('/barcode-scan?target=stock'); }}
-                    className="flex items-center gap-2 px-4 py-3 rounded-2xl bg-[#00E676] text-[#0A3D24] shadow-lg active:scale-95 transition-all text-sm font-black border border-[#00E676]/20"
+                    className="flex items-center gap-2 px-6 py-4 rounded-2xl bg-[#00E676] text-[#0A3D24] shadow-2xl active:scale-95 transition-all text-[13px] font-black border-2 border-white/20"
                   >
                     Quick Barcode
                     <ScanLine size={18} strokeWidth={3} />
                   </button>
                   <button
                     onClick={() => { setIsScanMenu(false); navigate('/bulk-scan'); }}
-                    className="flex items-center gap-2 px-4 py-3 rounded-2xl bg-purple-600 text-white shadow-lg active:scale-95 transition-all text-sm font-black border border-white/20"
+                    className="flex items-center gap-2 px-6 py-4 rounded-2xl bg-purple-600 text-white shadow-2xl active:scale-95 transition-all text-[13px] font-black border-2 border-white/20"
                   >
-                    <span className="bg-purple-800/50 px-2 py-0.5 rounded text-[10px] uppercase tracking-wider">Fast</span>
                     Bulk Scan Mode
                     <Zap size={18} strokeWidth={3} />
                   </button>
@@ -384,33 +391,18 @@ export const Stock: React.FC = () => {
                 <>
                   <button
                     onClick={() => navigate('/add-item')}
-                    className="flex items-center gap-2 px-4 py-3 rounded-2xl bg-blue-600 text-white shadow-lg active:scale-95 transition-all text-sm font-bold border border-white/20"
+                    className="flex items-center gap-2 px-6 py-4 rounded-2xl bg-blue-600 text-white shadow-2xl active:scale-95 transition-all text-[13px] font-black border-2 border-white/20"
                   >
                     Manual Item Dalo
-                    <Plus size={18} />
+                    <Plus size={18} strokeWidth={3} />
                   </button>
                   
                   <button
                     onClick={() => setIsScanMenu(true)}
-                    className="flex items-center gap-2 px-4 py-3 rounded-2xl bg-[#0A3D24] text-[#4BFF94] shadow-lg active:scale-95 transition-all text-sm font-bold border border-[#4BFF94]/20"
+                    className="flex items-center gap-2 px-6 py-4 rounded-2xl bg-[#0A3D24] text-[#4BFF94] shadow-2xl active:scale-95 transition-all text-[13px] font-black border-2 border-[#4BFF94]/20"
                   >
                     Barcode Scanners
-                    <ScanLine size={18} />
-                  </button>
-
-                  <button
-                    onClick={() => {
-                        if (profile?.plan === 'pro' || profile?.plan === 'premium') {
-                            navigate('/stock-receive');
-                        } else {
-                            toast('Ye feature PRO plan ke liye hai', { icon: '👑' });
-                            navigate('/plans');
-                        }
-                    }}
-                    className="flex items-center gap-2 px-4 py-3 rounded-2xl bg-[#1A3D24] text-white shadow-lg active:scale-95 transition-all text-sm font-bold border border-white/10"
-                  >
-                    Find by Category
-                    {profile?.plan === 'pro' || profile?.plan === 'premium' ? <Tag size={18} /> : <div className="bg-[#FFB74D] text-[#0A0A0A] text-[9px] font-black px-1.5 py-0.5 rounded-sm uppercase">PRO</div>}
+                    <ScanLine size={18} strokeWidth={3} />
                   </button>
                 </>
               )}
@@ -418,11 +410,10 @@ export const Stock: React.FC = () => {
             )}
           </AnimatePresence>
 
-          {/* Main FAB Trigger */}
           <motion.button
             whileTap={{ scale: 0.9 }}
             onClick={() => { setIsFABOpen(!isFABOpen); setIsScanMenu(false); }}
-            className={`w-16 h-16 rounded-full flex items-center justify-center shadow-2xl border-4 transition-all duration-300 ${
+            className={`w-16 h-16 rounded-full flex items-center justify-center shadow-[0_10px_40px_rgba(0,0,0,0.2)] border-4 transition-all duration-300 ${
               isFABOpen ? 'bg-red-500 border-white rotate-45' : 'bg-[#4BFF94] border-white dark:border-[#0A0A0A]'
             }`}
           >

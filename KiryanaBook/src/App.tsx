@@ -236,9 +236,19 @@ function AppRoutes() {
         window.history.back();
       }
     };
-    const handler = CapApp.addListener('backButton', handleBackButton);
+    
+    // Resume Listeners to prevent Splash Hang
+    const backHandler = CapApp.addListener('backButton', handleBackButton);
+    const resumeHandler = CapApp.addListener('resume', () => {
+      setForceHideSplash(prev => {
+        setTimeout(() => setForceHideSplash(true), 150);
+        return false;
+      });
+    });
+
     return () => {
-      handler.then(h => h.remove());
+      backHandler.then(h => h.remove());
+      resumeHandler.then(h => h.remove());
     };
   }, []);
 

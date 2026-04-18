@@ -26,10 +26,26 @@ export const formatReceipt = (invoice: Invoice, shopName: string = 'Our Shop'): 
     `Thank you for shopping with us! 🙏`;
 };
 
-export const shareOnWhatsApp = (phone: string | undefined, text: string) => {
+export const shareOnWhatsApp = async (phone: string | undefined, text: string) => {
   const encodedText = encodeURIComponent(text);
+  
+  // Try native share if on mobile for better reliability
+  try {
+    const { Share } = await import('@capacitor/share');
+    if (await Share.canShare()) {
+      await Share.share({
+        text: text,
+        title: 'Receipt',
+        dialogTitle: 'Share Receipt via WhatsApp'
+      });
+      return;
+    }
+  } catch (e) {
+    console.log('Share not available, falling back to URL');
+  }
+
+  // Fallback to WA.me link
   if (phone) {
-    // Basic number cleaning for Pakistan (92)
     const cleanPhone = phone.replace(/[^0-9]/g, '');
     let formattedPhone = cleanPhone;
     if (cleanPhone.startsWith('0')) {

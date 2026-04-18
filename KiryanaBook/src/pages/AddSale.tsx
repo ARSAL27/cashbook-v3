@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { PageTransition } from '../components/PageTransition';
 import { useShop, type Stock } from '../context/ShopContext';
-import { ArrowLeft, User, ShoppingBasket, ShoppingCart, ScanLine, Search, X, Check } from 'lucide-react';
+import { ArrowLeft, User, ShoppingCart, ScanLine, Search, X, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
@@ -197,7 +197,7 @@ export const AddSale: React.FC = () => {
                         )}
                     </div>
                     <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary">
-                        <ShoppingBasket size={18} strokeWidth={3} />
+                        <ShoppingCart size={18} strokeWidth={3} />
                     </div>
                 </div>
 

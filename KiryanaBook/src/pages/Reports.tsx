@@ -7,10 +7,13 @@ import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { useTheme } from '../context/ThemeContext';
 import toast from 'react-hot-toast';
+import { Filesystem, Directory } from '@capacitor/filesystem';
+import { Share } from '@capacitor/share';
+import { Capacitor } from '@capacitor/core';
 
 export const Reports: React.FC = () => {
-   const { isDarkMode } = useTheme();
-    const { sales, expenses, udhaars, stock } = useShop();
+    const { isDarkMode } = useTheme();
+    const { sales, expenses, udhaars, stock, profile } = useShop();
     const [activeTab, setActiveTab] = useState('Today');
     const [customRange, setCustomRange] = useState({ start: '', end: '' });
     const [showCustom, setShowCustom] = useState(false);
@@ -62,19 +65,15 @@ export const Reports: React.FC = () => {
     return { s, e, u };
   }, [sales, expenses, udhaars, activeTab, customRange]);
 
-  // Income: All sales revenue (Cash + Udhaar) for business calculation
   const totalRevenue = useMemo(() => filteredData.s.reduce((sum, s) => sum + (s.total || 0), 0), [filteredData.s]);
   const totalExpense = useMemo(() => filteredData.e.reduce((sum, e) => sum + e.amount, 0), [filteredData.e]);
   
-  // Calculate COGS - Cost of Items Sold
   const costOfSoldItems = useMemo(() => {
     let cost = 0;
     filteredData.s.forEach(sale => {
       sale.items?.forEach(i => {
-         // Search by ID first, then by Name as fallback (case-insensitive)
          const itemDetail = stock.find(st => st.id === i.itemId) || 
                           stock.find(st => st.name?.toLowerCase() === i.name?.toLowerCase());
-         
          const bPrice = Number(itemDetail?.buyingPrice) || 0;
          cost += bPrice * i.qty;
       });
@@ -114,24 +113,19 @@ export const Reports: React.FC = () => {
   const bestSelling = Object.values(itemSalesCount).sort((a, b) => b.qty - a.qty).slice(0, 5);
   const topDebtors = [...udhaars].sort((a, b) => b.amount - a.amount).slice(0, 5);
 
-  const exportToPDF = () => {
+  const exportToPDF = async () => {
     const doc = new jsPDF() as any;
     
     // Header
     doc.setFontSize(20);
     doc.setTextColor(10, 61, 36);
-    doc.text(`Business Performance Audit: ${activeTab}`, 14, 20);
-    
+    doc.text(`${profile?.name || 'KiryanaBook'} Audit: ${activeTab}`, 14, 20);
     doc.setFontSize(10);
     doc.setTextColor(100);
     doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 28);
     
-    // Table 1: Sales Summary
-    doc.setFontSize(14);
-    doc.setTextColor(10, 61, 36);
-    doc.text('1. Sales Summary', 14, 40);
     autoTable(doc, {
-        startY: 44,
+        startY: 40,
         head: [['Date', 'Payment', 'Total Amount']],
         body: filteredData.s.map(s => [new Date(s.date).toLocaleDateString(), s.type.toUpperCase(), `Rs. ${s.total.toLocaleString()}`]),
         theme: 'grid',
@@ -139,12 +133,8 @@ export const Reports: React.FC = () => {
     });
 
     let currentY = (doc as any).lastAutoTable.finalY + 15;
-
-    // Table 2: Expenses
-    doc.setFontSize(14);
-    doc.text('2. Expense Records', 14, currentY);
     autoTable(doc, {
-        startY: currentY + 4,
+        startY: currentY,
         head: [['Date', 'Description', 'Amount']],
         body: filteredData.e.map(e => [new Date(e.date).toLocaleDateString(), e.description || '-', `Rs. ${e.amount.toLocaleString()}`]),
         theme: 'grid',
@@ -152,75 +142,90 @@ export const Reports: React.FC = () => {
     });
 
     currentY = (doc as any).lastAutoTable.finalY + 15;
-
-    // Table 3: Pending Udhaars
     if (currentY > 230) { doc.addPage(); currentY = 20; }
-    doc.setFontSize(14);
-    doc.text('3. Udhaar / Credit Ledger', 14, currentY);
     autoTable(doc, {
-        startY: currentY + 4,
+        startY: currentY,
         head: [['Customer Name', 'Pending Amount']],
         body: filteredData.u.map(u => [u.customerName, `Rs. ${u.amount.toLocaleString()}`]),
         theme: 'grid',
         headStyles: { fillColor: [251, 146, 60] }
     });
 
-    // FINAL TOTALS PAGE
     doc.addPage();
-    doc.setFontSize(22);
-    doc.setTextColor(10, 61, 36);
-    doc.text('PERIOD FINANCIAL SUMMARY', 14, 30);
+    doc.setFontSize(22); doc.setTextColor(10, 61, 36);
+    doc.text('FINANCIAL SUMMARY', 14, 30);
     doc.line(14, 35, 196, 35);
-
-    doc.setFontSize(14);
-    doc.setTextColor(0);
-    doc.text(`Total Sales (Revenue): Rs. ${totalRevenue.toLocaleString()}`, 20, 55);
+    doc.setFontSize(14); doc.setTextColor(0);
+    doc.text(`Total Sales: Rs. ${totalRevenue.toLocaleString()}`, 20, 55);
     doc.text(`Total Expenses: Rs. ${totalExpense.toLocaleString()}`, 20, 68);
     doc.text(`Gross Profit: Rs. ${grossProfit.toLocaleString()}`, 20, 81);
-    doc.text(`Net (After Expenses): Rs. ${netProfit.toLocaleString()}`, 20, 94);
+    doc.text(`Net Profit: Rs. ${netProfit.toLocaleString()}`, 20, 94);
     doc.text(`Pending Udhaar: Rs. ${udhaarPending.toLocaleString()}`, 20, 107);
 
-    doc.save(`KiryanaBook_Audit_${activeTab}.pdf`);
-    toast.success("Professional PDF audit report ready!");
+    const fileName = `KiryanaBook_${activeTab}_Report.pdf`;
+
+    try {
+      if (Capacitor.isNativePlatform()) {
+        const dataUri = doc.output('datauristring');
+        const base64Data = dataUri.split(',')[1];
+        const savedFile = await Filesystem.writeFile({
+          path: fileName,
+          data: base64Data,
+          directory: Directory.Documents,
+        });
+        
+        // Share via Native Share (opens WhatsApp choice)
+        await Share.share({
+          title: 'KiryanaBook Report',
+          text: `Financial Audit Report for ${activeTab}`,
+          url: savedFile.uri,
+          dialogTitle: 'Share via WhatsApp'
+        });
+      } else {
+        doc.save(fileName);
+        toast.success("PDF Downloaded Successfully");
+      }
+    } catch (e) {
+      toast.error('Share failed');
+    }
   };
 
   return (
-    <PageTransition> <div className="w-full transition-colors duration-300 font-outfit max-w-md mx-auto bg-background text-text-primary ">
+    <PageTransition> 
+      <div className="w-full transition-colors duration-300 font-outfit max-w-md mx-auto bg-background text-text-primary min-h-screen pb-40">
         
-        {/* ── HEADER ── */}
-        <div className="pt-16 pb-4 px-5 flex items-center justify-between sticky top-0 bg-inherit z-20 shadow-[0_2px_15px_rgba(0,0,0,0.05)] transition-all">
-            <h1 className="text-[22px] font-black tracking-tight text-text-primary">Reports Overview</h1>
+        {/* COMPACTED HEADER */}
+        <div className="pt-10 pb-3 px-5 flex items-center justify-between sticky top-0 bg-background/80 backdrop-blur-xl z-20 border-b border-border/10">
+            <h1 className="text-[18px] font-black tracking-tight uppercase">Reports Overview</h1>
             <button 
                 onClick={() => { setActiveTab('Custom'); setShowCustom(!showCustom); }}
                 className={`flex items-center gap-1.5 border px-3 py-1.5 rounded-lg shadow-sm active:scale-95 transition-all ${activeTab === 'Custom' ? 'border-primary bg-primary/10' : 'bg-card border-border'}`}
             >
                 <Calendar size={14} className="text-primary" />
-                <span className="text-[10px] font-bold text-primary">Custom Date</span>
+                <span className="text-[9px] font-black text-primary uppercase">Custom</span>
             </button>
         </div>
 
         {showCustom && (
-            <div className="px-5 mt-2 flex gap-2 animate-in fade-in slide-in-from-top-2 duration-300">
+            <div className="px-5 mt-2 flex gap-2">
                 <input 
                     type="date" value={customRange.start} onChange={e => setCustomRange(p => ({ ...p, start: e.target.value }))}
-                    className="flex-1 border border-border rounded-xl px-3 py-2 text-[12px] font-bold outline-none bg-card text-text-primary"
+                    className="flex-1 border border-border rounded-xl px-3 py-2 text-[11px] font-bold bg-card"
                 />
                 <input 
                     type="date" value={customRange.end} onChange={e => setCustomRange(p => ({ ...p, end: e.target.value }))}
-                    className="flex-1 border border-border rounded-xl px-3 py-2 text-[12px] font-bold outline-none bg-card text-text-primary"
+                    className="flex-1 border border-border rounded-xl px-3 py-2 text-[11px] font-bold bg-card"
                 />
             </div>
         )}
 
         {/* ── TABS ── */}
-        <div className="px-5 mt-4 flex gap-2 overflow-x-auto no-scrollbar pb-2">
+        <div className="px-5 mt-4 flex gap-2 overflow-x-auto no-scrollbar">
             {['Today', 'This Week', 'This Month', 'Last Month'].map(tab => (
                 <button 
                     key={tab} onClick={() => setActiveTab(tab)}
-                    className={`whitespace-nowrap px-4 py-2 rounded-full text-[13px] font-bold transition-all shadow-sm border ${
-                        activeTab === tab 
-                          ? (isDarkMode ? 'bg-primary text-black border-primary' : 'bg-[#0A3D24] text-white border-transparent') 
-                          : 'bg-card text-text-muted border-border'
+                    className={`whitespace-nowrap px-4 py-2 rounded-full text-[11px] font-black uppercase tracking-widest transition-all border ${
+                        activeTab === tab ? 'bg-primary text-black border-primary' : 'bg-card text-text-muted border-border'
                     }`}
                 >
                     {tab}
@@ -228,157 +233,81 @@ export const Reports: React.FC = () => {
             ))}
         </div>
 
-        {/* ── 4 SUMMARY CARDS ── */}
-        <div className="px-5 mt-4 grid grid-cols-2 gap-3">
-            {/* Income */}
-            <div className="rounded-[1.25rem] p-4 shadow-sm border flex flex-col justify-between h-[100px] relative overflow-hidden transition-colors" style={{ backgroundColor: colors.card, borderColor: colors.border }}>
-                <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#4BFF94]" />
-                <p className="text-[11px] font-bold opacity-80 pl-1" style={{ color: colors.sub }}>Total Sales (Revenue)</p>
-                <div className="pl-1">
-                    <h3 className="text-[20px] font-black leading-none mb-1" style={{ color: isDarkMode ? '#4BFF94' : '#0A3D24' }}>
-                       Rs. {totalRevenue.toLocaleString()}
-                    </h3>
-                    <p className="text-[9px] font-bold text-[#4BFF94] flex items-center gap-0.5">
-                        <TrendingUp size={10} /> 12% zyada
-                    </p>
+        {/* ── SUMMARY CARDS ── */}
+        <div className="px-5 mt-4 grid grid-cols-2 gap-2">
+            {[
+                { label: 'Revenue', val: totalRevenue, color: '#4BFF94', icon: TrendingUp },
+                { label: 'Expenses', val: totalExpense, color: '#FF5252', icon: TrendingDown },
+                { label: 'Net Profit', val: netProfit, color: isDarkMode ? '#4BFF94' : '#0A3D24', icon: ArrowUpRight },
+                { label: 'Udhaar', val: udhaarPending, color: '#FB923C', icon: AlertTriangle }
+            ].map((card, i) => (
+                <div key={i} className="rounded-2xl p-4 shadow-sm border border-border bg-card relative overflow-hidden h-[90px] flex flex-col justify-center">
+                    <div className="absolute left-0 top-0 bottom-0 w-1" style={{ backgroundColor: card.color }} />
+                    <p className="text-[9px] font-black text-text-muted uppercase tracking-widest mb-1">{card.label}</p>
+                    <h3 className="text-[17px] font-black tabular-nums" style={{ color: card.color }}>Rs. {card.val.toLocaleString()}</h3>
                 </div>
-            </div>
-            
-            {/* Expenses */}
-            <div className="rounded-[1.25rem] p-4 shadow-sm border flex flex-col justify-between h-[100px] relative overflow-hidden transition-colors" style={{ backgroundColor: colors.card, borderColor: colors.border }}>
-                <div className="absolute left-0 top-0 bottom-0 w-1 bg-red-500" />
-                <p className="text-[11px] font-bold opacity-80 pl-1" style={{ color: colors.sub }}>Total Expenses</p>
-                <div className="pl-1">
-                    <h3 className="text-[20px] font-black leading-none mb-1" style={{ color: isDarkMode ? '#FF5252' : '#0A3D24' }}>
-                        Rs. {totalExpense.toLocaleString()}
-                    </h3>
-                    <p className="text-[9px] font-bold text-red-500 flex items-center gap-0.5">
-                        <TrendingDown size={10} /> 5% kam
-                    </p>
-                </div>
-            </div>
-
-            {/* Gross Profit */}
-            <div className="rounded-[1.25rem] p-4 shadow-sm border flex flex-col justify-between h-[100px] relative overflow-hidden transition-colors" style={{ backgroundColor: colors.card, borderColor: colors.border }}>
-                <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#0A3D24] dark:bg-[#00C853]" />
-                <p className="text-[11px] font-bold opacity-80 pl-1" style={{ color: colors.sub }}>Gross Profit (Sales - Cost)</p>
-                <div className="pl-1">
-                    <h3 className="text-[20px] font-black leading-none mb-1" style={{ color: colors.text }}>
-                        Rs. {grossProfit.toLocaleString()}
-                    </h3>
-                    {showCogsWarning ? (
-                       <p className="text-[8px] font-black text-orange-500 flex items-center gap-0.5 leading-tight pr-2">
-                          <AlertTriangle size={8} /> Cost missing
-                       </p>
-                    ) : (
-                        <p className="text-[9px] font-bold flex items-center gap-0.5 leading-tight pr-2" style={{ color: colors.sub }}>
-                            <ArrowUpRight size={10} /> Progress
-                        </p>
-                    )}
-                </div>
-            </div>
-
-            {/* Udhaar Pending */}
-            <div className="rounded-[1.25rem] p-4 shadow-sm border flex flex-col justify-between h-[100px] relative overflow-hidden transition-colors" style={{ backgroundColor: colors.card, borderColor: colors.border }}>
-                <div className="absolute left-0 top-0 bottom-0 w-1 bg-orange-400" />
-                <p className="text-[11px] font-bold opacity-80 pl-1" style={{ color: colors.sub }}>Udhaar Pending</p>
-                <div className="pl-1">
-                    <h3 className="text-[20px] font-black leading-none mb-1" style={{ color: isDarkMode ? '#FFB74D' : '#0A3D24' }}>
-                        Rs. {udhaarPending.toLocaleString()}
-                    </h3>
-                    <p className="text-[9px] font-bold text-orange-400 flex items-center gap-0.5">
-                        <AlertTriangle size={8} className="fill-orange-400 text-white" /> {debtorsCount} Debtors
-                    </p>
-                </div>
-            </div>
+            ))}
         </div>
 
-        {/* ── CASH FLOW CHART ── */}
-        <div className="px-5 mt-8">
-            <div className="flex items-center justify-between mb-4">
-                <h2 className="text-[16px] font-black tracking-tight" style={{ color: colors.text }}>Cash Flow Analysis</h2>
-                <div className="flex gap-2 items-center">
-                    <div className="flex items-center gap-1"><div className="w-2 h-2 bg-[#4BFF94] rounded-sm" /><span className="text-[9px] font-bold" style={{ color: colors.sub }}>Income</span></div>
-                    <div className="flex items-center gap-1"><div className="w-2 h-2 bg-red-500 rounded-sm" /><span className="text-[9px] font-bold" style={{ color: colors.sub }}>Expense</span></div>
-                </div>
-            </div>
-            <div className="h-44 w-full relative flex justify-center">
-                <LineChart width={chartWidth} height={176} data={flowData} margin={{ top: 5, right: 0, left: -20, bottom: 0 }}>
+        {/* ── CASH FLOW ── */}
+        <div className="px-5 mt-6">
+            <h2 className="text-[14px] font-black tracking-widest uppercase mb-4 opacity-40">Cash Flow</h2>
+            <div className="h-40 w-full flex justify-center">
+                <LineChart width={chartWidth} height={160} data={flowData} margin={{ top: 5, right: 0, left: -20, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDarkMode ? '#222' : '#f0f0f0'} />
-                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: colors.sub, fontWeight: 'bold' }} />
-                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: colors.sub, fontWeight: 'bold' }} tickFormatter={(val) => val === 0 ? '' : val >= 1000 ? `${val / 1000}K` : val} />
+                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 8, fill: colors.sub, fontWeight: '900' }} />
+                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 8, fill: colors.sub, fontWeight: '900' }} />
                     <Line type="monotone" dataKey="income" stroke="#4BFF94" strokeWidth={3} dot={false} />
-                    <Line type="monotone" dataKey="expense" stroke="#ef4444" strokeWidth={3} dot={false} strokeDasharray="5 5" />
+                    <Line type="monotone" dataKey="expense" stroke="#ef4444" strokeWidth={2} dot={false} strokeDasharray="4 4" />
                 </LineChart>
             </div>
         </div>
 
-        {/* ── TOP 5 BEST SELLING ── */}
-        <div className="px-5 mt-10">
-            <h2 className="text-[16px] font-black tracking-tight mb-4" style={{ color: colors.text }}>Top 5 Best Selling</h2>
-            <div className="space-y-3">
-                {bestSelling.map((item, idx) => (
-                    <div key={idx} className="rounded-[1rem] p-4 flex items-center justify-between shadow-sm border transition-colors" style={{ backgroundColor: colors.card, borderColor: colors.border }}>
-                        <div className="flex items-center gap-4">
-                            <span className="text-[12px] font-black italic" style={{ color: isDarkMode ? '#00E676' : '#0A3D24' }}>#{idx + 1}</span>
-                            <span className="text-[13px] font-bold leading-none" style={{ color: colors.text }}>{item.name}</span>
+        <div className="grid grid-cols-1 gap-8 mt-8 pb-32">
+            {/* BEST SELLING */}
+            <div className="px-5">
+                <h2 className="text-[12px] font-black tracking-widest uppercase mb-4 opacity-40">Top Performers</h2>
+                <div className="space-y-2">
+                    {bestSelling.map((item, idx) => (
+                        <div key={idx} className="rounded-xl p-3 flex items-center justify-between border border-border bg-card">
+                            <span className="text-[10px] font-black text-primary"># {idx + 1}</span>
+                            <span className="text-[12px] font-bold flex-1 px-3 truncate">{item.name}</span>
+                            <span className="text-[12px] font-black text-primary">Rs.{item.rev.toLocaleString()}</span>
                         </div>
-                        <div className="text-right">
-                            <p className="text-[13px] font-black leading-none mb-1" style={{ color: isDarkMode ? '#00E676' : '#0A3D24' }}>Rs.{item.rev.toLocaleString()}</p>
-                            <p className="text-[9px] font-bold leading-none" style={{ color: colors.sub }}>{item.qty} Units</p>
+                    ))}
+                </div>
+            </div>
+
+            {/* DEBTORS */}
+            <div className="px-5">
+                <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-[12px] font-black tracking-widest uppercase opacity-40">Top Debtors</h2>
+                    <button className="text-[9px] font-black uppercase text-primary border border-primary/20 px-3 py-1 rounded-lg">Remind All</button>
+                </div>
+                <div className="space-y-1">
+                    {topDebtors.map((deb, idx) => (
+                        <div key={idx} className="p-3.5 flex items-center justify-between rounded-xl border border-border bg-card">
+                            <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-black text-[10px]">{deb.customerName[0]}</div>
+                                <span className="text-[12px] font-bold">{deb.customerName}</span>
+                            </div>
+                            <span className="text-[13px] font-black text-red-500">Rs.{deb.amount.toLocaleString()}</span>
                         </div>
-                    </div>
-                ))}
+                    ))}
+                </div>
             </div>
         </div>
 
-        {/* ── TOP 5 DEBTORS ── */}
-        <div className="px-5 mt-10 mb-8">
-            <div className="flex items-center justify-between mb-4">
-                <h2 className="text-[16px] font-black tracking-tight" style={{ color: colors.text }}>Top 5 Debtors</h2>
-                <button className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full shadow-sm active:scale-95 transition-transform ${isDarkMode ? 'bg-[#00E676] text-black' : 'bg-[#0A3D24] text-white'}`}>
-                    <Bell size={12} strokeWidth={3} />
-                    <span className="text-[10px] font-bold">Remind All</span>
-                </button>
-            </div>
-            
-            <div className="space-y-0.5">
-                {topDebtors.map((deb, idx) => {
-                    const initials = deb.customerName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
-                    return (
-                        <div key={idx} className="p-4 flex items-center justify-between last:border-0 rounded-xl mb-1 shadow-sm border transition-colors" style={{ backgroundColor: colors.card, borderColor: colors.border }}>
-                            <div className="flex items-center gap-4">
-                                <div className="w-10 h-10 rounded-full flex items-center justify-center font-black text-[13px] shadow-sm" style={{ backgroundColor: isDarkMode ? '#1A3D24' : '#E2FFED', color: isDarkMode ? '#4BFF94' : '#0A3D24' }}>
-                                    {initials}
-                                </div>
-                                <div className="flex flex-col">
-                                    <span className="text-[13px] font-bold leading-none mb-1.5" style={{ color: colors.text }}>{deb.customerName}</span>
-                                    <span className="text-[9px] font-bold text-gray-400 leading-none">Pending Payment</span>
-                                </div>
-                            </div>
-                            <div className="text-right flex flex-col items-end">
-                                <p className="text-[14px] font-black leading-none mb-1.5" style={{ color: isDarkMode ? '#4BFF94' : '#0A3D24' }}>Rs.{deb.amount.toLocaleString()}</p>
-                                <button className="text-[8px] font-black uppercase tracking-widest leading-none active:opacity-50 transition-opacity" style={{ color: isDarkMode ? '#4BFF94' : '#0A3D24' }}>
-                                    View Ledger
-                                </button>
-                            </div>
-                        </div>
-                    );
-                })}
-            </div>
-        </div>
-
-        {/* ── FLOATING DOWNLOAD BUTTONS ── */}
-        <div className="fixed bottom-32 left-0 right-0 px-4 flex items-center justify-center gap-3 w-full max-w-md mx-auto pointer-events-none z-[90]">
+        {/* COMPACT FLOATING DOWNLOAD (EXCEL REMOVED) */}
+        <div className="fixed bottom-32 left-0 right-0 px-6 z-[90] pointer-events-none">
             <button 
                 onClick={exportToPDF}
-                className="flex-1 bg-white border border-red-100 shadow-[0_8px_30px_rgba(0,0,0,0.08)] dark:bg-[#1A1111] dark:border-red-900/30 rounded-2xl py-3.5 flex items-center gap-2 justify-center pointer-events-auto active:scale-95 transition-all text-red-600 font-black text-[12px] uppercase tracking-wide"
+                className="w-full max-w-[200px] mx-auto bg-primary text-black shadow-2xl rounded-2xl py-4 flex items-center gap-3 justify-center pointer-events-auto active:scale-95 transition-all font-black text-[12px] uppercase tracking-widest border-4 border-white dark:border-[#0A0A0A]"
             >
-                <FileText size={16} />
-                <span>PDF Download</span>
+                <FileText size={18} />
+                <span>Download Report</span>
             </button>
         </div>
-
       </div>
     </PageTransition>
   );

@@ -307,13 +307,7 @@ export const Settings: React.FC = () => {
                         <Toggle active={isDarkMode} onClick={() => setMode(isDarkMode ? 'light' : 'dark')} />
                     </div>
 
-                    <div className="space-y-2.5">
-                        <p className="text-[9px] font-black text-text-muted uppercase tracking-widest ml-1">{t('language')}</p>
-                        <div className="flex gap-2 p-1 bg-background rounded-xl border border-border/60">
-                            <button onClick={() => setLanguage('English')} className={`flex-1 py-2.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${language === 'English' ? 'bg-[#0A3D24] dark:bg-[#4BFF94] text-white dark:text-[#0A3D24] shadow-lg' : 'text-text-muted opacity-40'}`}>EN</button>
-                            <button onClick={() => setLanguage('Urdu')} className={`flex-1 py-2.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${language === 'Urdu' ? 'bg-[#0A3D24] dark:bg-[#4BFF94] text-white dark:text-[#0A3D24] shadow-lg' : 'text-text-muted opacity-40'}`}>UR</button>
-                        </div>
-                    </div>
+
                 </div>
             </div>
 

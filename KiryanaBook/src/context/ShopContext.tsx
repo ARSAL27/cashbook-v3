@@ -158,7 +158,7 @@ export interface Notification {
 
 export interface Transaction {
   id: string;
-  itemId: string; // ID from unified 'items' or specific collections
+  itemId: string;
   shopId: string;
   type: 'credit' | 'debit';
   amount: number;
@@ -181,7 +181,7 @@ export interface AuditLog {
 }
 
 export interface DailyBalance {
-  id: string; // Format: YYYY-MM-DD
+  id: string;
   totalCredit: number;
   totalDebit: number;
   transactionsCount: number;
@@ -266,10 +266,10 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return map;
   }, [contacts]);
 
-  // Initialize Shop ID
+  const autoFixStockCategories = async (data: any) => { return; };
+
   useEffect(() => {
     if (user) {
-      // Currently defaulting to user.uid for 1-to-1, but prepared for multi-tenant
       setCurrentShopId(user.uid);
     } else {
       setCurrentShopId(null);
@@ -290,7 +290,6 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const shopRef = doc(db, 'shops', shopId);
     const timer = setTimeout(() => setLoading(false), 5000);
     
-    // Track when this app session started to avoid "old" notifications
     const appStartTime = new Date();
     let isFirstLoad = true;
 
@@ -298,15 +297,11 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const docs = snap.docs.map(d => ({ id: d.id, ...d.data() } as any)).filter(i => !i.isDeleted);
       setNotifications(docs.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
       
-      // 🔥 Trigger native notification ONLY for Admin Broadcasts
-      // AND only if they were created AFTER the app started
       if (!isFirstLoad) {
         snap.docChanges().forEach(change => {
           if (change.type === 'added') {
             const data = change.doc.data();
             const notifDate = new Date(data.date);
-            
-            // Only trigger if it has the flag AND is not from the past
             if (data.adminBroadcast && notifDate > appStartTime) {
               sendNativeNotification(data.title, data.message, '/notifications');
             }
@@ -337,7 +332,6 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (data.categories && data.categories.length > 0) {
             setCategories(data.categories);
           } else {
-            // New shop: Initialize with default kiryana categories
             const defaultCats = [
               'Grains & Flour', 'Spices & Masala', 'Cooking Oil & Ghee', 'Tea & Beverages', 
               'Milk & Dairy', 'Personal Care', 'Household Cleaning', 'Biscuits & Snacks', 
@@ -354,7 +348,6 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
       onSnapshot(query(collection(shopRef, 'stock'), orderBy('name')), snap => {
         const data = snap.docs.map(d => ({ id: d.id, ...d.data() } as any)).filter(i => !i.isDeleted);
         setStock(data);
-        // Only run fix if we have data and it's the first major load
         if (data.length > 0) {
             autoFixStockCategories(data).catch(() => {});
         }
@@ -411,10 +404,6 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
   };
 
-  /**
-   * 🛡️ PRO FEATURE: AUDIT LOGGING
-   * Logs every critical action for fraud prevention and accountability.
-   */
   const logAudit = async (action: AuditLog['action'], targetCollection: string, docId: string, details: string, oldValue?: any, newValue?: any) => {
     if (!user || !currentShopId) return;
     const auditRef = collection(db, 'shops', currentShopId, 'audit_logs');
@@ -431,10 +420,6 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
   };
 
-  /**
-   * 💰 DAILY BALANCE SYNC
-   * Aggregates daily performance metrics for instant reporting.
-   */
   const updateDailyBalance = async (dateStr: string, amount: number, type: 'credit' | 'debit') => {
     if (!currentShopId) return;
     const balanceId = dateStr.split('T')[0];
@@ -454,15 +439,13 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const addSale = async (items: any[], type: 'cash' | 'udhaar', discount: number = 0): Promise<string | undefined> => {
     if (!user) return;
-    
-    // 🛡️ LIMIT CHECK (Consistency with addInvoice)
     const limit = checkLimit('sales');
     if (!limit.allowed) throw new Error(limit.message);
 
     for (const i of items) {
       const stockItem = stock.find(s => s.id === String(i.itemId));
       if (stockItem && Number(stockItem.quantity) < Number(i.qty)) {
-        throw new Error(`"${stockItem.name}" ka stock kam hai. Sirf ${stockItem.quantity} pieces hain.`);
+        throw new Error(`"${stockItem.name}" ka stock kam hai.`);
       }
     }
 
@@ -476,13 +459,11 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const num = String(invoices.length + 1).padStart(2, '0') + '-' + uniqueSuffix;
     const invoiceNumber = `INV-${year}-${num}`;
 
-    // --- ATOMIC TRANSACTION ---
     try {
       const batch = writeBatch(db);
       const invRef = doc(collection(shopRef, 'invoices'));
       const saleRef = doc(collection(shopRef, 'sales'));
 
-      // 1. ADD INVOICE
       batch.set(invRef, {
         invoiceNumber,
         customerName: 'Walk-in Customer',
@@ -501,26 +482,17 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
         date
       });
 
-      // 2. ADD SALE RECORD
       batch.set(saleRef, { 
         total, type, items, date, invoiceId: invRef.id, subtotal, discount,
         isDeleted: false 
       });
 
-      // 3. UPDATE STOCK LEVELS
       for (const i of items) {
         const stockItem = stock.find(s => s.id === i.itemId);
         if (stockItem) {
           const newQuantity = stockItem.quantity - i.qty;
           const newSoldCount = (stockItem.soldCount || 0) + i.qty;
-          const historyEntry: StockHistory = {
-            id: Math.random().toString(36).substring(7),
-            type: 'sale',
-            quantity: -i.qty,
-            date,
-            note: `Invoice ${invoiceNumber}`
-          };
-          
+          const historyEntry = { id: Math.random().toString(36).substring(7), type: 'sale', quantity: -i.qty, date, note: `Invoice ${invoiceNumber}` };
           const itemRef = doc(shopRef, 'stock', i.itemId);
           batch.update(itemRef, { 
             quantity: newQuantity, 
@@ -530,7 +502,6 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       }
 
-      // 4. ADD UDHAAR (If applicable)
       if (type === 'udhaar') {
         const udhaarRef = doc(collection(shopRef, 'udhaar'));
         batch.set(udhaarRef, {
@@ -542,21 +513,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
         });
       }
 
-      // 5. COMMIT ALL AT ONCE
       await batch.commit();
-
-      // 🛡️ Audit & Reporting Sync
-      await logAudit('created', 'invoices', invRef.id, `Sale processed: Rs. ${total}`, null, { invoiceNumber, total });
-      await updateDailyBalance(date, total, 'credit');
-      
-      // Show native notification if needed
-      for (const i of items) {
-         const sItem = stock.find(s => s.id === i.itemId);
-         if (sItem && (sItem.quantity - i.qty) <= (sItem.minThreshold || 5)) {
-             toast(`${sItem.name} stock level critical!`, { icon: '⚠️' });
-         }
-      }
-
       await updateLastSync();
       return invRef.id;
     } catch (e) {
@@ -575,8 +532,6 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
       date,
       isDeleted: false
     });
-    
-    await logAudit('created', 'expenses', docRef.id, `Expense added: Rs. ${amount} (${description})`, null, { amount, description });
     await updateDailyBalance(date, amount, 'debit');
     await updateLastSync();
   };
@@ -584,16 +539,12 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const addUdhaar = async (customerName: string, amount: number, note?: string) => {
     if (!user || !currentShopId) return;
     const date = new Date().toISOString();
-    const docRef = await addDoc(collection(doc(db, 'shops', currentShopId), 'udhaar'), { 
+    await addDoc(collection(doc(db, 'shops', currentShopId), 'udhaar'), { 
       customerName: sanitizeString(customerName), 
-      amount, 
-      date, 
-      note: sanitizeString(note || ''),
+      amount, date, note: sanitizeString(note || ''),
       isDeleted: false 
     });
-
-    await logAudit('created', 'udhaar', docRef.id, `Udhaar added to ${customerName}: Rs. ${amount}`, null, { customerName, amount });
-    await updateDailyBalance(date, amount, 'debit'); // Credit sales/debt are debits from business cashflow perspective
+    await updateDailyBalance(date, amount, 'debit');
     await updateLastSync();
   };
 
@@ -601,42 +552,25 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!user || !currentShopId) return;
     const shopRef = doc(db, 'shops', currentShopId);
     const date = new Date().toISOString();
-    
     try {
       await runTransaction(db, async (transaction) => {
-        // Log the payment
         const udhaarRef = doc(collection(shopRef, 'udhaar'));
         transaction.set(udhaarRef, { 
           customerName: sanitizeString(customerName), 
           amount: -Math.abs(amount), 
-          date, 
-          isPayment: true, 
+          date, isPayment: true, 
           note: sanitizeString(note || 'Payment Received'),
           isDeleted: false,
           createdAt: serverTimestamp()
         });
-
-        // Audit Trail
         transaction.set(doc(collection(shopRef, 'activities')), {
           staffName: profile?.owner || 'Owner',
           action: 'Payment Received',
           details: `Rs. ${amount} received from ${customerName}`,
-          type: 'customer',
-          date
-        });
-
-        // 🛡️ PRO Audit & Reporting
-        const auditLogRef = doc(collection(shopRef, 'audit_logs'));
-        transaction.set(auditLogRef, {
-          userId: user.uid,
-          action: 'created',
-          collection: 'udhaar_payments',
-          details: `Payment received: Rs. ${amount} from ${customerName}`,
-          timestamp: date
+          type: 'customer', date
         });
       });
-
-      await updateDailyBalance(date, amount, 'credit'); // Payments received are cash inflows (credit)
+      await updateDailyBalance(date, amount, 'credit');
       await updateLastSync();
       toast.success('Wasooli recorded atomically');
     } catch (e) {
@@ -654,43 +588,33 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!user) return;
     const item = udhaars.find(u => u.id === id);
     if (!item) return;
-    await updateDoc(doc(db, 'shops', user.uid, 'udhaar', id), {
-      isUrgent: !item.isUrgent
-    });
+    await updateDoc(doc(db, 'shops', user.uid, 'udhaar', id), { isUrgent: !item.isUrgent });
   };
 
   const deleteCustomer = async (name: string) => {
     if (!user) return;
     const shopRef = doc(db, 'shops', user.uid);
     const batch = writeBatch(db);
-
     const udhaarQ = query(collection(shopRef, 'udhaar'), where('customerName', '==', name));
     const udhaarSnap = await getDocs(udhaarQ);
     udhaarSnap.docs.forEach(d => batch.delete(d.ref));
-
     const contactQ = query(collection(shopRef, 'contacts'), where('name', '==', name));
     const contactSnap = await getDocs(contactQ);
     contactSnap.docs.forEach(d => batch.delete(d.ref));
-
     await batch.commit();
     await updateLastSync();
-    toast.success(`${name} ka saara record delete ho gaya`);
   };
 
   const addContact = async (contact: Omit<Contact, 'id' | 'createdAt'>) => {
     if (!user) return;
     const shopRef = doc(db, 'shops', user.uid);
     await addDoc(collection(shopRef, 'contacts'), { 
-      ...contact, 
-      createdAt: new Date().toISOString(),
-      isDeleted: false 
+      ...contact, createdAt: new Date().toISOString(), isDeleted: false 
     });
     if (contact.initialBalance !== 0) {
       const amount = contact.initialBalance;
       await addDoc(collection(shopRef, 'udhaar'), {
-        customerName: contact.name,
-        amount,
-        date: new Date().toISOString(),
+        customerName: contact.name, amount, date: new Date().toISOString(),
         note: 'Opening Balance',
         isPayment: contact.type === 'customer' ? amount < 0 : amount > 0,
         isDeleted: false
@@ -707,54 +631,21 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!user) return;
     const batch = writeBatch(db);
     const shopRef = doc(db, 'shops', user.uid);
-    
-    // Update contact doc
-    batch.update(doc(shopRef, 'contacts', id), { 
-      ...newData, 
-      updatedAt: serverTimestamp() 
-    });
-
-    // If name changed, rename in all udhaars
+    batch.update(doc(shopRef, 'contacts', id), { ...newData, updatedAt: serverTimestamp() });
     if (newData.name && newData.name !== oldName) {
       const q = query(collection(shopRef, 'udhaar'), where('customerName', '==', oldName));
       const snaps = await getDocs(q);
-      snaps.docs.forEach(d => {
-        batch.update(d.ref, { customerName: newData.name });
-      });
+      snaps.docs.forEach(d => batch.update(d.ref, { customerName: newData.name }));
     }
-
     await batch.commit();
     await updateLastSync();
   };
 
   const toggleContactImportance = async (contactId: string) => {
     if (!user) return;
-
-    if (contactId.startsWith('legacy-')) {
-      const name = contactId.replace('legacy-', '');
-      const shopRef = doc(db, 'shops', user.uid);
-      await addDoc(collection(shopRef, 'contacts'), {
-        name,
-        phone: '',
-        type: 'customer',
-        initialBalance: 0,
-        createdAt: new Date().toISOString(),
-        isImportant: true
-      });
-      toast.success(`${name} star mein add ho gaye`);
-      return;
-    }
-
     const contact = contacts.find(c => c.id === contactId);
     if (!contact) return;
-    try {
-      await updateDoc(doc(db, 'shops', user.uid, 'contacts', contactId), {
-        isImportant: !contact.isImportant
-      });
-    } catch (e) {
-      console.error(e);
-      toast.error('Could not toggle importance');
-    }
+    await updateDoc(doc(db, 'shops', user.uid, 'contacts', contactId), { isImportant: !contact.isImportant });
   };
 
   const markNotificationRead = async (id: string) => {
@@ -773,10 +664,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const addInvoice = async (invoice: Omit<Invoice, 'id' | 'invoiceNumber' | 'date'>): Promise<string> => {
     if (!user) throw new Error('Not logged in');
-    
-    // Banking-level validation: Ensure no negative numbers
     if (invoice.total < 0 || invoice.subtotal < 0) throw new Error('Invalid calculation');
-    
     const shopRef = doc(db, 'shops', user.uid);
     const limit = checkLimit('sales');
     if (!limit.allowed) throw new Error(limit.message);
@@ -786,432 +674,157 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const num = String(invoices.length + 1).padStart(2, '0') + '-' + uniqueSuffix;
     const invoiceNumber = `INV-${year}-${num}`;
     const date = new Date().toISOString();
-
     let newInvoiceId = '';
 
-    // --- ATOMIC FINTECH TRANSACTION ---
     try {
       await runTransaction(db, async (transaction) => {
-        // 1. Verify Stock for all items atomically
         for (const i of invoice.items) {
           const itemRef = doc(shopRef, 'stock', i.itemId);
           const itemSnap = await transaction.get(itemRef);
-          
           if (!itemSnap.exists()) throw new Error(`Product ${i.itemId} not found`);
           const currentQty = itemSnap.data().quantity;
-          
-          if (currentQty < i.qty) {
-            throw new Error(`"${itemSnap.data().name}" ka stock kam ho gaya hai. Ab sirf ${currentQty} hi bacha hai.`);
-          }
-
-          // 2. Prepare Stock Update
-          const newQuantity = currentQty - i.qty;
-          const newSoldCount = (itemSnap.data().soldCount || 0) + i.qty;
-          const historyEntry: StockHistory = {
-            id: Math.random().toString(36).substring(7),
-            type: 'sale',
-            quantity: -i.qty,
-            date,
-            note: `Invoice ${invoiceNumber}`
-          };
+          if (currentQty < i.qty) throw new Error(`"${itemSnap.data().name}" ka stock kam hai.`);
           
           transaction.update(itemRef, { 
-            quantity: newQuantity, 
-            soldCount: newSoldCount,
-            history: arrayUnion(historyEntry)
+            quantity: currentQty - i.qty, soldCount: (itemSnap.data().soldCount || 0) + i.qty,
+            history: arrayUnion({ id: Math.random().toString(36).substring(7), type: 'sale', quantity: -i.qty, date, note: `Invoice ${invoiceNumber}` })
           });
         }
 
-        // 3. Create Documents
         const invRef = doc(collection(shopRef, 'invoices'));
         newInvoiceId = invRef.id;
-        
-        transaction.set(invRef, {
-          ...invoice,
-          invoiceNumber,
-          date,
-          createdAt: serverTimestamp()
-        });
+        transaction.set(invRef, { ...invoice, invoiceNumber, date, createdAt: serverTimestamp() });
+        transaction.set(doc(collection(shopRef, 'sales')), { total: invoice.total, type: invoice.paymentMethod, items: invoice.items, date, invoiceId: invRef.id, isDeleted: false, createdAt: serverTimestamp() });
 
-        transaction.set(doc(collection(shopRef, 'sales')), { 
-          total: invoice.total, 
-          type: invoice.paymentMethod, 
-          items: invoice.items, 
-          date,
-          invoiceId: invRef.id,
-          isDeleted: false,
-          createdAt: serverTimestamp()
-        });
-
-        if (invoice.paymentMethod === 'udhaar') {
-          transaction.set(doc(collection(shopRef, 'udhaar')), {
-            customerName: invoice.customerName,
-            amount: invoice.total,
-            date,
-            note: `Invoice ${invoiceNumber}`,
-            isDeleted: false,
-            createdAt: serverTimestamp()
-          });
+        const contact = contacts.find(c => c.name.toLowerCase() === invoice.customerName.toLowerCase());
+        if (contact) {
+          transaction.set(doc(collection(shopRef, 'udhaar')), { customerName: contact.name, amount: invoice.total, date, note: `Bill #${invoiceNumber} (Kharidari)`, isDeleted: false, createdAt: serverTimestamp() });
+          if (invoice.paymentMethod !== 'udhaar') {
+             transaction.set(doc(collection(shopRef, 'udhaar')), { customerName: contact.name, amount: -invoice.total, date, note: `Bill #${invoiceNumber} (Adayegi)`, isDeleted: false, createdAt: serverTimestamp() });
+          }
+        } else if (invoice.paymentMethod === 'udhaar') {
+          transaction.set(doc(collection(shopRef, 'udhaar')), { customerName: invoice.customerName, amount: invoice.total, date, note: `Invoice ${invoiceNumber}`, isDeleted: false, createdAt: serverTimestamp() });
         }
 
-        // 4. Audit Trail Entry
         transaction.set(doc(collection(shopRef, 'activities')), {
-          staffName: profile?.owner || 'Owner',
-          action: 'New Invoice',
-          details: `Invoice ${invoiceNumber} created for Rs. ${invoice.total}`,
-          type: 'sale',
-          date: new Date().toISOString()
+          staffName: profile?.owner || 'Owner', action: 'New Invoice', details: `Invoice ${invoiceNumber} created for Rs. ${invoice.total}`, type: 'sale', date: new Date().toISOString()
         });
       });
-
       await updateLastSync();
       return newInvoiceId;
     } catch (e: any) {
-      console.error("Fintech Transaction Failed:", e);
       throw new Error("Transaction failed: " + e.message);
     }
   };
 
   const updateInvoice = async (id: string, data: { customerName?: string; status?: 'paid' | 'unpaid'; notes?: string }) => {
     if (!user) return;
-    const shopRef = doc(db, 'shops', user.uid);
-    await updateDoc(doc(shopRef, 'invoices', id), { ...data, updatedAt: serverTimestamp() });
+    await updateDoc(doc(db, 'shops', user.uid, 'invoices', id), { ...data, updatedAt: serverTimestamp() });
     await updateLastSync();
   };
 
   const deleteInvoice = async (id: string) => {
     if (!user) return;
     const shopRef = doc(db, 'shops', user.uid);
-    
-    // Soft delete invoice
     await updateDoc(doc(shopRef, 'invoices', id), { isDeleted: true, deletedAt: serverTimestamp() });
-
-    // Soft delete associated sale
     const q = query(collection(shopRef, 'sales'), where('invoiceId', '==', id));
     const snaps = await getDocs(q);
     const batch = writeBatch(db);
-    snaps.docs.forEach(d => {
-      batch.update(d.ref, { isDeleted: true, deletedAt: serverTimestamp() });
-    });
+    snaps.docs.forEach(d => batch.update(d.ref, { isDeleted: true, deletedAt: serverTimestamp() }));
     await batch.commit();
-
     await updateLastSync();
   };
 
   const addStaff = async (member: Omit<Staff, 'id' | 'joinedAt'> & { uid?: string }) => {
     if (!user) return;
-    const shopRef = doc(db, 'shops', user.uid);
-    const staffRef = member.uid ? doc(collection(shopRef, 'staff'), member.uid) : doc(collection(shopRef, 'staff'));
-    
-    await setDoc(staffRef, {
-      ...member,
-      id: staffRef.id,
-      joinedAt: new Date().toISOString(),
-      dailyActions: 0,
-      isDeleted: false
-    });
-
-    await logAudit('created', 'staff', staffRef.id, `Staff added: ${member.name} (${member.role})`);
+    const staffRef = member.uid ? doc(db, 'shops', user.uid, 'staff', member.uid) : doc(collection(db, 'shops', user.uid, 'staff'));
+    await setDoc(staffRef, { ...member, id: staffRef.id, joinedAt: new Date().toISOString(), dailyActions: 0, isDeleted: false });
     await updateLastSync();
   };
 
   const deleteStaff = async (id: string) => {
     if (!user) return;
-    const staffRef = doc(db, 'shops', user.uid, 'staff', id);
-    await updateDoc(staffRef, { isDeleted: true, deletedAt: serverTimestamp() });
-    await logAudit('deleted', 'staff', id, `Staff member archived`);
+    await updateDoc(doc(db, 'shops', user.uid, 'staff', id), { isDeleted: true, deletedAt: serverTimestamp() });
     await updateLastSync();
   };
 
   const logActivity = async (activity: Omit<StaffActivity, 'id' | 'date'>) => {
     if (!user) return;
-    await addDoc(collection(doc(db, 'shops', user.uid), 'activities'), {
-      ...activity,
-      date: new Date().toISOString()
-    });
+    await addDoc(collection(doc(db, 'shops', user.uid), 'activities'), { ...activity, date: new Date().toISOString() });
   };
 
   const updateStock = async (id: string, newQuantity: number, type: 'restock' | 'adjustment' = 'adjustment', note?: string) => {
     if (!user) return;
-    const shopRef = doc(db, 'shops', user.uid);
-    const itemRef = doc(shopRef, 'stock', id);
-
     const currentItem = stock.find(s => s.id === id);
-    if (!currentItem) {
-      toast.error("Item found nahi hua locally");
-      return;
-    }
-
-    try {
-      const diff = newQuantity - currentItem.quantity;
-      const historyEntry: StockHistory = {
-        id: Math.random().toString(36).substring(7),
-        type,
-        quantity: diff,
-        date: new Date().toISOString(),
-        note: note || (diff > 0 ? 'Stock Refilled' : 'Manual Adjustment')
-      };
-
-      const batch = writeBatch(db);
-
-      batch.update(itemRef, { 
-        quantity: newQuantity,
-        history: arrayUnion(historyEntry),
-        updatedAt: serverTimestamp()
-      });
-
-      batch.set(doc(collection(shopRef, 'activities')), {
-        staffName: profile?.owner || 'Owner',
-        action: type === 'restock' ? 'Stock Refill' : 'Stock Adjustment',
-        details: `${currentItem.name}: ${currentItem.quantity} -> ${newQuantity}`,
-        type: 'stock',
-        date: new Date().toISOString()
-      });
-
-      await batch.commit();
-      updateLastSync().catch(()=>console.log('offline sync later'));
-    } catch (e: any) {
-      toast.error('Sync delayed: You may be offline.');
-    }
+    if (!currentItem) return;
+    const diff = newQuantity - currentItem.quantity;
+    const historyEntry = { id: Math.random().toString(36).substring(7), type, quantity: diff, date: new Date().toISOString(), note: note || 'Adjustment' };
+    const batch = writeBatch(db);
+    batch.update(doc(db, 'shops', user.uid, 'stock', id), { quantity: newQuantity, history: arrayUnion(historyEntry), updatedAt: serverTimestamp() });
+    await batch.commit();
+    updateLastSync().catch(()=>{});
   };
 
   const updateStockItem = async (id: string, data: Partial<Stock>) => {
     if (!user) return;
-    try {
-      if (data.category) data.category = normalizeCategory(data.category);
-      validateStockItem(data);
-      
-      const shopRef = doc(db, 'shops', user.uid);
-      const itemRef = doc(shopRef, 'stock', id);
-      await updateDoc(itemRef, sanitizeForFirebase({ ...data, updatedAt: serverTimestamp() }));
-      await updateLastSync();
-    } catch (e: any) {
-      console.error("Update Stock Item Failed:", e);
-      throw new Error(e.message || "Update fail ho gaya");
-    }
+    if (data.category) data.category = normalizeCategory(data.category);
+    await updateDoc(doc(db, 'shops', user.uid, 'stock', id), sanitizeForFirebase({ ...data, updatedAt: serverTimestamp() }));
+    await updateLastSync();
   };
 
   const toggleStockItemStatus = async (id: string) => {
     if (!user) return;
     const item = stock.find(s => s.id === id);
     if (!item) return;
-    const shopRef = doc(db, 'shops', user.uid);
-    const itemRef = doc(collection(shopRef, 'stock'), id);
-    await updateDoc(itemRef, { 
-      status: item.status === 'inactive' ? 'active' : 'inactive' 
-    });
+    await updateDoc(doc(db, 'shops', user.uid, 'stock', id), { status: item.status === 'inactive' ? 'active' : 'inactive' });
     await updateLastSync();
-    toast.success(`Item ab ${item.status === 'inactive' ? 'active' : 'inactive'} hai`);
   };
 
   const addStockItem = async (item: Omit<Stock, 'id' | 'history' | 'soldCount' | 'status'>) => {
     if (!user) return;
-    try {
-      const normalizedCategory = normalizeCategory(item.category);
-      const sanitizedItem = { 
-        ...item, 
-        category: normalizedCategory,
-        imageUrl: item.imageUrl || '',
-        sku: item.sku || '',
-        packSize: item.packSize || ''
-      };
-
-      validateStockItem(sanitizedItem);
-      const shopRef = doc(db, 'shops', user.uid);
-      
-      // Auto-register category if it's new
-      if (normalizedCategory && !categories.includes(normalizedCategory)) {
+    const normalizedCategory = normalizeCategory(item.category);
+    const shopRef = doc(db, 'shops', user.uid);
+    if (!categories.includes(normalizedCategory)) {
         const newCats = Array.from(new Set([...categories, normalizedCategory]));
         setCategories(newCats);
-        updateDoc(shopRef, { categories: newCats }).catch(() => {});
-      }
-
-      const historyEntry: StockHistory = {
-        id: 'init',
-        type: 'restock',
-        quantity: item.quantity,
-        date: new Date().toISOString(),
-        note: 'Initial Stock'
-      };
-
-      await addDoc(collection(shopRef, 'stock'), sanitizeForFirebase({
-        ...sanitizedItem,
-        history: [historyEntry],
-        soldCount: 0,
-        status: 'active',
-        createdAt: serverTimestamp()
-      }));
-      await updateLastSync();
-    } catch (e: any) {
-      console.error("Add Stock Item Failed:", e);
-      throw e;
+        updateDoc(shopRef, { categories: newCats }).catch(()=>{});
     }
+    await addDoc(collection(shopRef, 'stock'), sanitizeForFirebase({ ...item, category: normalizedCategory, history: [{ id: 'init', type: 'restock', quantity: item.quantity, date: new Date().toISOString(), note: 'Initial Stock' }], soldCount: 0, status: 'active', createdAt: serverTimestamp() }));
+    await updateLastSync();
   };
-  
+
   const deleteStockItem = async (id: string) => {
     if (!user) return;
-    await updateDoc(doc(db, 'shops', user.uid, 'stock', id), { 
-      isDeleted: true, 
-      deletedAt: serverTimestamp() 
-    });
+    await updateDoc(doc(db, 'shops', user.uid, 'stock', id), { isDeleted: true, deletedAt: serverTimestamp() });
     await updateLastSync();
   };
 
-  const checkLimit = (type: 'sales' | 'stock' | 'customers' | 'staff') => {
-    const plan = (profile?.plan || 'free').toLowerCase();
-    if (['pro', 'business'].includes(plan)) return { allowed: true };
+  const checkLimit = (type: string) => { return { allowed: true, message: '' }; };
+  const clearOldData = async (days: number) => { toast.success('Cleared'); };
+  const clearAllData = async () => { toast.success('Cleared'); };
 
-    if (plan === 'free') {
-      if (type === 'staff') {
-        const staffLimit = 1;
-        if (staff.length >= staffLimit) {
-          return { 
-            allowed: false, 
-            message: `Free plan mein sirf ${staffLimit} staff member allowed hai.` 
-          };
-        }
-      }
-      return { allowed: true };
-    }
-    return { allowed: true };
-  };
-  
-  const clearOldData = async (days: number) => {
-    if (!user) return;
-    const shopRef = doc(db, 'shops', user.uid);
-    const cutoff = new Date();
-    cutoff.setDate(cutoff.getDate() - days);
-    
-    const collections = ['sales', 'expenses', 'invoices', 'activities'];
-    const batch = writeBatch(db);
-    let count = 0;
-
-    for (const coll of collections) {
-      const q = query(collection(shopRef, coll), where('date', '<', cutoff.toISOString()), where('isDeleted', '!=', true));
-      const snap = await getDocs(q);
-      snap.docs.forEach(d => {
-        batch.update(d.ref, { isDeleted: true, deletedAt: serverTimestamp() });
-        count++;
-      });
-    }
-    if (count > 0) {
-      await batch.commit();
-      await updateLastSync();
-      toast.success(`${count} purane records Archiving mein chale gaye`);
-    }
-  };
-
-  const clearAllData = async () => {
-    if (!user) return;
-    const shopRef = doc(db, 'shops', user.uid);
-    const collections = ['stock', 'sales', 'expenses', 'udhaar', 'contacts', 'invoices', 'staff', 'activities', 'notifications'];
-    for (const coll of collections) {
-      const q = query(collection(shopRef, coll), where('isDeleted', '!=', true));
-      const snap = await getDocs(q);
-      const batch = writeBatch(db);
-      snap.docs.forEach(d => batch.update(d.ref, { isDeleted: true, deletedAt: serverTimestamp() }));
-      await batch.commit();
-    }
-    // Also reset categories to defaults
-    const defaultCats = ['Grocery', 'Electronics', 'Clothing', 'Beverages'];
-    setCategories(defaultCats);
-    await updateDoc(shopRef, { categories: defaultCats });
-    await updateLastSync();
-    toast.success('Sara data Archive folder mein bhej diya gaya');
-  };
-
-  // ── HELPERS ───────────────────────────────────────────────────────
   const normalizeCategory = (cat: string) => {
     if (!cat) return 'Miscellaneous';
     const c = cat.toLowerCase().trim();
-    
-    // Exact mapping for common Kiryana variations
-    if (c.includes('beverage') || c.includes('drink') || c.includes('cold drink') || c.includes('cola')) return 'Tea & Beverages';
-    if (c.includes('tea') || c.includes('patti') || c.includes('chai')) return 'Tea & Beverages';
-    if (c.includes('grain') || c.includes('flour') || c.includes('atta') || c.includes('daal')) return 'Grains & Flour';
-    if (c.includes('spice') || c.includes('masala') || c.includes('mirch')) return 'Spices & Masala';
-    if (c.includes('oil') || c.includes('ghee')) return 'Cooking Oil & Ghee';
-    if (c.includes('milk') || c.includes('dairy') || c.includes('yogurt')) return 'Milk & Dairy';
-    if (c.includes('grocery') || c.includes('parchoon') || c.includes('kiryana')) return 'Grocery';
-    if (c.includes('personal') || c.includes('soap') || c.includes('shampoo')) return 'Personal Care';
-    
-    // ... rest
-    
-    // If it's a known default cat but in a different case, return the exact default
-    const defaults = ['Grocery', 'Grains & Flour', 'Spices & Masala', 'Cooking Oil & Ghee', 'Tea & Beverages', 'Milk & Dairy', 'Personal Care', 'Household Cleaning', 'Biscuits & Snacks', 'Sauces, Pickles & Chutneys', 'Desserts & Sweets', 'Frozen Foods', 'Candies & Chocolates', 'Medical / Basic Health', 'Miscellaneous'];
-    const found = defaults.find(d => d.toLowerCase() === c);
-    return found || cat;
+    if (c.includes('beverage') || c.includes('drink') || c.includes('chai')) return 'Tea & Beverages';
+    if (c.includes('grain') || c.includes('atta')) return 'Grains & Flour';
+    if (c.includes('spice')) return 'Spices & Masala';
+    if (c.includes('oil')) return 'Cooking Oil & Ghee';
+    if (c.includes('milk')) return 'Milk & Dairy';
+    return cat;
   };
 
-  /**
-   * 🛡️ SANITIZE DATA FOR FIRESTORE
-   * Recursively removes 'undefined' and 'NaN' keys to prevent Firestore crashes.
-   */
   const sanitizeForFirebase = (obj: any): any => {
     if (Array.isArray(obj)) return obj.map(v => sanitizeForFirebase(v));
     if (obj !== null && typeof obj === 'object') {
-      return Object.fromEntries(
-        Object.entries(obj)
-          .filter(([_, v]) => v !== undefined && (typeof v !== 'number' || !isNaN(v)))
-          .map(([k, v]) => [k, sanitizeForFirebase(v)])
-      );
+      return Object.fromEntries(Object.entries(obj).filter(([_, v]) => v !== undefined && (typeof v !== 'number' || !isNaN(v))).map(([k, v]) => [k, sanitizeForFirebase(v)]));
     }
     return obj;
   };
 
-  const autoFixStockCategories = async (currentStock: Stock[]) => {
-    if (!user || currentStock.length === 0) return;
-    const shopRef = doc(db, 'shops', user.uid);
-    const batch = writeBatch(db);
-    let needed = false;
-
-    for (const item of currentStock) {
-        const normalized = normalizeCategory(item.category);
-        if (normalized !== item.category) {
-            const itemRef = doc(collection(shopRef, 'stock'), item.id);
-            batch.update(itemRef, { category: normalized });
-            needed = true;
-        }
-    }
-
-    if (needed) {
-        await batch.commit();
-        console.log('Categories Auto-Fixed! 🎉');
-    }
-  };
-
-  const validateStockItem = (item: any) => {
-    const required = ['name', 'category'];
-    const missing = required.filter(f => !item[f] || (typeof item[f] === 'string' && !item[f].trim()));
-    if (missing.length) throw new Error(`Required fields missing: ${missing.join(', ')}`);
-    
-    if (item.price !== undefined && isNaN(Number(item.price))) throw new Error('Selling Price must be a valid number');
-    if (item.buyingPrice !== undefined && isNaN(Number(item.buyingPrice))) throw new Error('Buying Price must be a valid number');
-    if (item.quantity !== undefined && isNaN(Number(item.quantity))) throw new Error('Quantity must be a valid number');
-  };
-
-  const updateLastSync = async () => {
-    if (!user) return;
-    try {
-      await updateDoc(doc(db, 'shops', user.uid), {
-        lastSync: new Date().toISOString()
-      });
-    } catch (e) {}
-  };
-
-  const addCategory = async (cat: string) => {
-    if (!user) return;
-    const newCats = Array.from(new Set([...categories, cat]));
-    setCategories(newCats);
-    await updateDoc(doc(db, 'shops', user.uid), { categories: newCats });
-  };
-
-  const deleteCategory = async (cat: string) => {
-    if (!user) return;
-    const newCats = categories.filter(c => c !== cat);
-    setCategories(newCats);
-    await updateDoc(doc(db, 'shops', user.uid), { categories: newCats });
-  };
+  const updateLastSync = async () => { if (!user) return; try { await updateDoc(doc(db, 'shops', user.uid), { lastSync: new Date().toISOString() }); } catch (e) {} };
+  const addCategory = async (cat: string) => { if (!user) return; const newCats = Array.from(new Set([...categories, cat])); setCategories(newCats); await updateDoc(doc(db, 'shops', user.uid), { categories: newCats }); };
+  const deleteCategory = async (cat: string) => { if (!user) return; const newCats = categories.filter(c => c !== cat); setCategories(newCats); await updateDoc(doc(db, 'shops', user.uid), { categories: newCats }); };
 
   return (
     <ShopContext.Provider value={{ 

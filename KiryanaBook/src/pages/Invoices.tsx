@@ -46,7 +46,6 @@ export const Invoices: React.FC = () => {
         (inv.items || []).some(it => it.name.toLowerCase().includes(search.toLowerCase()))
       );
       
-    // Always sort by Newest first
     results = [...results].sort((a, b) => {
       const dateA = new Date(a.date).getTime();
       const dateB = new Date(b.date).getTime();
@@ -55,12 +54,6 @@ export const Invoices: React.FC = () => {
     
     return results;
   }, [invoices, search, minPrice, maxPrice, dateFrom, dateTo]);
-
-  // Assuming checkPerms and setShowVoice are defined elsewhere or intended for a different component
-  // The provided snippet for useMemo was syntactically incorrect and contained logic typically for useEffect.
-  // I'm preserving the original useMemo structure and adding the event listener in a useEffect.
-
-
 
   const bg = isDarkMode ? '#0A0A0A' : '#F5F5F5';
   const card = isDarkMode ? '#141414' : '#FFFFFF';
@@ -76,12 +69,13 @@ export const Invoices: React.FC = () => {
   };
 
   return (
-    <PageTransition> <div className="w-full font-outfit max-w-md mx-auto relative " style={{ backgroundColor: bg }}>
+    <PageTransition> 
+      <div className="w-full font-outfit max-w-md mx-auto relative " style={{ backgroundColor: bg }}>
         
         <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
 
-        {/* HEADER */}
-        <div className="pt-16 pb-4 sticky top-0 z-40 transition-colors duration-300" style={{ backgroundColor: isDarkMode ? '#10251A' : '#0A3D24' }}>
+        {/* HEADER - COMPACTED SPACING */}
+        <div className="pt-10 pb-4 sticky top-0 z-40 transition-colors duration-300 shadow-sm" style={{ backgroundColor: isDarkMode ? '#10251A' : '#0A3D24' }}>
           <div className="px-5">
             <div className="flex items-center gap-3 mb-1">
                 <button 
@@ -91,8 +85,8 @@ export const Invoices: React.FC = () => {
                     <Menu size={18} />
                 </button>
                 <div className="flex-1">
-                   <p className="text-white/50 text-[10px] font-bold uppercase tracking-widest leading-none">
-                     Indus Ledger
+                   <p className="text-white/50 text-[10px] font-black uppercase tracking-widest leading-none">
+                     Standard Records
                    </p>
                 </div>
                 <button 
@@ -102,18 +96,17 @@ export const Invoices: React.FC = () => {
                   <img src={profile?.logoUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${profile?.name || 'U'}&backgroundColor=34d399`} alt="Avatar" className="w-full h-full object-cover" />
                 </button>
             </div>
-            <h1 className="text-white font-black text-[22px] tracking-tight">Purane Invoices</h1>
+            <h1 className="text-white font-black text-[22px] tracking-tight">Billing History</h1>
           </div>
 
-          {/* COMPACT SEARCH + FILTER TOGGLE */}
-          <div className="px-4 pb-4 flex gap-2">
+          <div className="px-4 pb-4 flex gap-2 mt-2">
             <div className="relative flex-1">
               <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40" />
               <input
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                placeholder="Search Invoices..."
-                className="w-full bg-white/10 text-white placeholder-white/30 rounded-2xl py-3 pl-10 pr-4 text-[13px] font-bold outline-none border border-white/10 focus:border-[#4BFF94]/30 transition-all"
+                placeholder="Find Record..."
+                className="w-full bg-white/10 text-white placeholder-white/30 rounded-2xl py-3 pl-10 pr-4 text-[12px] font-bold outline-none border border-white/10"
               />
             </div>
             <button 
@@ -124,13 +117,10 @@ export const Invoices: React.FC = () => {
             </button>
           </div>
 
-          {/* ADVANCED FILTERS SECTION */}
           <AnimatePresence>
             {showFilters && (
                 <motion.div 
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: 'auto', opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
+                    initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
                     className="overflow-hidden bg-black/10"
                 >
                     <div className="px-5 pb-5 pt-2 space-y-4">
@@ -140,11 +130,8 @@ export const Invoices: React.FC = () => {
                                 <div className="relative">
                                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] font-black text-white/30">Rs</span>
                                     <input
-                                        type="number"
-                                        value={minPrice}
-                                        onChange={e => setMinPrice(e.target.value)}
-                                        placeholder="0"
-                                        className="w-full bg-white/5 text-white placeholder-white/20 rounded-xl py-2.5 pl-8 pr-3 text-[12px] font-bold outline-none border border-white/5"
+                                        type="number" value={minPrice} onChange={e => setMinPrice(e.target.value)} placeholder="0"
+                                        className="w-full bg-white/5 text-white placeholder-white/20 rounded-xl py-2.5 pl-8 pr-3 text-[11px] font-bold outline-none"
                                     />
                                 </div>
                             </div>
@@ -153,11 +140,8 @@ export const Invoices: React.FC = () => {
                                 <div className="relative">
                                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] font-black text-white/30">Rs</span>
                                     <input
-                                        type="number"
-                                        value={maxPrice}
-                                        onChange={e => setMaxPrice(e.target.value)}
-                                        placeholder="Any"
-                                        className="w-full bg-white/5 text-white placeholder-white/20 rounded-xl py-2.5 pl-8 pr-3 text-[12px] font-bold outline-none border border-white/5"
+                                        type="number" value={maxPrice} onChange={e => setMaxPrice(e.target.value)} placeholder="Any"
+                                        className="w-full bg-white/5 text-white placeholder-white/20 rounded-xl py-2.5 pl-8 pr-3 text-[11px] font-bold outline-none"
                                     />
                                 </div>
                             </div>
@@ -165,66 +149,37 @@ export const Invoices: React.FC = () => {
 
                         <div className="flex items-center gap-3">
                             <div className="flex-1 space-y-1.5">
-                                <p className="text-[9px] font-black text-white/30 uppercase tracking-widest pl-1">Date From</p>
-                                <div className="relative">
-                                    <Calendar size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/20" />
-                                    <input
-                                        type="date"
-                                        value={dateFrom}
-                                        onChange={e => setDateFrom(e.target.value)}
-                                        className="w-full bg-white/5 text-white py-2.5 pl-9 pr-3 rounded-xl text-[11px] font-bold outline-none border border-white/5 [color-scheme:dark]"
-                                    />
-                                </div>
+                                <p className="text-[9px] font-black text-white/30 uppercase tracking-widest pl-1">From</p>
+                                <input
+                                    type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
+                                    className="w-full bg-white/5 text-white py-2.5 px-3 rounded-xl text-[10px] font-black outline-none border border-white/5"
+                                />
                             </div>
                             <div className="flex-1 space-y-1.5">
-                                <p className="text-[9px] font-black text-white/30 uppercase tracking-widest pl-1">Date To</p>
-                                <div className="relative">
-                                    <Calendar size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/20" />
-                                    <input
-                                        type="date"
-                                        value={dateTo}
-                                        onChange={e => setDateTo(e.target.value)}
-                                        className="w-full bg-white/5 text-white py-2.5 pl-9 pr-3 rounded-xl text-[11px] font-bold outline-none border border-white/5 [color-scheme:dark]"
-                                    />
-                                </div>
+                                <p className="text-[9px] font-black text-white/30 uppercase tracking-widest pl-1">To</p>
+                                <input
+                                    type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
+                                    className="w-full bg-white/5 text-white py-2.5 px-3 rounded-xl text-[10px] font-black outline-none border border-white/5"
+                                />
                             </div>
                         </div>
-
-                        {(minPrice || maxPrice || dateFrom || dateTo) && (
-                            <button 
-                                onClick={() => { setMinPrice(''); setMaxPrice(''); setDateFrom(''); setDateTo(''); }}
-                                className="w-full py-3 bg-red-500/10 text-red-400 rounded-xl flex items-center justify-center gap-2 text-[11px] font-black uppercase tracking-widest border border-red-500/20"
-                            >
-                                <Trash2 size={14} /> Clear All Filters
-                            </button>
-                        )}
                     </div>
                 </motion.div>
             )}
           </AnimatePresence>
         </div>
 
-
-
         {/* INVOICE LIST */}
-        <div className="px-4 pt-4 space-y-3">
+        <div className="px-4 pt-4 space-y-3 pb-32">
           {filtered.length === 0 ? (
             <EmptyState 
-                icon={FileText}
-                title="Koi Invoice Nahi Mila"
-                description={search || minPrice || maxPrice || dateFrom || dateTo ? "Aapke filters ke mutabiq koi invoice nahi mila. Filters change kar ke dekhein." : "Abhi tak koi invoice nahi banaya gaya."}
-                action={!(search || minPrice || maxPrice || dateFrom || dateTo) ? {
-                    label: "+ Pehla Invoice Banao",
-                    onClick: () => navigate('/new-invoice')
-                } : undefined}
+                icon={FileText} title="No Records" description="No invoices found matching your criteria."
+                action={{ label: "Create Invoice", onClick: () => navigate('/new-invoice') }}
             />
           ) : (
             filtered.map((inv, idx) => (
               <motion.div
-                key={inv.id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: idx * 0.05 }}
+                key={inv.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.05 }}
                 onClick={() => navigate(`/invoice/${inv.id}`)}
                 className="relative overflow-hidden group border rounded-3xl p-4 active:scale-[0.98] transition-all"
                 style={{ backgroundColor: card, borderColor: border }}
@@ -232,7 +187,7 @@ export const Invoices: React.FC = () => {
                 <div className="flex justify-between items-start mb-3">
                   <div>
                     <p className="text-[14px] font-black" style={{ color: text }}>{inv.customerName}</p>
-                    <p className="text-[10px] font-bold" style={{ color: sub }}>#{inv.invoiceNumber}</p>
+                    <p className="text-[9px] font-bold opacity-40">#{inv.invoiceNumber}</p>
                   </div>
                   <div className={`px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider ${inv.status === 'paid' ? 'bg-[#00C853]/10 text-[#00C853]' : 'bg-[#FF5252]/10 text-[#FF5252]'}`}>
                     {inv.status}
@@ -241,43 +196,32 @@ export const Invoices: React.FC = () => {
 
                 <div className="flex items-end justify-between">
                   <div>
-                    <p className="text-[9px] font-bold mb-1" style={{ color: sub }}>
-                      {new Date(inv.date).toLocaleDateString()}
-                    </p>
+                    <p className="text-[9px] font-bold opacity-40 leading-none mb-1.5">{new Date(inv.date).toLocaleDateString()}</p>
                     <div className="flex flex-wrap gap-1">
                       {inv.items.slice(0, 2).map((it, i) => (
-                        <span key={i} className="text-[8px] font-black bg-gray-100 dark:bg-white/5 px-2 py-0.5 rounded-md" style={{ color: sub }}>
-                          {it.name}
-                        </span>
+                        <span key={i} className="text-[8px] font-black bg-gray-100 dark:bg-white/5 px-2 py-0.5 rounded-md" style={{ color: sub }}>{it.name}</span>
                       ))}
-                      {inv.items.length > 2 && (
-                        <span className="text-[8px] font-black bg-gray-100 dark:bg-white/5 px-2 py-0.5 rounded-md" style={{ color: sub }}>
-                          +{inv.items.length - 2}
-                        </span>
-                      )}
+                      {inv.items.length > 2 && <span className="text-[8px] font-black bg-gray-100 dark:bg-white/5 px-2 py-0.5 rounded-md" style={{ color: sub }}>+{inv.items.length - 2}</span>}
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="text-[10px] font-bold" style={{ color: sub }}>Kull Raqam</p>
-                    <p className="text-[16px] font-black" style={{ color: text }}>Rs. {inv.total.toLocaleString()}</p>
+                    <p className="text-[14px] font-black tabular-nums" style={{ color: text }}>Rs. {inv.total.toLocaleString()}</p>
                   </div>
                 </div>
                 
                 <button 
                   onClick={(e) => handleDelete(inv.id, e)}
-                  className="absolute bottom-4 left-4 p-2 rounded-xl text-red-500/30 hover:text-red-500 hover:bg-red-500/10 transition-all opacity-0 group-hover:opacity-100"
+                  className="absolute bottom-4 left-4 p-2 rounded-xl text-red-500/20 hover:text-red-500 transition-all"
                 >
-                  <Trash2 size={14} />
+                  <Trash2 size={12} />
                 </button>
               </motion.div>
             ))
           )}
         </div>
 
-        {/* FAB - Standardized Neon Style */}
         <motion.button
-          whileTap={{ scale: 0.9 }}
-          onClick={() => navigate('/new-invoice')}
+          whileTap={{ scale: 0.9 }} onClick={() => navigate('/new-invoice')}
           className="fixed bottom-32 right-5 w-16 h-16 bg-[#4BFF94] rounded-2xl flex items-center justify-center shadow-2xl z-[90] border-4 border-white dark:border-[#0A0A0A]"
         >
           <Plus size={32} className="text-[#0A3D24]" strokeWidth={3} />

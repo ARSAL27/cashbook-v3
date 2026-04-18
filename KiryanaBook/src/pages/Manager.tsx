@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Send, UserCog, History, X, Trash2, ChevronRight, MessageCircle, Mic, Volume2, VolumeX, Sparkles, ArrowLeft } from 'lucide-react';
+import { Send, UserCog, History, X, Trash2, ChevronRight, MessageCircle, Mic, Volume2, VolumeX, Sparkles, ArrowLeft, HelpCircle } from 'lucide-react';
 import { askLocalAgent, detectMicroAnomalies } from '../lib/localAgent';
 import { useShop } from '../context/ShopContext';
 import { SpeechRecognition } from '@capacitor-community/speech-recognition';
@@ -510,8 +510,10 @@ export const Manager: React.FC = () => {
 
   // (TTS cleanup is handled in the consolidated useEffect above)
 
-  // Auto-save session whenever messages change (if more than 1 message)
+  // Auto-save session whenever messages change (if more than 5 messages)
   useEffect(() => {
+    if (messages.length <= 5) return; // Only save meaningful conversations
+
     const firstUserMsg = messages.find(m => !m.isBot);
     const title = firstUserMsg ? firstUserMsg.text.slice(0, 40) : 'Nayi Guftagu';
     const now = new Date().toISOString();
@@ -526,7 +528,7 @@ export const Manager: React.FC = () => {
     }
     
     setSessions(updated);
-    saveSessions(updated); // 👈 Side effect moved OUT of the update function
+    saveSessions(updated);
   }, [messages, currentSessionId]);
 
   const startNewChat = () => {
@@ -597,6 +599,12 @@ export const Manager: React.FC = () => {
             </div>
           </div>
           <div className="flex items-center gap-1.5">
+            <button 
+              onClick={() => toast('Guide: Aap yahan voice ya text se sawal pooch sakte hain. Maslan: "Aaj ki sale kitni hai?"', { icon: '💡' })} 
+              className="w-9 h-9 text-blue-500 bg-blue-50 dark:bg-blue-500/10 rounded-xl flex items-center justify-center"
+            >
+               <HelpCircle size={18} />
+            </button>
             <button onClick={() => setShowHistory(true)} className="w-9 h-9 text-gray-400 hover:text-gray-900 dark:hover:text-white transition-all">
                <History size={18} />
             </button>

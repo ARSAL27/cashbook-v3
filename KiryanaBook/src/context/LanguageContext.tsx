@@ -40,60 +40,22 @@ const translations: Record<Language, Record<string, string>> = {
     add_expense: 'Add Expense',
     today_balance_label: 'Aaj Ka Balance'
   },
-  Urdu: {
-    dashboard_title: 'Assalam-o-Alaikum',
-    today_balance: 'Aaj Ka Balance',
-    cash_in: 'Cash In',
-    cash_out: 'Cash Out',
-    udhaar: 'Udhaar',
-    customers: 'Gahak',
-    quick_actions: 'Tez Kaam',
-    weekly_hisaab: 'Hafte-war Hisaab',
-    urgent_udhaar: 'Zaroori Udhaar',
-    recent_activity: 'Aaj Ki Sargarmi',
-    settings: 'Settings',
-    dark_mode: 'Dark Mode',
-    language: 'Zuban',
-    sync_now: 'Sync Karein',
-    change_pin: 'PIN Badlein',
-    biometric_login: 'Biometric Login',
-    delete_protection: 'Delete Hifazat',
-    delete_account: 'Account Khatam Karein',
-    auto_lock_timer: 'Auto-Lock Time',
-    help_support: 'Madad aur Support',
-    my_shop: 'Meri Dukan',
-    search: 'Talash Karein',
-    save: 'Mehfooz Karein',
-    cancel: 'Chorein',
-    amount: 'Raqam',
-    customer_name: 'Gahak Ka Naam',
-    add_sale: 'Naqad Sale',
-    add_expense: 'Kharcha Likhein',
-    today_balance_label: 'Aaj Ka Balance'
-  }
+  Urdu: {} 
 };
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
 export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [language, setLanguage] = useState<Language>(() => {
-    return (localStorage.getItem('app-language') as Language) || 'English';
-  });
+  const [language, setLanguage] = useState<Language>('English');
 
   useEffect(() => {
-    localStorage.setItem('app-language', language);
-    // Set RTL for Urdu
-    if (language === 'Urdu') {
-        document.documentElement.setAttribute('dir', 'rtl');
-        document.documentElement.lang = 'ur';
-    } else {
-        document.documentElement.setAttribute('dir', 'ltr');
-        document.documentElement.lang = 'en';
-    }
-  }, [language]);
+    localStorage.setItem('app-language', 'English');
+    document.documentElement.setAttribute('dir', 'ltr');
+    document.documentElement.lang = 'en';
+  }, []);
 
   const t = (key: string) => {
-    return translations[language][key] || key;
+    return translations['English'][key] || key;
   };
 
   return (
