@@ -68,11 +68,11 @@ export const BrandDetail: React.FC = () => {
                     <div className="absolute -bottom-10 left-6 right-6 grid grid-cols-2 gap-4 z-20">
                         <div className="bg-white dark:bg-[#1E1E1E] p-4 rounded-3xl shadow-xl border border-black/5">
                             <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Total Stock</p>
-                            <h2 className="text-[18px] font-black" style={{ color: text }}>{stats.totalItems} <span className="text-[10px] opacity-40">units</span></h2>
+                            <h2 className="text-[18px] font-black" style={{ color: isDarkMode ? '#FFFFFF' : '#0A0A0A' }}>{stats.totalItems || 0} <span className="text-[10px] opacity-40">units</span></h2>
                         </div>
                         <div className="bg-white dark:bg-[#1E1E1E] p-4 rounded-3xl shadow-xl border border-black/5">
                             <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Stock Value</p>
-                            <h2 className="text-[18px] font-black text-emerald-500">Rs {stats.totalValue.toLocaleString()}</h2>
+                            <h2 className="text-[18px] font-black text-emerald-500">Rs {(stats.totalValue || 0).toLocaleString()}</h2>
                         </div>
                     </div>
                 </div>
