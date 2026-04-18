@@ -54,11 +54,11 @@ export const AddExpense: React.FC = () => {
     return (
         <PageTransition> <div className="w-full font-outfit max-w-md mx-auto bg-background text-text-primary ">
                 {/* HEADER */}
-                <div className="pt-12 pb-3 px-5 flex items-center justify-between sticky top-0 z-50 bg-inherit border-b border-border">
-                    <button onClick={() => navigate(-1)} className="p-2.5 rounded-2xl bg-card shadow-sm border border-border text-text-primary">
-                        <ArrowLeft size={20} />
+                <div className="pt-16 pb-4 px-5 flex items-center justify-between sticky top-0 z-50 bg-inherit border-b border-border transition-all" style={{ backgroundColor: isDarkMode ? '#0A0A0A' : '#FAFAFA' }}>
+                    <button onClick={() => navigate(-1)} className="p-2 rounded-xl bg-card shadow-sm border border-border text-text-primary active:scale-90 transition-transform">
+                        <ArrowLeft size={18} />
                     </button>
-                    <h1 className="text-[17px] font-black text-text-primary">Cash Out (Kharcha)</h1>
+                    <h1 className="text-[15px] font-black text-text-primary">Cash Out (Kharcha)</h1>
                     <div className="w-10" />
                 </div>
 
@@ -73,14 +73,14 @@ export const AddExpense: React.FC = () => {
                     </div>
 
                     {/* AMOUNT INPUT */}
-                    <div className="mb-10 text-center">
-                        <p className="text-[10px] font-black uppercase tracking-[0.2em] mb-3 text-text-muted">Kitna Kharcha Hua?</p>
+                    <div className="mb-6 text-center">
+                        <p className="text-[9px] font-black uppercase tracking-[0.2em] mb-2 text-text-muted">Kitna Kharcha Hua?</p>
                         <div className="relative inline-flex items-center">
-                            <span className="text-[24px] font-black mr-2 opacity-50 text-text-primary">Rs.</span>
+                            <span className="text-[20px] font-black mr-2 opacity-50 text-text-primary">Rs.</span>
                             <input 
                                 type="number" value={amount} onChange={e => setAmount(e.target.value)}
                                 placeholder="0.00" autoFocus
-                                className="bg-transparent text-[48px] font-black outline-none border-b-2 border-dashed border-border w-48 text-center text-text-primary"
+                                className="bg-transparent text-[36px] font-black outline-none border-b-2 border-dashed border-border w-40 text-center text-text-primary"
                             />
                         </div>
                     </div>
@@ -88,22 +88,22 @@ export const AddExpense: React.FC = () => {
                     {/* CATEGORY SELECTION */}
                     <div className="mb-8">
                         <p className="text-[11px] font-black uppercase tracking-widest mb-4 pl-1" style={{ color: colors.sub }}>Category Select Karein</p>
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="grid grid-cols-2 gap-2">
                             {categories.map((cat) => (
                                 <motion.button 
                                     key={cat.name} 
                                     whileTap={{ scale: 0.96 }}
                                     onClick={() => setCategory(cat.name)}
-                                    className={`p-4 rounded-2xl border flex items-center gap-3 transition-all ${category === cat.name ? 'border-transparent shadow-lg scale-105' : 'border-gray-100 dark:border-[#2A2A2A] bg-white dark:bg-[#141414] opacity-50'}`}
+                                    className={`p-3 rounded-xl border flex items-center gap-2.5 transition-all ${category === cat.name ? 'border-transparent shadow-md scale-102' : 'border-gray-50 dark:border-[#2A2A2A] bg-white dark:bg-[#141414] opacity-50'}`}
                                     style={{ 
                                         backgroundColor: category === cat.name ? cat.color : '',
                                         color: category === cat.name ? 'white' : colors.text
                                     }}
                                 >
-                                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${category === cat.name ? 'bg-white/20' : 'bg-gray-50 dark:bg-white/5'}`}>
+                                    <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${category === cat.name ? 'bg-white/20' : 'bg-gray-50 dark:bg-white/5'}`}>
                                         {cat.icon}
                                     </div>
-                                    <span className="text-[11px] font-black uppercase tracking-tight text-left leading-tight">{cat.name}</span>
+                                    <span className="text-[10px] font-black uppercase tracking-tight text-left leading-tight">{cat.name}</span>
                                 </motion.button>
                             ))}
                         </div>

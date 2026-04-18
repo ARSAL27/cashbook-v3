@@ -66,20 +66,16 @@ export const Stock: React.FC = () => {
 
     return [...filtered].sort((a, b) => {
         const getTs = (item: any) => {
-            if (!item.createdAt) return 0;
-            // Native ISO or Firestore Timestamp
+            if (!item.createdAt) return 1; 
+            // Firestore Timestamp or ISO String
             if (typeof item.createdAt === 'string') return new Date(item.createdAt).getTime();
             if ((item.createdAt as any).seconds) return (item.createdAt as any).seconds * 1000 + ((item.createdAt as any).nanoseconds / 1000000);
-            return 0;
+            return 1;
         };
         
         const timeA = getTs(a);
         const timeB = getTs(b);
         
-        // Priority to items with 0 timestamp (newly added in current session)
-        if (timeA === 0 && timeB !== 0) return -1;
-        if (timeB === 0 && timeA !== 0) return 1;
-
         if (timeB !== timeA) return timeB - timeA;
         return a.name.localeCompare(b.name);
     });
@@ -96,7 +92,7 @@ export const Stock: React.FC = () => {
         
          <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
          
-         <div className="pt-12 pb-3 px-5 flex items-center justify-between sticky top-0 z-50 transition-all duration-300" style={{ backgroundColor: bg + 'CC', backdropFilter: 'blur(10px)' }}>
+         <div className="pt-16 pb-3 px-5 flex items-center justify-between sticky top-0 z-50 transition-all duration-300" style={{ backgroundColor: bg + 'CC', backdropFilter: 'blur(10px)' }}>
           <div className="flex items-center gap-3">
             <button 
               onClick={() => setIsSidebarOpen(true)}

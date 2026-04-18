@@ -288,7 +288,7 @@ function detectIntent(query: string, data: ShopData): IntentResult {
   // Generic Disambiguation (Triggered only for ambiguous queries like "sale")
   const hasProfit = /profit|munafa|fayda|bachat|kamai|prft|proft|munafa|monafa|monafah|fedah|faidah/i.test(q);
   const hasExpense = /expense|kharcha|kharch|kharchay|expanse|exp|karcha|karche/i.test(q);
-  const hasSale = /sale|bikri|revenue|bikna|becha|bechna|آمدن|sel|sela|sail|sil|sele/i.test(q);
+  const hasSale = /sale|bikri|revenue|bikna|becha|bechna|aamdan|sel|sela|sail|sil|sele/i.test(q);
   
   const hasYesterday = /kal|yesterday|pichli|pichla|kl|kla|kall|kel|kell|kalla/i.test(q);
   const hasWeek = /hafte|week|hafta|hfta|hefte|wike|wek/i.test(q);

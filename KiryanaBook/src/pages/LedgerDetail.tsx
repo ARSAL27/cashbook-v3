@@ -68,9 +68,9 @@ export const LedgerDetail: React.FC = () => {
   return (
     <PageTransition> <div className="w-full font-outfit max-w-md mx-auto " style={{ backgroundColor: bg }}>
         {/* HEADER */}
-        <div className="px-5 pt-6 pb-20 rounded-b-[2.5rem] relative shadow-lg transition-colors duration-300" style={{ backgroundColor: isDarkMode ? '#10251A' : '#0A3D24' }}>
-          <div className="flex items-center justify-between mb-4">
-            <button onClick={() => navigate(-1)} className="text-white active:scale-90 transition-transform">
+        <div className="px-5 pt-14 pb-14 rounded-b-[2rem] relative shadow-lg transition-colors duration-300" style={{ backgroundColor: isDarkMode ? '#10251A' : '#0A3D24' }}>
+          <div className="flex items-center justify-between mb-2">
+            <button onClick={() => navigate(-1)} className="text-white active:scale-90 transition-transform p-1">
               <ArrowLeft size={22} />
             </button>
             <h1 className="text-white font-black text-[18px] tracking-wide">Detailed Ledger</h1>
@@ -80,7 +80,7 @@ export const LedgerDetail: React.FC = () => {
              <div className="bg-white/10 px-4 py-1.5 rounded-full border border-white/10 mb-2">
                 <p className="text-white/60 text-[10px] font-black uppercase tracking-[0.2em]">{viewLabels[currentView]}</p>
              </div>
-             <p className="text-white text-[32px] font-black">
+             <p className="text-white text-[28px] font-black">
                 Rs. {filteredEntries.reduce((a, b) => a + b.balance, 0).toLocaleString()}
              </p>
           </div>
@@ -92,7 +92,7 @@ export const LedgerDetail: React.FC = () => {
                 <button
                     key={v}
                     onClick={() => setSearchParams({ view: v })}
-                    className={`flex-1 py-3.5 rounded-2xl text-[10px] font-black uppercase tracking-wider transition-all shadow-xl ${currentView === v ? 'bg-[#4BFF94] text-[#0A3D24] scale-105 z-10' : 'bg-white dark:bg-[#1E1E1E] text-gray-400 opacity-60'}`}
+                    className={`flex-1 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all shadow-lg ${currentView === v ? 'bg-[#4BFF94] text-[#0A3D24] scale-105 z-10' : 'bg-white dark:bg-[#1E1E1E] text-gray-400 opacity-60'}`}
                 >
                     {v === 'receivables' ? 'Lena' : v === 'payables' ? 'Dena' : 'Advance'}
                 </button>

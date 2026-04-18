@@ -232,7 +232,7 @@ export const Reports: React.FC = () => {
     <PageTransition> <div className="w-full transition-colors duration-300 font-outfit max-w-md mx-auto bg-background text-text-primary ">
         
         {/* ── HEADER ── */}
-        <div className="pt-12 pb-3 px-5 flex items-center justify-between sticky top-0 bg-inherit z-20 shadow-[0_2px_15px_rgba(0,0,0,0.05)]">
+        <div className="pt-16 pb-4 px-5 flex items-center justify-between sticky top-0 bg-inherit z-20 shadow-[0_2px_15px_rgba(0,0,0,0.05)] transition-all">
             <h1 className="text-[22px] font-black tracking-tight text-text-primary">Reports Overview</h1>
             <button 
                 onClick={() => { setActiveTab('Custom'); setShowCustom(!showCustom); }}

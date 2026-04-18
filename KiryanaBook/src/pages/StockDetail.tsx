@@ -67,11 +67,11 @@ export const StockDetail: React.FC = () => {
     <PageTransition> <div className="w-full font-outfit max-w-md mx-auto relative overflow-x-hidden min-h-screen " style={{ backgroundColor: bg }}>
         
         {/* TOP NAV */}
-        <div className="pt-12 pb-3 px-4 flex items-center justify-between sticky top-0 z-50 backdrop-blur-md" style={{ backgroundColor: bg + 'E6' }}>
+        <div className="pt-16 pb-4 px-4 flex items-center justify-between sticky top-0 z-50 backdrop-blur-md transition-all" style={{ backgroundColor: bg + 'F2' }}>
            <button onClick={() => navigate(-1)} className="w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 dark:bg-[#1E1E1E]">
-              <ArrowLeft size={20} className="text-gray-600 dark:text-gray-300" />
+              <ArrowLeft size={18} className="text-gray-600 dark:text-gray-300" />
            </button>
-           <h1 className="text-[18px] font-black" style={{ color: text }}>Item Details</h1>
+           <h1 className="text-[16px] font-black" style={{ color: text }}>Item Details</h1>
            <button 
              onClick={async () => {
                if (window.confirm(`Kya aap "${item.name}" ko delete karna chahte hain?`)) {
@@ -92,13 +92,13 @@ export const StockDetail: React.FC = () => {
         </div>
 
         {/* HERO CARD (Dynamic Brand Theme) */}
-        <div className="px-4 mt-2">
-           <div className="rounded-[3rem] p-8 relative overflow-hidden shadow-2xl transition-colors duration-500" 
+        <div className="px-4 mt-1">
+           <div className="rounded-[2.5rem] p-6 relative overflow-hidden shadow-xl transition-colors duration-500" 
                 style={{ backgroundColor: brandStyle.bg }}>
               
               {/* Decorative Brand Accent */}
-              <div className="absolute top-0 right-0 p-8 opacity-10 rotate-12">
-                  <Package size={80} strokeWidth={1.5} style={{ color: brandStyle.text }} />
+              <div className="absolute top-0 right-0 p-6 opacity-10 rotate-12">
+                  <Package size={60} strokeWidth={1.5} style={{ color: brandStyle.text }} />
               </div>
 
               <div className="flex items-center gap-2 mb-4 relative z-10">
@@ -113,14 +113,14 @@ export const StockDetail: React.FC = () => {
                  )}
               </div>
 
-              <h2 className="text-[28px] font-black leading-tight mb-6 relative z-10" 
+              <h2 className="text-[24px] font-black leading-tight mb-4 relative z-10" 
                   style={{ color: brandStyle.text }}>
                  {item.name}
               </h2>
 
               <div className="flex items-end justify-between relative z-10">
-                  <div className="flex items-end gap-3">
-                    <h3 className="text-[48px] font-black leading-none" 
+                  <div className="flex items-end gap-2">
+                    <h3 className="text-[36px] font-black leading-none" 
                         style={{ color: brandStyle.text }}>
                        {item.quantity}
                     </h3>
@@ -139,16 +139,16 @@ export const StockDetail: React.FC = () => {
         </div>
 
         {/* INFO GRIDS */}
-        <div className="px-4 mt-6 grid grid-cols-2 gap-3">
+        <div className="px-4 mt-4 grid grid-cols-2 gap-2.5">
            {[
              { label: 'Buying', value: `Rs ${item.buyingPrice?.toLocaleString() || '0'}`, icon: Package, color: brandStyle.bg },
              { label: 'Selling', value: `Rs ${item.price?.toLocaleString() || '0'}`, icon: null, color: brandStyle.bg, customIcon: 'Rs' },
              { label: 'Margin', value: `+${margin}%`, icon: Percent, color: '#4BFF94' },
              { label: 'Unit', value: item.unit?.toUpperCase() || 'PCS', icon: Layers, color: '#f59e0b' }
            ].map((stat, i) => (
-             <div key={i} className="rounded-3xl p-3.5 border flex flex-col gap-3 shadow-sm" 
+             <div key={i} className="rounded-2xl p-3 border flex flex-col gap-2.5 shadow-sm" 
                   style={{ backgroundColor: card, borderColor: border }}>
-                <div className="w-8 h-8 rounded-xl flex items-center justify-center transition-transform hover:scale-110" 
+                <div className="w-7 h-7 rounded-lg flex items-center justify-center transition-transform hover:scale-110" 
                      style={{ backgroundColor: stat.color + '10', color: stat.color }}>
                    {stat.icon ? (
                      <stat.icon size={16} strokeWidth={2.5} />
@@ -173,10 +173,10 @@ export const StockDetail: React.FC = () => {
                setShowAdjust(true);
                triggerHaptic(ImpactStyle.Light);
             }}
-            className="flex-[2] py-5 rounded-[1.8rem] font-black text-[15px] flex items-center justify-center gap-3 shadow-xl transition-all"
-            style={{ backgroundColor: brandStyle.bg, color: brandStyle.text, boxShadow: `0 10px 30px ${brandStyle.bg}44` }}
+            className="flex-[2] py-4 rounded-[1.5rem] font-black text-[14px] flex items-center justify-center gap-3 shadow-lg transition-all"
+            style={{ backgroundColor: brandStyle.bg, color: brandStyle.text, boxShadow: `0 8px 25px ${brandStyle.bg}33` }}
           >
-             <Plus size={20} strokeWidth={3.5} />
+             <Plus size={18} strokeWidth={3.5} />
              Adjust Stock
           </motion.button>
            <motion.button

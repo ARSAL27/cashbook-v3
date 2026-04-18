@@ -81,8 +81,8 @@ export const Invoices: React.FC = () => {
         <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
 
         {/* HEADER */}
-        <div className="pt-12 pb-3 sticky top-0 z-40 transition-colors duration-300" style={{ backgroundColor: isDarkMode ? '#10251A' : '#0A3D24' }}>
-          <div className="px-5 pt-5 pb-3">
+        <div className="pt-16 pb-4 sticky top-0 z-40 transition-colors duration-300" style={{ backgroundColor: isDarkMode ? '#10251A' : '#0A3D24' }}>
+          <div className="px-5">
             <div className="flex items-center gap-3 mb-1">
                 <button 
                   onClick={() => setIsSidebarOpen(true)} 
