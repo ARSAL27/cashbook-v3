@@ -84,6 +84,9 @@ const INTENT_TO_CATEGORY: Record<Intent, IntentCategory> = {
   ADVICE: 'report_request',
   DATA_AUDIT: 'report_request',
   SPECIFIC_DATE: 'report_request',
+  DAY_BEFORE_YESTERDAY_SALES: 'report_request',
+  DAY_BEFORE_YESTERDAY_PROFIT: 'report_request',
+  DAY_BEFORE_YESTERDAY_EXPENSE: 'report_request',
   UNKNOWN: 'irrelevant'
 };
 

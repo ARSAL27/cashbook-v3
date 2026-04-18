@@ -18,14 +18,17 @@ import toast from 'react-hot-toast';
 export const Settings: React.FC = () => {
   const navigate = useNavigate();
   const {} = useAuth();
-  const { profile, sales, expenses, stock, contacts, invoices, udhaars } = useShop();
+  const { profile, sales, expenses, stock, contacts, invoices, udhaars, staff, activities, notifications } = useShop();
   const { setMode, isDarkMode } = useTheme();
   const { language, setLanguage, t } = useLanguage();
   const [backupFreq, setBackupFreq] = React.useState(localStorage.getItem('backup_freq') || '24h');
   const storageUsed = React.useMemo(() => {
-    const dataSize = JSON.stringify({ sales, expenses, stock, contacts, invoices }).length;
-    return (dataSize / (1024)).toFixed(1); // KB
-  }, [sales, expenses, stock, contacts, invoices]);
+    // Use Blob for accurate byte count (not character count) across ALL collections
+    const allData = { sales, expenses, stock, contacts, invoices, udhaars, staff, activities, notifications };
+    const bytes = new Blob([JSON.stringify(allData)]).size;
+    if (bytes >= 1024 * 1024) return { value: (bytes / (1024 * 1024)).toFixed(2), unit: 'MB' };
+    return { value: (bytes / 1024).toFixed(1), unit: 'KB' };
+  }, [sales, expenses, stock, contacts, invoices, udhaars, staff, activities, notifications]);
 
   const generateAuditSuggestions = () => {
     const revenue = sales.reduce((sum, s) => sum + s.total, 0);
@@ -354,7 +357,7 @@ export const Settings: React.FC = () => {
                         <Database size={16} strokeWidth={2.5} />
                     </div>
                     <p className="text-[9px] font-black text-text-muted uppercase tracking-widest leading-none mb-1">Storage</p>
-                    <h4 className="text-[14px] font-black text-text-primary">{storageUsed} <span className="text-[9px] opacity-40">KB</span></h4>
+                    <h4 className="text-[14px] font-black text-text-primary">{storageUsed.value} <span className="text-[9px] opacity-40">{storageUsed.unit}</span></h4>
                 </div>
                 <div className="bg-card border border-border/60 rounded-3xl p-4 shadow-sm">
                     <div className="w-8 h-8 bg-orange-500/10 text-orange-500 rounded-xl flex items-center justify-center mb-2.5">

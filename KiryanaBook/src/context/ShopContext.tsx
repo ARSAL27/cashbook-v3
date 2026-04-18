@@ -220,7 +220,7 @@ interface ShopContextType {
   addContact: (contact: Omit<Contact, 'id' | 'createdAt'>) => Promise<void>;
   deleteContact: (id: string) => Promise<void>;
   toggleContactImportance: (id: string) => Promise<void>;
-  updateContact: (id: string, oldName: string, newData: { name?: string; phone?: string }) => Promise<void>;
+  updateContact: (id: string, oldName: string, newData: { name?: string; phone?: string; address?: string }) => Promise<void>;
   addInvoice: (invoice: Omit<Invoice, 'id' | 'invoiceNumber' | 'date'>) => Promise<string>;
   updateInvoice: (id: string, data: { customerName?: string; status?: 'paid' | 'unpaid'; notes?: string }) => Promise<void>;
   deleteInvoice: (id: string) => Promise<void>;
@@ -630,7 +630,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await updateDoc(doc(db, 'shops', user.uid, 'contacts', id), { isDeleted: true, deletedAt: serverTimestamp() });
   };
 
-  const updateContact = async (id: string, oldName: string, newData: { name?: string; phone?: string }) => {
+  const updateContact = async (id: string, oldName: string, newData: { name?: string; phone?: string; address?: string }) => {
     if (!user) return;
     const batch = writeBatch(db);
     const shopRef = doc(db, 'shops', user.uid);
