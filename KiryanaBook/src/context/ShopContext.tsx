@@ -288,7 +288,10 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setLoading(true);
     const shopId = currentShopId || user.uid;
     const shopRef = doc(db, 'shops', shopId);
-    const timer = setTimeout(() => setLoading(false), 5000);
+    const timer = setTimeout(() => {
+      setLoading(false);
+      console.log("Shop Offline Safety Triggered");
+    }, 3000);
     
     const appStartTime = new Date();
     let isFirstLoad = true;
@@ -678,16 +681,28 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     try {
       await runTransaction(db, async (transaction) => {
+        // 1. ALL READS FIRST
+        const stockReads = [];
         for (const i of invoice.items) {
           const itemRef = doc(shopRef, 'stock', i.itemId);
           const itemSnap = await transaction.get(itemRef);
-          if (!itemSnap.exists()) throw new Error(`Product ${i.itemId} not found`);
-          const currentQty = itemSnap.data().quantity;
-          if (currentQty < i.qty) throw new Error(`"${itemSnap.data().name}" ka stock kam hai.`);
-          
-          transaction.update(itemRef, { 
-            quantity: currentQty - i.qty, soldCount: (itemSnap.data().soldCount || 0) + i.qty,
-            history: arrayUnion({ id: Math.random().toString(36).substring(7), type: 'sale', quantity: -i.qty, date, note: `Invoice ${invoiceNumber}` })
+          stockReads.push({ snap: itemSnap, item: i, ref: itemRef });
+        }
+
+        // 2. CHECK CONDITIONS
+        for (const { snap, item } of stockReads) {
+          const data = snap.data();
+          if (!snap.exists() || !data) throw new Error(`Product ${item.itemId} not found`);
+          if (data.quantity < item.qty) throw new Error(`"${data.name}" ka stock kam hai.`);
+        }
+
+        // 3. ALL WRITES AFTER (No more reads)
+        for (const { snap, item, ref } of stockReads) {
+          const data = snap.data()!;
+          const currentQty = data.quantity;
+          transaction.update(ref, { 
+            quantity: currentQty - item.qty, soldCount: (data.soldCount || 0) + item.qty,
+            history: arrayUnion({ id: Math.random().toString(36).substring(7), type: 'sale', quantity: -item.qty, date, note: `Invoice ${invoiceNumber}` })
           });
         }
 
@@ -725,12 +740,29 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const deleteInvoice = async (id: string) => {
     if (!user) return;
+    const invoice = invoices.find(inv => inv.id === id);
     const shopRef = doc(db, 'shops', user.uid);
-    await updateDoc(doc(shopRef, 'invoices', id), { isDeleted: true, deletedAt: serverTimestamp() });
+    const batch = writeBatch(db);
+
+    batch.update(doc(shopRef, 'invoices', id), { isDeleted: true, deletedAt: serverTimestamp() });
+    
     const q = query(collection(shopRef, 'sales'), where('invoiceId', '==', id));
     const snaps = await getDocs(q);
-    const batch = writeBatch(db);
     snaps.docs.forEach(d => batch.update(d.ref, { isDeleted: true, deletedAt: serverTimestamp() }));
+    
+    if (invoice && invoice.paymentMethod === 'udhaar') {
+      const udhaarRef = doc(collection(shopRef, 'udhaar'));
+      batch.set(udhaarRef, {
+        customerName: invoice.customerName,
+        amount: -Math.abs(invoice.total),
+        date: new Date().toISOString(),
+        isPayment: true,
+        note: `Invoice Deleted ${invoice.invoiceNumber ? `(${invoice.invoiceNumber})` : ''}`,
+        isDeleted: false,
+        createdAt: serverTimestamp()
+      });
+    }
+
     await batch.commit();
     await updateLastSync();
   };

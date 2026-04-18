@@ -39,14 +39,20 @@ export const MainLayout: React.FC = () => {
 
   useEffect(() => {
     if (notifications.length > prevNotifyCount.current) {
-      const last = notifications[notifications.length-1];
-      toast(`${last.title}: ${last.message}`, {
-        icon: '🔔',
-        duration: 4000,
-        position: 'top-center',
-        style: { borderRadius: '24px', background: '#1A5C38', color: '#fff', border: '1px solid rgba(255,255,255,0.1)' }
-      });
-      triggerHaptic(ImpactStyle.Heavy);
+      const last = notifications[0]; // Newest first
+      const notifTime = new Date(last.date).getTime();
+      const now = Date.now();
+
+      // Only show if the notification is newer than 30 seconds
+      if (now - notifTime < 30000) {
+        toast(`${last.title}: ${last.message}`, {
+          icon: '🔔',
+          duration: 4000,
+          position: 'top-center',
+          style: { borderRadius: '24px', background: '#1A5C38', color: '#fff', border: '1px solid rgba(255,255,255,0.1)' }
+        });
+        triggerHaptic(ImpactStyle.Heavy);
+      }
     }
     prevNotifyCount.current = notifications.length;
   }, [notifications]);

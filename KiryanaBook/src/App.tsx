@@ -46,6 +46,7 @@ import { StockReceive } from './pages/StockReceive';
 import { BarcodeScanner } from './pages/BarcodeScanner';
 import { BrandDetail } from './pages/BrandDetail';
 import { BulkScanMode } from './pages/BulkScanMode';
+import { AllActivity } from './pages/AllActivity';
 import { App as CapApp } from '@capacitor/app';
 import { motion } from 'framer-motion';
 
@@ -299,6 +300,7 @@ function AppRoutes() {
           <Route path="staff/:id" element={<StaffActivity />} />
           <Route path="staff/roles" element={<RolePermissions />} />
           <Route path="manager" element={<Manager />} />
+          <Route path="all-activity" element={<AllActivity />} />
           <Route path="barcode-scan" element={<BarcodeScanner />} />
           <Route path="brand/:name" element={<BrandDetail />} />
           <Route path="bulk-scan" element={<BulkScanMode />} />

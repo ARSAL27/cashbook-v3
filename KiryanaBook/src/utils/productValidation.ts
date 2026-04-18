@@ -9,15 +9,22 @@ export interface ValidationFeedback {
 
 // Map keywords to specific category IDs (The 10 approved categories)
 const CATEGORY_MAP: Record<string, string[]> = {
-  'groceries': ['atta', 'flour', 'rice', 'wheat', 'daal', 'lentil', 'chana', 'maida', 'suji', 'oil', 'ghee', 'cooking', 'sugar', 'cheeni', 'salt', 'namak', 'masala', 'mirch', 'haldi', 'dhaniya'],
-  'beverages': ['tea', 'chai', 'coffee', 'juice', 'cola', 'pepsi', 'drink', 'water', 'rooh afza', 'cold drink', '7up', 'sprite'],
-  'snacks': ['biscuit', 'cookies', 'cake', 'rusk', 'wafer', 'nimco', 'chips', 'lays', 'chocolate', 'candy', 'toffee', 'gum', 'mint'],
-  'dairy': ['milk', 'doodh', 'yoghurt', 'dahi', 'butter', 'makhan', 'cheese', 'cream'],
-  'personal_care': ['shampoo', 'soap', 'sabun', 'lotion', 'face', 'wash', 'cream', 'toothpaste', 'paste', 'brush'],
-  'household': ['surf', 'detergent', 'cleaner', 'phool', 'mortein', 'harpic', 'vim', 'tissue', 'wiper', 'broom', 'mop'],
-  'baby_products': ['diaper', 'pampers', 'baby', 'cerelac', 'formula', 'wipes'],
-  'tobacco': ['cigarette', 'pan', 'supari', 'gutka', 'gold leaf', 'capstan', 'match'],
-  'medicines': ['panadol', 'disprin', 'calpol', 'vicks', 'bandage', 'strepsils', 'medicine', 'tablet', 'syrup'],
+  'groceries': ['atta', 'flour', 'rice', 'wheat', 'daal', 'lentil', 'chana', 'maida', 'suji', 'oil', 'ghee', 'cooking', 'sugar', 'cheeni', 'salt', 'namak', 'masala', 'mirch', 'haldi', 'dhaniya', 'kisan', 'dalda', 'habib', 'sufi'],
+  'beverages': ['tea', 'chai', 'coffee', 'juice', 'cola', 'pepsi', 'drink', 'water', 'rooh afza', 'cold drink', '7up', 'sprite', 'dew', 'fanta', 'pakola', 'sting', 'nestle', 'haleeb', 'good milk'],
+  'snacks': ['biscuit', 'cookies', 'cake', 'rusk', 'wafer', 'nimco', 'chips', 'lays', 'chocolate', 'candy', 'toffee', 'gum', 'mint', 'kurkure', 'cheetos', 'slanty', 'cocomo', 'principle'],
+  'dairy': ['milk', 'doodh', 'yoghurt', 'dahi', 'butter', 'makhan', 'cheese', 'cream', 'olpers', 'milkpak', 'adams'],
+  'personal_care': ['shampoo', 'soap', 'sabun', 'lotion', 'face', 'wash', 'cream', 'toothpaste', 'paste', 'brush', 'lux', 'safe-guard', 'dettol', 'lifebuoy'],
+  'household': ['surf', 'detergent', 'cleaner', 'phool', 'mortein', 'harpic', 'vim', 'tissue', 'wiper', 'broom', 'mop', 'ariel', 'brite', 'bonus'],
+  'baby_products': ['diaper', 'pampers', 'baby', 'cerelac', 'formula', 'wipes', 'feeder', 'nido'],
+  'tobacco': ['cigarette', 'pan', 'supari', 'gutka', 'gold leaf', 'capstan', 'match', 'box'],
+  'medicines': ['panadol', 'disprin', 'calpol', 'vicks', 'bandage', 'strepsils', 'medicine', 'tablet', 'syrup', 'paracetamol', 'panadol-extra'],
+};
+
+const UNIT_MAP: Record<string, string[]> = {
+  'ltr': ['ltr', 'litre', 'bottle', 'pet', 'juice', 'cola', 'pepsi', 'drink', 'water', 'shrbat', 'sting', 'dew', '7up', 'sprite', 'shangrila'],
+  'kg': ['kg', 'kilo', 'gram', 'atta', 'flour', 'rice', 'wheat', 'daal', 'sugar', 'salt', 'namak', 'ghee', 'oil', 'dalda', 'kisan', 'habib'],
+  'dozen': ['dozen', 'eggs', 'ande'],
+  'pcs': ['pcs', 'piece', 'unit', 'pack', 'packet', 'sachet', 'wrapper', 'chocolate', 'biscuit', 'soap', 'sabun', 'shampoo'],
 };
 
 /**
@@ -27,7 +34,7 @@ export const guessCategory = (name: string): string => {
   const words = name.toLowerCase().split(/\s+/);
   
   for (const [catId, keywords] of Object.entries(CATEGORY_MAP)) {
-    if (words.some(w => keywords.includes(w))) {
+    if (words.some(w => keywords.some(k => w.includes(k)))) {
       const matchedCat = KIRYANA_CATEGORIES.find(c => c.id === catId);
       if (matchedCat) return matchedCat.name;
     }
@@ -42,6 +49,17 @@ export const guessCategory = (name: string): string => {
   }
 
   return 'Others'; // fallback to uncategorized Generic
+};
+
+/**
+ * Predicts the Unit from the product name
+ */
+export const guessUnit = (name: string): any => {
+  const words = name.toLowerCase().split(/\s+/);
+  for (const [unit, keywords] of Object.entries(UNIT_MAP)) {
+    if (words.some(w => keywords.some(k => w.includes(k)))) return unit;
+  }
+  return 'pcs';
 };
 
 /**

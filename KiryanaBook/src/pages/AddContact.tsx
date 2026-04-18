@@ -9,11 +9,13 @@ import { useTheme } from '../context/ThemeContext';
 
 export const AddContact: React.FC = () => {
   const navigate = useNavigate();
-  const { addContact, contacts } = useShop();
+  const { addContact, updateContact, contacts } = useShop();
   const { isDarkMode } = useTheme();
 
   const [searchParams] = useSearchParams();
+  const editId = searchParams.get('id');
   const initialType = searchParams.get('type') === 'supplier' ? 'supplier' : 'customer';
+  
   const [type, setType] = useState<'customer' | 'supplier'>(initialType);
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
@@ -21,6 +23,19 @@ export const AddContact: React.FC = () => {
   const [initialBalance, setInitialBalance] = useState('');
   const [balanceDir, setBalanceDir] = useState<'udhaar' | 'advance'>('udhaar');
   const [loading, setLoading] = useState(false);
+
+  React.useEffect(() => {
+    if (editId) {
+      const c = contacts.find(x => x.id === editId);
+      if (c) {
+        setName(c.name);
+        setPhone(c.phone || '');
+        setAddress(c.address || '');
+        setType(c.type);
+        // Balance editing is restricted to prevent ledger inconsistency
+      }
+    }
+  }, [editId, contacts]);
 
   const bg = isDarkMode ? '#0A0A0A' : '#F5F5F5';
   const card = isDarkMode ? '#141414' : '#FFFFFF';
@@ -32,7 +47,19 @@ export const AddContact: React.FC = () => {
     if (!name.trim()) return toast.error('Name zaroori hai');
     setLoading(true);
     try {
-      // DEDUPLICATION: Check if name already exists
+      if (editId) {
+        const oldContact = contacts.find(x => x.id === editId);
+        await updateContact(editId, oldContact?.name || '', { 
+          name: name.trim(), 
+          phone: phone.trim(),
+          address: address.trim() 
+        });
+        toast.success('Update ho gaya!');
+        navigate(-1);
+        return;
+      }
+
+      // DEDUPLICATION for New Contacts
       const existing = contacts.find(c => c.name.toLowerCase() === name.trim().toLowerCase());
       if (existing) {
           toast.error(`${name} ke naam se pehle hi ${existing.type} mojood hai!`);
@@ -41,11 +68,7 @@ export const AddContact: React.FC = () => {
       }
 
       const formattedPhone = phone.trim();
-
       const balVal = parseFloat(initialBalance) || 0;
-      // MATH LOGIC:
-      // Customer: Udhaar = +val (Lena Hai), Advance = -val (Pese Zyada Mile)
-      // Supplier: Udhaar = -val (Dena Hai), Advance = +val (Pese Zyada Diye)
       let finalBalance = 0;
       if (type === 'customer') {
           finalBalance = balanceDir === 'udhaar' ? balVal : -balVal;
@@ -78,7 +101,7 @@ export const AddContact: React.FC = () => {
             <button onClick={() => navigate(-1)} className="text-white active:scale-90 transition-transform">
               <ArrowLeft size={22} />
             </button>
-            <p className="text-white/50 text-[10px] font-bold uppercase tracking-widest">Add Contact</p>
+            <p className="text-white/50 text-[10px] font-bold uppercase tracking-widest">{editId ? 'Edit Contact' : 'Add Contact'}</p>
             <button 
               onClick={() => toast("Ye page naya customer ya supplier add karne ke liye he. Blue buttons se select karein ke kese balance shuru karna he (Lenay hain ya Denay hain).", { icon: 'ℹ️', duration: 4000 })}
               className="w-8 h-8 bg-white/10 rounded-xl flex items-center justify-center animate-pulse"
@@ -177,7 +200,7 @@ export const AddContact: React.FC = () => {
           </div>
 
           {/* INITIAL BALANCE */}
-          <div className="rounded-3xl border overflow-hidden" style={{ backgroundColor: '#0A3D24' }}>
+          <div className="rounded-3xl border overflow-hidden" style={{ backgroundColor: '#0A3D24', display: editId ? 'none' : 'block' }}>
             <div className="px-5 pt-4 pb-3">
               <div className="flex items-center justify-between mb-3">
                 <div>

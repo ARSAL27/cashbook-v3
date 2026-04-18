@@ -3,9 +3,10 @@ import { PageTransition } from '../components/PageTransition';
 import { ArrowLeft, User, Phone, MapPin, Store, Camera, Mail } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { useShop } from '../context/ShopContext';
-import { useAuth } from '../context/AuthContext';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
+import { resizeBase64Image } from '../utils/image';
+import { useAuth } from '../context/AuthContext';
+import { useShop } from '../context/ShopContext';
 
 export const ProfileSettings: React.FC = () => {
   const navigate = useNavigate();
@@ -60,7 +61,7 @@ export const ProfileSettings: React.FC = () => {
     }
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -69,39 +70,20 @@ export const ProfileSettings: React.FC = () => {
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        const MAX_WIDTH = 200;
-        const MAX_HEIGHT = 200;
-        let width = img.width;
-        let height = img.height;
-
-        if (width > height) {
-          if (width > MAX_WIDTH) {
-            height *= MAX_WIDTH / width;
-            width = MAX_WIDTH;
-          }
-        } else {
-          if (height > MAX_HEIGHT) {
-            width *= MAX_HEIGHT / height;
-            height = MAX_HEIGHT;
-          }
-        }
-
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        ctx?.drawImage(img, 0, 0, width, height);
-
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
-        setFormData(prev => ({ ...prev, logoUrl: dataUrl }));
+    const toastId = toast.loading('Tasweer process ho rahi hai...');
+    try {
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+        const base64 = event.target?.result as string;
+        // Resize to 200px for the logo
+        const resized = await resizeBase64Image(base64, 200, 0.8);
+        setFormData(prev => ({ ...prev, logoUrl: resized }));
+        toast.success('Tasweer ready hai!', { id: toastId });
       };
-      img.src = event.target?.result as string;
-    };
-    reader.readAsDataURL(file);
+      reader.readAsDataURL(file);
+    } catch (err) {
+      toast.error('Galti hui tasweer process karne mein', { id: toastId });
+    }
   };
 
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {

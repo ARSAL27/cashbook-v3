@@ -216,17 +216,17 @@ function HistoryPanel({
 
       {/* List */}
       <div className="flex-1 overflow-y-auto p-4 space-y-2">
-        {sessions.length === 0 ? (
+        {sessions.filter(s => s.messages.filter(m => !m.isBot).length >= 5).length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center px-6 pb-20">
             <div className="w-16 h-16 rounded-3xl bg-gray-100 dark:bg-white/5 flex items-center justify-center mb-4">
               <MessageCircle size={28} className="text-gray-300 dark:text-gray-600" />
             </div>
             <p className="text-gray-600 dark:text-gray-400 font-semibold text-base">Koi history nahi</p>
-            <p className="text-gray-400 dark:text-gray-600 text-sm mt-1">Pehli guftagu karo — save ho jaayegi!</p>
+            <p className="text-gray-400 dark:text-gray-600 text-sm mt-1">Sirf wo chat save hoti hain jin mein user ke 5+ messages hon.</p>
           </div>
         ) : (
           sessions
-            .slice()
+            .filter(s => s.messages.filter(m => !m.isBot).length >= 5)
             .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
             .map((session) => (
               <div
@@ -239,7 +239,7 @@ function HistoryPanel({
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-bold text-gray-900 dark:text-white truncate">{session.title}</p>
-                  <p className="text-xs text-gray-400 mt-0.5">{formatDate(session.updatedAt)} • {session.messages.length} messages</p>
+                  <p className="text-xs text-gray-400 mt-0.5">{formatDate(session.updatedAt)} • {session.messages.filter(m => !m.isBot).length} messages</p>
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
                   <button
@@ -396,7 +396,7 @@ export const Manager: React.FC = () => {
     if (WebSpeech && !Capacitor.isNativePlatform()) {
       try {
         const recognition = new WebSpeech();
-        recognition.lang = 'ur-PK';
+        recognition.lang = 'en-PK';
         recognition.interimResults = true;
         recognition.continuous = false;
 
@@ -449,7 +449,7 @@ export const Manager: React.FC = () => {
       setIsListening(true);
       
       SpeechRecognition.start({
-        language: 'ur-PK',
+        language: 'en-PK',
         partialResults: true,
         popup: false, 
       });
@@ -512,7 +512,8 @@ export const Manager: React.FC = () => {
 
   // Auto-save session whenever messages change (if more than 5 messages)
   useEffect(() => {
-    if (messages.length <= 5) return; // Only save meaningful conversations
+    const userMsgCount = messages.filter(m => !m.isBot).length;
+    if (userMsgCount < 5) return; // Only save if user has sent 5+ messages
 
     const firstUserMsg = messages.find(m => !m.isBot);
     const title = firstUserMsg ? firstUserMsg.text.slice(0, 40) : 'Nayi Guftagu';
@@ -581,20 +582,20 @@ export const Manager: React.FC = () => {
   };
 
   return (
-    <div className="w-full max-w-md mx-auto h-screen flex flex-col bg-[#F9F9FB] dark:bg-[#0A0A0A] relative overflow-hidden overscroll-behavior-contain">
+    <div className="w-full max-w-md mx-auto h-[calc(100dvh-100px)] flex flex-col bg-[#F9F9FB] dark:bg-[#0A0A0A] relative overflow-hidden overscroll-none">
 
       {/* ── Header (Slim & Pro) ─────────────────────────────────────────────────── */}
-      <div className="shrink-0 bg-white dark:bg-[#0A0A0A] px-5 pb-3 border-b dark:border-white/5 shadow-[0_2px_15px_rgba(0,0,0,0.02)]">
+      <div className="sticky top-0 z-[60] shrink-0 bg-white dark:bg-[#0A0A0A] px-5 pt-10 pb-4 border-b dark:border-white/5 shadow-[0_2px_15px_rgba(0,0,0,0.02)]">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <button onClick={() => navigate(-1)} className="w-9 h-9 rounded-xl bg-gray-50 dark:bg-white/5 flex items-center justify-center text-gray-700 dark:text-white/70 active:scale-90 transition-all border dark:border-white/5">
+            <button onClick={() => navigate('/')} className="w-9 h-9 rounded-xl bg-gray-50 dark:bg-white/5 flex items-center justify-center text-gray-700 dark:text-white/70 active:scale-90 transition-all border dark:border-white/5">
                 <ArrowLeft size={18} strokeWidth={2.5} />
             </button>
             <div>
               <h1 className="text-[17px] font-black text-gray-900 dark:text-white leading-none mb-1 tracking-tight">Business Manager</h1>
               <div className="flex items-center gap-1.5">
                 <div className="w-1.5 h-1.5 rounded-full bg-[#00C853] shadow-[0_0_5px_#00C853]" />
-                <p className="text-[8px] font-black text-gray-400 dark:text-white/30 uppercase tracking-[0.2em]">Strategy Mode</p>
+                <p className="text-[8px] font-black text-gray-400 dark:text-white/30 uppercase tracking-[0.2em]">Testing Mode</p>
               </div>
             </div>
           </div>

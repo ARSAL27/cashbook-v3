@@ -194,10 +194,10 @@ export const Dashboard: React.FC = () => {
   }, [stats]);
 
   return (
-    <PageTransition> <div className="w-full bg-[#F2F2F7] dark:bg-[#0A0A0A] font-outfit max-w-md mx-auto transition-colors duration-300 ">
+    <PageTransition> <div className="w-full bg-[#F2F2F7] dark:bg-[#0A0A0A] font-outfit max-w-md mx-auto transition-colors duration-300 pb-32">
 
         {/* ── STICKY HEADER ── */}
-        <div className="pt-16 pb-3 sticky top-0 z-50 px-5 border-b transition-all duration-300 dark:border-white/5 shadow-sm" style={{ backgroundColor: isDarkMode ? '#0A0A0A' : '#1A5C38' }}>
+        <div className="pt-8 pb-3 sticky top-0 z-50 px-5 border-b transition-all duration-300 dark:border-white/5 shadow-sm" style={{ backgroundColor: isDarkMode ? '#0A0A0A' : '#1A5C38' }}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <button 
@@ -461,7 +461,10 @@ export const Dashboard: React.FC = () => {
         {/* ── AAJ KI ACTIVITY ── */}
         <div className="px-4 mt-5">
           <div className="flex justify-between items-center mb-3 px-1">
-            <div className="flex items-center gap-2">
+            <div 
+              onClick={() => navigate('/all-activity')}
+              className="flex items-center gap-2 cursor-pointer active:scale-95 transition-all"
+            >
               <p className="text-[15px] font-black text-gray-800 dark:text-white">Aaj Ki Activity</p>
               <div className="w-1.5 h-1.5 rounded-full bg-[#00E676] animate-pulse" />
             </div>

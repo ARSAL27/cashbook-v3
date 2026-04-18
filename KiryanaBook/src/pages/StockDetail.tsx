@@ -8,6 +8,7 @@ import { useTheme } from '../context/ThemeContext';
 import toast from 'react-hot-toast';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
 import { getBrandStyle } from '../data/kiryanaDatabase';
+import { resizeBase64Image } from '../utils/image';
 
 export const StockDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -39,14 +40,15 @@ export const StockDetail: React.FC = () => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Show loading or immediate feedback
     const toastId = toast.loading('Image processing...');
     
     try {
         const reader = new FileReader();
         reader.onloadend = async () => {
             const base64String = reader.result as string;
-            setEditForm(prev => ({ ...prev, imageUrl: base64String }));
+            // Resize image to max 400px to stay within Firestore limits
+            const resized = await resizeBase64Image(base64String, 400, 0.7);
+            setEditForm(prev => ({ ...prev, imageUrl: resized }));
             triggerHaptic(ImpactStyle.Medium);
             toast.success('Image ready! Save changes per click karein.', { id: toastId });
         };
@@ -67,7 +69,7 @@ export const StockDetail: React.FC = () => {
     <PageTransition> <div className="w-full font-outfit max-w-md mx-auto relative overflow-x-hidden min-h-screen " style={{ backgroundColor: bg }}>
         
         {/* TOP NAV */}
-        <div className="pt-16 pb-4 px-4 flex items-center justify-between sticky top-0 z-50 backdrop-blur-md transition-all" style={{ backgroundColor: bg + 'F2' }}>
+        <div className="pt-10 pb-2 px-4 flex items-center justify-between sticky top-0 z-50 backdrop-blur-md transition-all" style={{ backgroundColor: bg + 'F2' }}>
            <button onClick={() => navigate(-1)} className="w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 dark:bg-[#1E1E1E]">
               <ArrowLeft size={18} className="text-gray-600 dark:text-gray-300" />
            </button>

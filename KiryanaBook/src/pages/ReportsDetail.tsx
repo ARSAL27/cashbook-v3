@@ -14,7 +14,7 @@ export const ReportsDetail: React.FC = () => {
     const { sales, expenses, profile } = useShop();
     const navigate = useNavigate();
     const { isDarkMode } = useTheme();
-    const [range, setRange] = useState<'1W' | '1M' | '1Y'>('1W');
+    const [range, setRange] = useState<'1D' | '1W' | '1M' | '1Y'>('1W');
     const [chartWidth, setChartWidth] = useState(window.innerWidth - 40);
 
     React.useEffect(() => {
@@ -27,26 +27,30 @@ export const ReportsDetail: React.FC = () => {
     const chartData = useMemo(() => {
         const data = [];
         const now = new Date();
-        const days = range === '1W' ? 7 : range === '1M' ? 30 : 365;
+        const days = range === '1D' ? 1 : range === '1W' ? 7 : range === '1M' ? 30 : 365;
         const step = range === '1Y' ? 30 : 1; // Monthly points if 1 year
 
         for (let i = days - 1; i >= 0; i -= step) {
-            const d = new Date(now);
-            d.setDate(now.getDate() - i);
-            const ds = d.toISOString().split('T')[0];
-            
+            const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
+            const y = d.getFullYear();
+            const m = String(d.getMonth() + 1).padStart(2, '0');
+            const dt = String(d.getDate()).padStart(2, '0');
+            const localDs = `${y}-${m}-${dt}`;
+
             let label = d.toLocaleDateString('en-US', { day: 'numeric', month: 'short' });
             if (range === '1Y') label = d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
 
-            const dailySales = sales
-                .filter(s => s.date.startsWith(ds))
-                .reduce((sum, s) => sum + s.total, 0);
+            const dailySales = sales.filter(s => {
+                const sd = new Date(s.date);
+                return `${sd.getFullYear()}-${String(sd.getMonth()+1).padStart(2,'0')}-${String(sd.getDate()).padStart(2,'0')}` === localDs;
+            }).reduce((sum, s) => sum + s.total, 0);
             
-            const dailyExpenses = expenses
-                .filter(e => e.date.startsWith(ds))
-                .reduce((sum, e) => sum + e.amount, 0);
+            const dailyExpenses = expenses.filter(e => {
+                const ed = new Date(e.date);
+                return `${ed.getFullYear()}-${String(ed.getMonth()+1).padStart(2,'0')}-${String(ed.getDate()).padStart(2,'0')}` === localDs;
+            }).reduce((sum, e) => sum + e.amount, 0);
 
-            data.push({ name: label, sales: dailySales, expenses: dailyExpenses, date: ds });
+            data.push({ name: label, sales: dailySales, expenses: dailyExpenses, localDs });
         }
         return data;
     }, [sales, expenses, range]);
@@ -60,24 +64,29 @@ export const ReportsDetail: React.FC = () => {
 
 
 
-    const exportToPDF = () => {
-        const doc = new jsPDF();
-        doc.setFontSize(20);
-        doc.text(`${profile?.name || 'My Shop'} - Detailed Report`, 14, 22);
-        doc.setFontSize(12);
-        doc.text(`Range: ${range === '1W' ? 'Last 7 Days' : range === '1M' ? 'Last 30 Days' : 'Last Year'}`, 14, 32);
+    const sendToWhatsApp = () => {
+        if (!profile?.phone) {
+            toast.error('Profile me phone number set nahi hai!');
+            return;
+        }
         
-        const tableBody = chartData.map(d => [d.date, d.sales.toLocaleString(), d.expenses.toLocaleString(), (d.sales - d.expenses).toLocaleString()]);
-        
-        autoTable(doc, {
-            startY: 40,
-            head: [['Date', 'Sales (Rs)', 'Expenses (Rs)', 'Profit (Rs)']],
-            body: tableBody,
-            headStyles: { fillColor: [10, 61, 36], textColor: [255, 255, 255] },
-        });
+        let periodText = 'Aaj Ka';
+        if (range === '1W') periodText = 'Pishlay 7 Din';
+        if (range === '1M') periodText = 'Pishlay 1 Mahinay';
+        if (range === '1Y') periodText = 'Pishlay 1 Saal';
 
-        doc.save(`Report_${range}_${new Date().getTime()}.pdf`);
-        toast.success("PDF file download ho rahi hai!");
+        const msg = `*${profile?.name || 'Shop'} - Business Report* 📊\n\n`
+          + `*Period:* ${periodText}\n`
+          + `*Total Sales (Revenue):* Rs. ${stats.totalSales.toLocaleString()}\n`
+          + `*Total Expenses:* Rs. ${stats.totalExpenses.toLocaleString()}\n`
+          + `*Net Profit:* Rs. ${stats.profit.toLocaleString()}\n\n`
+          + `_Powered by KiryanaBook_`;
+
+        let phone = profile.phone.replace(/\D/g, '');
+        if (phone.startsWith('0')) phone = '92' + phone.substring(1);
+        
+        const url = `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
+        window.open(url, '_blank');
     };
 
     const colors = {
@@ -90,7 +99,7 @@ export const ReportsDetail: React.FC = () => {
     };
 
     return (
-        <PageTransition> <div className="w-full font-outfit max-w-md mx-auto bg-background text-text-primary ">
+        <PageTransition> <div className="w-full font-outfit max-w-md mx-auto bg-background text-text-primary pb-20 ">
                 {/* HEADER */}
                 <div className="pt-16 pb-4 px-5 flex items-center justify-between sticky top-0 bg-background/80 backdrop-blur-md z-40">
                     <button onClick={() => navigate(-1)} className="p-2.5 rounded-2xl bg-card shadow-sm border border-border text-text-primary active:scale-90 transition-transform">
@@ -103,12 +112,12 @@ export const ReportsDetail: React.FC = () => {
                 {/* RANGE TOGGLE */}
                 <div className="px-5 mb-6">
                     <div className="bg-gray-100 dark:bg-[#1A1A1A] p-1.5 rounded-2xl flex gap-1 shadow-inner">
-                        {(['1W', '1M', '1Y'] as const).map(r => (
+                        {(['1D', '1W', '1M', '1Y'] as const).map(r => (
                             <button 
                                 key={r} onClick={() => setRange(r)}
                                 className={`flex-1 py-2.5 rounded-xl text-[12px] font-black transition-all ${range === r ? 'bg-white dark:bg-[#2A2A2A] shadow-md scale-[1.02] text-[#0A3D24] dark:text-[#00E676]' : 'text-gray-400 opacity-60'}`}
                             >
-                                {r === '1W' ? '1 Hafta' : r === '1M' ? '1 Mahina' : '1 Saal'}
+                                {r === '1D' ? '1 Din' : r === '1W' ? '7 Din' : r === '1M' ? '1 Mahina' : '1 Saal'}
                             </button>
                         ))}
                     </div>
@@ -157,8 +166,8 @@ export const ReportsDetail: React.FC = () => {
                                     contentStyle={{ backgroundColor: colors.card, border: 'none', borderRadius: '16px', boxShadow: '0 10px 40px -10px rgba(0,0,0,0.1)' }}
                                     itemStyle={{ fontSize: '10px', fontWeight: 'bold' }}
                                 />
-                                <Area type="monotone" dataKey="sales" stroke={colors.primary} strokeWidth={3} fillOpacity={1} fill="url(#colorSales)" />
-                                <Area type="monotone" dataKey="expenses" stroke={colors.secondary} strokeWidth={2} strokeDasharray="5 5" fillOpacity={1} fill="url(#colorExp)" />
+                                <Area type="linear" dataKey="sales" stroke={colors.primary} strokeWidth={3} fillOpacity={1} fill="url(#colorSales)" />
+                                <Area type="linear" dataKey="expenses" stroke={colors.secondary} strokeWidth={2} strokeDasharray="5 5" fillOpacity={1} fill="url(#colorExp)" />
                             </AreaChart>
                         </div>
 
@@ -182,36 +191,24 @@ export const ReportsDetail: React.FC = () => {
                         <h4 className="text-[18px] font-black mt-1 text-text-primary">Rs. {stats.totalSales.toLocaleString()}</h4>
                     </motion.div>
                     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="p-5 rounded-3xl bg-card border border-border shadow-sm">
-                        <p className="text-[9px] font-black uppercase tracking-[0.2em] text-text-muted">Net Profit</p>
+                        <p className="text-[9px] font-black uppercase tracking-[0.2em] text-text-muted">{stats.profit >= 0 ? 'Net Profit' : 'Net Loss'}</p>
                         <h4 className="text-[18px] font-black mt-1" style={{ color: stats.profit >= 0 ? colors.primary : colors.secondary }}>Rs. {stats.profit.toLocaleString()}</h4>
                     </motion.div>
                 </div>
 
                 {/* EXPORT OPTIONS */}
-                <div className="px-5 space-y-3">
+                <div className="px-5 space-y-3 mb-10">
                     <h3 className="text-[13px] font-black uppercase tracking-[0.2em] mb-4 text-center" style={{ color: colors.sub }}>Export Options</h3>
                     <div className="flex flex-col gap-4">
                         <motion.button 
                             whileTap={{ scale: 0.95 }}
-                            onClick={exportToPDF}
-                            className="bg-red-500 text-white p-5 rounded-[2rem] flex items-center justify-center gap-3 shadow-xl shadow-red-500/20 active:bg-red-600 transition-colors"
+                            onClick={sendToWhatsApp}
+                            className="bg-[#25D366] text-white p-5 rounded-[2rem] flex items-center justify-center gap-3 shadow-xl shadow-[#25D366]/20 active:bg-[#1DA851] transition-colors"
                         >
                             <FileText size={20} strokeWidth={2.5} />
-                            <span className="text-[11px] font-black uppercase tracking-widest">Professional Audit PDF</span>
+                            <span className="text-[11px] font-black uppercase tracking-widest">Send Audit To WhatsApp</span>
                         </motion.button>
                     </div>
-                </div>
-
-                {/* PRINT BUTTON */}
-                <div className="px-5 mt-6">
-                    <motion.button 
-                        whileTap={{ scale: 0.98 }}
-                        onClick={() => window.print()}
-                        className="w-full bg-white dark:bg-[#1E1E1E] border-2 border-dashed dark:border-[#333] p-5 rounded-[2rem] flex items-center justify-center gap-3 text-gray-400 font-black text-[12px] uppercase tracking-widest active:bg-gray-50 transition-colors"
-                    >
-                        <Download size={18} />
-                        Print Full Detailed Report
-                    </motion.button>
                 </div>
             </div>
         </PageTransition>

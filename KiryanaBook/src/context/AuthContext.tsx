@@ -112,6 +112,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   useEffect(() => {
+    // 🚀 MAX SPLASH LIMIT: If firestore hangs (offline), force ready after 3s
+    const forceReadyTimer = setTimeout(() => {
+      setIsSecurityReady(true);
+      setLoading(false);
+      console.log("Auth Offline Safety Triggered");
+    }, 3000);
+
     let unsubDoc: (() => void) | null = null;
 
     const unsubAuth = onAuthStateChanged(auth, async (u) => {
@@ -172,6 +179,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => {
       unsubAuth();
       if (unsubDoc) unsubDoc();
+      clearTimeout(forceReadyTimer);
     };
   }, [checkPinRequirement]);
 

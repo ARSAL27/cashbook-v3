@@ -10,7 +10,7 @@ import { useTheme } from '../context/ThemeContext';
 export const CustomerDetail: React.FC = () => {
     const { name } = useParams<{ name: string }>();
     const navigate = useNavigate();
-    const { udhaars, contacts, addUdhaar, deleteCustomer, toggleContactImportance, updateContact } = useShop();
+    const { udhaars, contacts, invoices, addUdhaar, deleteCustomer, toggleContactImportance, updateContact } = useShop();
     const { isDarkMode } = useTheme();
 
     const [showAddModal, setShowAddModal] = useState(false);
@@ -165,24 +165,32 @@ export const CustomerDetail: React.FC = () => {
     };
 
     return (
-        <PageTransition> <div className={`w-full min-h-screen pb-20 font-outfit max-w-md mx-auto ${isDarkMode ? 'bg-[#050505]' : 'bg-[#FAFAFA]'}`}> {/* DYNAMIC METALLIC HEADER */} <div className="bg-gradient-to-b from-[#0A3D24] to-[#0D4B2D] px-6 pt-12 relative overflow-hidden flex flex-col justify-between ">
+        <PageTransition> 
+            <div className={`w-full min-h-screen pb-20 font-outfit max-w-md mx-auto ${isDarkMode ? 'bg-[#050505]' : 'bg-[#FAFAFA]'}`}> 
+                {/* DYNAMIC METALLIC HEADER */} 
+                <div className="bg-gradient-to-b from-[#0A3D24] to-[#0D4B2D] px-6 pt-10 pb-10 relative overflow-hidden flex flex-col justify-between ">
                     <div className="absolute inset-0 bg-black/10 backdrop-blur-sm" />
                     <div className="absolute top-10 right-0 w-64 h-64 bg-emerald-500/10 blur-[80px] rounded-full" />
                     
-                    <div className="relative flex items-center justify-between mb-4 z-10">
+                    <div className="relative flex items-center justify-between mb-6 z-10">
                         <button onClick={() => navigate(-1)} className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center text-white active:scale-95 transition-transform border border-white/20">
                             <ArrowLeft size={20} />
                         </button>
-                        <p className="text-emerald-300 text-[10px] font-black uppercase tracking-[0.2em]">{isSupplier ? 'Supplier Ledger' : 'Customer Ledger'}</p>
+                        <p className="text-emerald-300 text-[11px] font-black uppercase tracking-[0.2em]">{isSupplier ? 'Supplier Ledger' : 'Customer Ledger'}</p>
                         <div className="flex items-center gap-2">
                              <button 
-                                onClick={() => {
-                                    setEditForm({ name: contact?.name || name || '', phone: contact?.phone || '' });
-                                    setShowEditModal(true);
+                                type="button"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (contact?.id) {
+                                        navigate(`/add-contact?id=${contact.id}`);
+                                    } else {
+                                        toast.error('Contact data loading ho raha hai...', { icon: '⏳' });
+                                    }
                                 }} 
-                                className="w-10 h-10 bg-white/10 backdrop-blur-md border border-white/20 rounded-full flex items-center justify-center active:scale-90 transition-transform"
+                                className="w-11 h-11 bg-white/15 backdrop-blur-md border border-white/30 rounded-full flex items-center justify-center active:scale-90 transition-transform cursor-pointer z-50"
                             >
-                                <Edit3 size={16} className="text-white" />
+                                <Edit3 size={18} className="text-white" />
                             </button>
                             <button onClick={handleDelete} className="w-10 h-10 bg-rose-500/20 backdrop-blur-md border border-rose-500/30 rounded-full flex items-center justify-center active:scale-90 transition-transform">
                                 <Trash2 size={16} className="text-rose-400" />
@@ -190,14 +198,14 @@ export const CustomerDetail: React.FC = () => {
                         </div>
                     </div>
 
-                    <div className="relative flex items-center gap-4 mb-4 z-10">
+                    <div className="relative flex items-center gap-4 mb-6 z-10">
                         <div className="w-16 h-16 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-2xl flex items-center justify-center text-white text-[22px] font-black shadow-lg border border-emerald-300 drop-shadow-xl relative overflow-hidden">
                             <div className="absolute inset-0 bg-white/20 skew-x-[-20deg] translate-x-[-150%]" />
                             {initials}
                         </div>
                         <div>
                             <div className="flex items-center gap-2">
-                                <h1 className="text-white font-black text-[24px] leading-tight tracking-tight drop-shadow-md">{name}</h1>
+                                <h1 className="text-white font-black text-[26px] leading-tight tracking-tight drop-shadow-md">{name}</h1>
                                 {/* STAR BUTTON */}
                                 <button 
                                     onClick={handleToggleStar}
@@ -206,7 +214,7 @@ export const CustomerDetail: React.FC = () => {
                                     <Star size={18} fill={contact?.isImportant ? "currentColor" : "none"} />
                                 </button>
                             </div>
-                            <p className="text-emerald-200/80 text-[13px] font-bold mt-1 tracking-wide">{isSupplier ? 'Shop Supplier' : 'Regular Customer'}</p>
+                            <p className="text-emerald-200/80 text-[14px] font-bold mt-1 tracking-wide">{isSupplier ? 'Shop Supplier' : 'Regular Customer'}</p>
                         </div>
                     </div>
 
@@ -234,7 +242,7 @@ export const CustomerDetail: React.FC = () => {
                 </div>
 
                 {/* PREMIUM GLOSSY NET BALANCE CARD */}
-                <div className="px-5 -mt-10 relative z-20">
+                <div className="px-5 -mt-8 relative z-20">
                     <motion.div 
                        initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}
                        className="rounded-[2rem] p-6 shadow-[0_20px_40px_rgba(0,0,0,0.06)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.5)] border bg-white dark:bg-[#141414] dark:border-white/10 border-gray-100 relative overflow-hidden backdrop-blur-2xl"
@@ -291,44 +299,65 @@ export const CustomerDetail: React.FC = () => {
                 </div>
 
                 {/* TRANSACTIONS HISTORY */}
-                <div className="px-5 mt-8">
-                    <p className="text-[15px] font-black mb-4 px-1 text-gray-900 dark:text-white flex items-center gap-2">
-                       <History size={18} className="text-gray-400" /> 
+                <div className="px-5 mt-10">
+                    <p className="text-[15px] font-black mb-5 px-1 text-gray-900 dark:text-white flex items-center gap-2">
+                       <History size={20} className="text-gray-400" /> 
                        Transactions History
                     </p>
-                    <div className="space-y-3">
+                    <div className="space-y-4">
                         {transactions.length === 0 && (
                             <div className="flex flex-col items-center justify-center py-10 opacity-60">
                                <MessageSquare size={40} className="text-gray-300 dark:text-gray-700 mb-3" />
                                <p className="text-center text-[13px] font-bold text-gray-500">Koi transaction nahi he abhi</p>
                             </div>
                         )}
-                        {transactions.map(t => (
-                            <motion.div 
-                              initial={{ opacity: 0, scale: 0.95 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true }}
-                              key={t.id} 
-                              className="bg-white dark:bg-[#141414] p-4 rounded-[1.25rem] border border-gray-100 dark:border-white/5 flex items-center justify-between shadow-sm hover:shadow-md transition-all active:scale-[0.98]"
-                            >
-                                <div className="flex items-center gap-4">
-                                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center shadow-inner border ${t.amount < 0 ? 'bg-rose-50 dark:bg-rose-500/10 text-rose-500 border-rose-100 dark:border-rose-500/20' : 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-500 border-emerald-100 dark:border-emerald-500/20'}`}>
-                                        {t.amount < 0 ? <ArrowUpRight size={20} strokeWidth={2.5} /> : <ArrowDownLeft size={20} strokeWidth={2.5} />}
+                        {transactions.map(t => {
+                            const invNoMatch = t.note?.match(/INV-[\d-]+/);
+                            const invoiceIdFromNote = invNoMatch ? invoices.find(inv => inv.invoiceNumber === invNoMatch[0])?.id : null;
+
+                            return (
+                                <motion.div 
+                                  initial={{ opacity: 0, scale: 0.95 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true }}
+                                  key={t.id} 
+                                  onClick={() => {
+                                      if (invoiceIdFromNote) navigate(`/invoice/${invoiceIdFromNote}`);
+                                  }}
+                                  className={`bg-white dark:bg-[#141414] p-4 rounded-[1.5rem] border border-gray-100 dark:border-white/5 flex items-center justify-between shadow-sm hover:shadow-md transition-all active:scale-[0.98] ${invoiceIdFromNote ? 'cursor-pointer' : ''}`}
+                                >
+                                    <div className="flex items-center gap-4 flex-1 min-w-0">
+                                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-inner border shrink-0 ${t.amount < 0 ? 'bg-rose-50 dark:bg-rose-500/10 text-rose-500 border-rose-100 dark:border-rose-500/20' : 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-500 border-emerald-100 dark:border-emerald-500/20'}`}>
+                                            {t.amount < 0 ? <ArrowUpRight size={20} strokeWidth={2.5} /> : <ArrowDownLeft size={20} strokeWidth={2.5} />}
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <div className="min-w-0 overflow-hidden">
+                                                <motion.p 
+                                                  animate={(t.note?.length || 0) > 20 ? { x: [0, -150, 0] } : {}}
+                                                  transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
+                                                  className="text-[15px] font-black text-gray-900 dark:text-white whitespace-nowrap"
+                                                >
+                                                   {t.note || (isSupplier ? (t.amount < 0 ? 'Udhaar Liya' : 'Payment Di') : (t.amount > 0 ? 'Udhaar Diya' : 'Payment Mili'))}
+                                                </motion.p>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <p className="text-[11px] font-bold text-gray-400">{formatDate(t.date)}</p>
+                                                {invoiceIdFromNote && (
+                                                    <span className="text-[9px] font-black uppercase text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded-lg border border-emerald-500/10">
+                                                        View Bill
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <p className="text-[15px] font-black text-gray-900 dark:text-white mb-0.5">
-                                           {t.note || (isSupplier ? (t.amount < 0 ? 'Udhaar Liya' : 'Payment Di') : (t.amount > 0 ? 'Udhaar Diya' : 'Payment Mili'))}
-                                        </p>
-                                        <p className="text-[11px] font-bold text-gray-400">{formatDate(t.date)}</p>
-                                    </div>
-                                </div>
-                                <p className={`text-[16px] font-black tracking-tighter ${
-                                    isSupplier 
-                                    ? (t.amount < 0 ? 'text-rose-500' : 'text-emerald-500')
-                                    : (t.amount > 0 ? 'text-rose-500' : 'text-emerald-500')
-                                }`}>
-                                   {t.amount > 0 ? '+' : '-'} Rs. {Math.abs(t.amount).toLocaleString()}
-                                </p>
-                            </motion.div>
-                        ))}
+                                    <p className={`text-[17px] font-black tracking-tighter shrink-0 ml-4 tabular-nums ${
+                                        isSupplier 
+                                        ? (t.amount < 0 ? 'text-rose-500' : 'text-emerald-500')
+                                        : (t.amount > 0 ? 'text-rose-500' : 'text-emerald-500')
+                                    }`}>
+                                       {t.amount > 0 ? '+' : '-'} Rs. {Math.abs(t.amount).toLocaleString()}
+                                    </p>
+                                </motion.div>
+                            );
+                        })}
                     </div>
                 </div>
 

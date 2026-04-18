@@ -91,12 +91,24 @@ export const Reports: React.FC = () => {
     const days = [];
     const now = new Date();
     for (let i = 6; i >= 0; i--) {
-        const d = new Date(now);
-        d.setDate(now.getDate() - i);
-        const ds = d.toISOString().split('T')[0];
+        const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const dt = String(d.getDate()).padStart(2, '0');
+        const localDs = `${y}-${m}-${dt}`;
+        
         const dayName = d.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
-        const dayIncome = sales.filter(s => s.date.startsWith(ds)).reduce((sum: number, s) => sum + s.total, 0);
-        const dayExpense = expenses.filter(e => e.date.startsWith(ds)).reduce((sum: number, e) => sum + e.amount, 0);
+        
+        const dayIncome = sales.filter(s => {
+          const sd = new Date(s.date);
+          return `${sd.getFullYear()}-${String(sd.getMonth()+1).padStart(2,'0')}-${String(sd.getDate()).padStart(2,'0')}` === localDs;
+        }).reduce((sum: number, s) => sum + s.total, 0);
+
+        const dayExpense = expenses.filter(e => {
+          const ed = new Date(e.date);
+          return `${ed.getFullYear()}-${String(ed.getMonth()+1).padStart(2,'0')}-${String(ed.getDate()).padStart(2,'0')}` === localDs;
+        }).reduce((sum: number, e) => sum + e.amount, 0);
+
         days.push({ name: dayName, income: dayIncome, expense: dayExpense });
     }
     return days;
@@ -115,52 +127,92 @@ export const Reports: React.FC = () => {
 
   const exportToPDF = async () => {
     const doc = new jsPDF() as any;
-    
-    // Header
-    doc.setFontSize(20);
+    const margin = 14;
+    let yPos = 20;
+
+    // --- HEADER ---
+    doc.setFontSize(22);
     doc.setTextColor(10, 61, 36);
-    doc.text(`${profile?.name || 'KiryanaBook'} Audit: ${activeTab}`, 14, 20);
+    doc.text(`${profile?.name || 'KiryanaBook'} - ${activeTab} Report`, margin, yPos);
+    yPos += 8;
     doc.setFontSize(10);
     doc.setTextColor(100);
-    doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 28);
+    doc.text(`Generated: ${new Date().toLocaleString()}`, margin, yPos);
+    yPos += 4;
+    doc.setDrawColor(200);
+    doc.line(margin, yPos, 196, yPos);
+    yPos += 15;
+
+    // --- 1. FINANCIAL SUMMARY ---
+    doc.setFontSize(16);
+    doc.setTextColor(0);
+    doc.text('1. Financial Summary', margin, yPos);
+    yPos += 10;
+    
+    doc.setFontSize(12);
+    doc.setTextColor(40);
+    doc.text(`Revenue: Rs. ${totalRevenue.toLocaleString()}`, margin + 5, yPos); yPos += 8;
+    doc.text(`Expense: Rs. ${totalExpense.toLocaleString()}`, margin + 5, yPos); yPos += 8;
+    
+    if (netProfit >= 0) {
+        doc.setTextColor(0, 150, 0);
+        doc.text(`Net Profit: Rs. ${netProfit.toLocaleString()}`, margin + 5, yPos); yPos += 8;
+    } else {
+        doc.setTextColor(200, 0, 0);
+        doc.text(`Net Loss: Rs. ${Math.abs(netProfit).toLocaleString()}`, margin + 5, yPos); yPos += 8;
+    }
+    
+    doc.setTextColor(251, 146, 60);
+    doc.text(`Pending Udhaar: Rs. ${udhaarPending.toLocaleString()}`, margin + 5, yPos);
+    yPos += 20;
+
+    // --- 2. CASH FLOW (Last 7 Days) ---
+    doc.setFontSize(16);
+    doc.setTextColor(0);
+    doc.text('2. Cash Flow (Recent)', margin, yPos);
+    yPos += 6;
     
     autoTable(doc, {
-        startY: 40,
-        head: [['Date', 'Payment', 'Total Amount']],
-        body: filteredData.s.map(s => [new Date(s.date).toLocaleDateString(), s.type.toUpperCase(), `Rs. ${s.total.toLocaleString()}`]),
+        startY: yPos,
+        head: [['Day', 'Income', 'Expense']],
+        body: flowData.map(d => [d.name, `Rs. ${d.income.toLocaleString()}`, `Rs. ${d.expense.toLocaleString()}`]),
+        theme: 'grid',
+        headStyles: { fillColor: [40, 40, 40] }
+    });
+    yPos = (doc as any).lastAutoTable.finalY + 15;
+
+    if (yPos > 230) { doc.addPage(); yPos = 20; }
+
+    // --- 3. TOP PERFORMING PRODUCTS ---
+    doc.setFontSize(16);
+    doc.setTextColor(0);
+    doc.text('3. Top Performing Products', margin, yPos);
+    yPos += 6;
+    
+    autoTable(doc, {
+        startY: yPos,
+        head: [['Rank', 'Product Name', 'Sold Qty', 'Revenue generated']],
+        body: bestSelling.map((p, i) => [`# ${i+1}`, p.name, p.qty, `Rs. ${p.rev.toLocaleString()}`]),
         theme: 'grid',
         headStyles: { fillColor: [10, 61, 36] }
     });
+    yPos = (doc as any).lastAutoTable.finalY + 15;
 
-    let currentY = (doc as any).lastAutoTable.finalY + 15;
+    if (yPos > 230) { doc.addPage(); yPos = 20; }
+
+    // --- 4. TOP DEBTORS ---
+    doc.setFontSize(16);
+    doc.setTextColor(0);
+    doc.text('4. Top Debtors (Udhaar)', margin, yPos);
+    yPos += 6;
+
     autoTable(doc, {
-        startY: currentY,
-        head: [['Date', 'Description', 'Amount']],
-        body: filteredData.e.map(e => [new Date(e.date).toLocaleDateString(), e.description || '-', `Rs. ${e.amount.toLocaleString()}`]),
+        startY: yPos,
+        head: [['Rank', 'Customer Name', 'Amount Pending']],
+        body: topDebtors.map((d, i) => [`# ${i+1}`, d.customerName, `Rs. ${d.amount.toLocaleString()}`]),
         theme: 'grid',
         headStyles: { fillColor: [197, 34, 34] }
     });
-
-    currentY = (doc as any).lastAutoTable.finalY + 15;
-    if (currentY > 230) { doc.addPage(); currentY = 20; }
-    autoTable(doc, {
-        startY: currentY,
-        head: [['Customer Name', 'Pending Amount']],
-        body: filteredData.u.map(u => [u.customerName, `Rs. ${u.amount.toLocaleString()}`]),
-        theme: 'grid',
-        headStyles: { fillColor: [251, 146, 60] }
-    });
-
-    doc.addPage();
-    doc.setFontSize(22); doc.setTextColor(10, 61, 36);
-    doc.text('FINANCIAL SUMMARY', 14, 30);
-    doc.line(14, 35, 196, 35);
-    doc.setFontSize(14); doc.setTextColor(0);
-    doc.text(`Total Sales: Rs. ${totalRevenue.toLocaleString()}`, 20, 55);
-    doc.text(`Total Expenses: Rs. ${totalExpense.toLocaleString()}`, 20, 68);
-    doc.text(`Gross Profit: Rs. ${grossProfit.toLocaleString()}`, 20, 81);
-    doc.text(`Net Profit: Rs. ${netProfit.toLocaleString()}`, 20, 94);
-    doc.text(`Pending Udhaar: Rs. ${udhaarPending.toLocaleString()}`, 20, 107);
 
     const fileName = `KiryanaBook_${activeTab}_Report.pdf`;
 
@@ -169,24 +221,23 @@ export const Reports: React.FC = () => {
         const dataUri = doc.output('datauristring');
         const base64Data = dataUri.split(',')[1];
         const savedFile = await Filesystem.writeFile({
-          path: fileName,
+          path: fileName.replace(/[^a-z0-9_.-]/gi, '_'),
           data: base64Data,
           directory: Directory.Documents,
         });
         
-        // Share via Native Share (opens WhatsApp choice)
         await Share.share({
           title: 'KiryanaBook Report',
-          text: `Financial Audit Report for ${activeTab}`,
+          text: `Financial overview for ${activeTab}`,
           url: savedFile.uri,
-          dialogTitle: 'Share via WhatsApp'
+          dialogTitle: 'Share PDF Report'
         });
       } else {
         doc.save(fileName);
-        toast.success("PDF Downloaded Successfully");
+        toast.success("PDF Report Downloaded!");
       }
     } catch (e) {
-      toast.error('Share failed');
+      toast.error('Export failed');
     }
   };
 
@@ -194,17 +245,19 @@ export const Reports: React.FC = () => {
     <PageTransition> 
       <div className="w-full transition-colors duration-300 font-outfit max-w-md mx-auto bg-background text-text-primary min-h-screen pb-40">
         
-        {/* COMPACTED HEADER */}
-        <div className="pt-10 pb-3 px-5 flex items-center justify-between sticky top-0 bg-background/80 backdrop-blur-xl z-20 border-b border-border/10">
-            <h1 className="text-[18px] font-black tracking-tight uppercase">Reports Overview</h1>
+        {/* HEADER */}
+        <div className="pt-20 pb-4 px-5 flex items-center justify-between sticky top-0 bg-background/90 backdrop-blur-xl z-20 border-b border-border/10">
+            <h1 className="text-[20px] font-black tracking-tight uppercase">Reports Overview</h1>
             <button 
                 onClick={() => { setActiveTab('Custom'); setShowCustom(!showCustom); }}
-                className={`flex items-center gap-1.5 border px-3 py-1.5 rounded-lg shadow-sm active:scale-95 transition-all ${activeTab === 'Custom' ? 'border-primary bg-primary/10' : 'bg-card border-border'}`}
+                className={`flex items-center gap-2 border px-4 py-2 rounded-xl shadow-lg active:scale-95 transition-all ${activeTab === 'Custom' ? 'border-primary bg-primary/10' : 'bg-card border-border'}`}
             >
-                <Calendar size={14} className="text-primary" />
-                <span className="text-[9px] font-black text-primary uppercase">Custom</span>
+                <Calendar size={16} className="text-primary" />
+                <span className="text-[10px] font-black text-primary uppercase">Custom</span>
             </button>
         </div>
+
+        <div className="h-2" />
 
         {showCustom && (
             <div className="px-5 mt-2 flex gap-2">
@@ -224,8 +277,8 @@ export const Reports: React.FC = () => {
             {['Today', 'This Week', 'This Month', 'Last Month'].map(tab => (
                 <button 
                     key={tab} onClick={() => setActiveTab(tab)}
-                    className={`whitespace-nowrap px-4 py-2 rounded-full text-[11px] font-black uppercase tracking-widest transition-all border ${
-                        activeTab === tab ? 'bg-primary text-black border-primary' : 'bg-card text-text-muted border-border'
+                    className={`whitespace-nowrap px-5 py-2.5 rounded-full text-[11px] font-black uppercase tracking-widest transition-all border ${
+                        activeTab === tab ? 'bg-primary text-black border-primary shadow-lg shadow-primary/10' : 'bg-card text-text-muted border-border'
                     }`}
                 >
                     {tab}
@@ -234,45 +287,50 @@ export const Reports: React.FC = () => {
         </div>
 
         {/* ── SUMMARY CARDS ── */}
-        <div className="px-5 mt-4 grid grid-cols-2 gap-2">
+        <div className="px-5 mt-6 grid grid-cols-2 gap-3">
             {[
                 { label: 'Revenue', val: totalRevenue, color: '#4BFF94', icon: TrendingUp },
                 { label: 'Expenses', val: totalExpense, color: '#FF5252', icon: TrendingDown },
-                { label: 'Net Profit', val: netProfit, color: isDarkMode ? '#4BFF94' : '#0A3D24', icon: ArrowUpRight },
+                { 
+                  label: netProfit >= 0 ? 'Net Profit' : 'Net Loss', 
+                  val: Math.abs(netProfit), 
+                  color: netProfit >= 0 ? (isDarkMode ? '#4BFF94' : '#0A3D24') : '#FF5252', 
+                  icon: netProfit >= 0 ? ArrowUpRight : TrendingDown 
+                },
                 { label: 'Udhaar', val: udhaarPending, color: '#FB923C', icon: AlertTriangle }
             ].map((card, i) => (
-                <div key={i} className="rounded-2xl p-4 shadow-sm border border-border bg-card relative overflow-hidden h-[90px] flex flex-col justify-center">
-                    <div className="absolute left-0 top-0 bottom-0 w-1" style={{ backgroundColor: card.color }} />
-                    <p className="text-[9px] font-black text-text-muted uppercase tracking-widest mb-1">{card.label}</p>
-                    <h3 className="text-[17px] font-black tabular-nums" style={{ color: card.color }}>Rs. {card.val.toLocaleString()}</h3>
+                <div key={i} className="rounded-2xl p-4 shadow-sm border border-border bg-card relative overflow-hidden h-[95px] flex flex-col justify-center transition-all active:scale-95">
+                    <div className="absolute left-0 top-0 bottom-0 w-1.5" style={{ backgroundColor: card.color }} />
+                    <p className="text-[10px] font-black text-text-muted uppercase tracking-widest mb-1">{card.label}</p>
+                    <h3 className="text-[18px] font-black tabular-nums" style={{ color: card.color }}>Rs. {card.val.toLocaleString()}</h3>
                 </div>
             ))}
         </div>
 
         {/* ── CASH FLOW ── */}
-        <div className="px-5 mt-6">
-            <h2 className="text-[14px] font-black tracking-widest uppercase mb-4 opacity-40">Cash Flow</h2>
-            <div className="h-40 w-full flex justify-center">
+        <div className="px-5 mt-8">
+            <h2 className="text-[14px] font-black tracking-widest uppercase mb-4 opacity-40">Cash Flow History</h2>
+            <div className="h-40 w-full flex justify-center bg-card/30 rounded-3xl p-4 border border-border/5">
                 <LineChart width={chartWidth} height={160} data={flowData} margin={{ top: 5, right: 0, left: -20, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDarkMode ? '#222' : '#f0f0f0'} />
                     <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 8, fill: colors.sub, fontWeight: '900' }} />
                     <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 8, fill: colors.sub, fontWeight: '900' }} />
-                    <Line type="monotone" dataKey="income" stroke="#4BFF94" strokeWidth={3} dot={false} />
-                    <Line type="monotone" dataKey="expense" stroke="#ef4444" strokeWidth={2} dot={false} strokeDasharray="4 4" />
+                    <Line type="linear" dataKey="income" stroke="#4BFF94" strokeWidth={3} dot={false} />
+                    <Line type="linear" dataKey="expense" stroke="#ef4444" strokeWidth={2} dot={false} strokeDasharray="4 4" />
                 </LineChart>
             </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-8 mt-8 pb-32">
+        <div className="grid grid-cols-1 gap-8 mt-10 pb-40">
             {/* BEST SELLING */}
             <div className="px-5">
-                <h2 className="text-[12px] font-black tracking-widest uppercase mb-4 opacity-40">Top Performers</h2>
-                <div className="space-y-2">
+                <h2 className="text-[12px] font-black tracking-widest uppercase mb-4 opacity-40">Top Selling Products</h2>
+                <div className="space-y-3">
                     {bestSelling.map((item, idx) => (
-                        <div key={idx} className="rounded-xl p-3 flex items-center justify-between border border-border bg-card">
-                            <span className="text-[10px] font-black text-primary"># {idx + 1}</span>
-                            <span className="text-[12px] font-bold flex-1 px-3 truncate">{item.name}</span>
-                            <span className="text-[12px] font-black text-primary">Rs.{item.rev.toLocaleString()}</span>
+                        <div key={idx} className="rounded-2xl p-4 flex items-center justify-between border border-border bg-card shadow-sm hover:border-primary/30 transition-all">
+                            <span className="text-[11px] font-black text-primary bg-primary/10 w-6 h-6 rounded-lg flex items-center justify-center"># {idx + 1}</span>
+                            <span className="text-[14px] font-bold flex-1 px-4 truncate">{item.name}</span>
+                            <span className="text-[14px] font-black text-primary">Rs.{item.rev.toLocaleString()}</span>
                         </div>
                     ))}
                 </div>
@@ -281,31 +339,31 @@ export const Reports: React.FC = () => {
             {/* DEBTORS */}
             <div className="px-5">
                 <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-[12px] font-black tracking-widest uppercase opacity-40">Top Debtors</h2>
-                    <button className="text-[9px] font-black uppercase text-primary border border-primary/20 px-3 py-1 rounded-lg">Remind All</button>
+                    <h2 className="text-[12px] font-black tracking-widest uppercase opacity-40">Top Debtors List</h2>
+                    <button className="text-[10px] font-black uppercase text-primary border border-primary/20 px-4 py-1.5 rounded-xl active:scale-95 transition-all">Remind All</button>
                 </div>
-                <div className="space-y-1">
+                <div className="space-y-3">
                     {topDebtors.map((deb, idx) => (
-                        <div key={idx} className="p-3.5 flex items-center justify-between rounded-xl border border-border bg-card">
-                            <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-black text-[10px]">{deb.customerName[0]}</div>
-                                <span className="text-[12px] font-bold">{deb.customerName}</span>
+                        <div key={idx} className="p-4 flex items-center justify-between rounded-2xl border border-border bg-card shadow-sm">
+                            <div className="flex items-center gap-4">
+                                <div className="w-10 h-10 rounded-2xl bg-primary/10 text-primary flex items-center justify-center font-black text-[12px] shadow-inner">{deb.customerName[0]}</div>
+                                <span className="text-[14px] font-bold">{deb.customerName}</span>
                             </div>
-                            <span className="text-[13px] font-black text-red-500">Rs.{deb.amount.toLocaleString()}</span>
+                            <span className="text-[15px] font-black text-red-500">Rs.{deb.amount.toLocaleString()}</span>
                         </div>
                     ))}
                 </div>
             </div>
         </div>
 
-        {/* COMPACT FLOATING DOWNLOAD (EXCEL REMOVED) */}
-        <div className="fixed bottom-32 left-0 right-0 px-6 z-[90] pointer-events-none">
+        {/* COMPACT FLOATING DOWNLOAD */}
+        <div className="fixed bottom-28 left-0 right-0 px-6 z-[90] pointer-events-none">
             <button 
                 onClick={exportToPDF}
-                className="w-full max-w-[200px] mx-auto bg-primary text-black shadow-2xl rounded-2xl py-4 flex items-center gap-3 justify-center pointer-events-auto active:scale-95 transition-all font-black text-[12px] uppercase tracking-widest border-4 border-white dark:border-[#0A0A0A]"
+                className="w-full max-w-[220px] mx-auto bg-primary text-black shadow-[0_10px_40px_rgba(75,255,148,0.2)] rounded-2xl py-4 flex items-center gap-3 justify-center pointer-events-auto active:scale-95 transition-all font-black text-[13px] uppercase tracking-widest border-4 border-white dark:border-[#0A0A0A]"
             >
-                <FileText size={18} />
-                <span>Download Report</span>
+                <FileText size={20} />
+                <span>DOWNLOAD REPORT</span>
             </button>
         </div>
       </div>

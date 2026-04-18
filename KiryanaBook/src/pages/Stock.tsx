@@ -66,9 +66,9 @@ export const Stock: React.FC = () => {
 
     return [...filtered].sort((a, b) => {
         const getTs = (item: any) => {
-            if (!item.createdAt) return parseInt(item.id.split('-').pop() || '0') || 0; 
-            if (typeof item.createdAt === 'string') return new Date(item.createdAt).getTime();
             if (item.createdAt && item.createdAt.seconds) return item.createdAt.seconds * 1000;
+            if (typeof item.createdAt === 'string') return new Date(item.createdAt).getTime();
+            if (item.history && item.history.length > 0 && item.history[0].date) return new Date(item.history[0].date).getTime();
             return 0;
         };
         

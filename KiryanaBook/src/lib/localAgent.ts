@@ -18,9 +18,9 @@ export interface ShopData {
 }
 
 type Intent =
-  | 'TODAY_SALES' | 'YESTERDAY_SALES' | 'WEEK_SALES' | 'MONTH_SALES' | 'YEAR_SALES'
-  | 'TODAY_PROFIT' | 'YESTERDAY_PROFIT' | 'WEEK_PROFIT' | 'MONTH_PROFIT' | 'YEAR_PROFIT'
-  | 'TODAY_EXPENSE' | 'YESTERDAY_EXPENSE' | 'WEEK_EXPENSE' | 'MONTH_EXPENSE' | 'YEAR_EXPENSE'
+  | 'TODAY_SALES' | 'YESTERDAY_SALES' | 'DAY_BEFORE_YESTERDAY_SALES' | 'WEEK_SALES' | 'MONTH_SALES' | 'YEAR_SALES'
+  | 'TODAY_PROFIT' | 'YESTERDAY_PROFIT' | 'DAY_BEFORE_YESTERDAY_PROFIT' | 'WEEK_PROFIT' | 'MONTH_PROFIT' | 'YEAR_PROFIT'
+  | 'TODAY_EXPENSE' | 'YESTERDAY_EXPENSE' | 'DAY_BEFORE_YESTERDAY_EXPENSE' | 'WEEK_EXPENSE' | 'MONTH_EXPENSE' | 'YEAR_EXPENSE'
   | 'TOTAL_UDHAAR' | 'TOP_DEBTORS' | 'OVERDUE' | 'CUSTOMER_UDHAAR' | 'CUSTOMER_PAYMENT' | 'RECOVERY_CHASE'
   | 'LOW_STOCK' | 'STOCK_VALUE' | 'BEST_SELLING' | 'ITEM_STOCK' | 'STOCK_COUNT' | 'SLOW_STOCK' | 'LOW_MARGIN_ITEMS'
   | 'CUSTOMER_COUNT' | 'BEST_CUSTOMER' | 'CUSTOMER_HISTORY'
@@ -91,19 +91,22 @@ const INTENT_TO_CATEGORY: Record<Intent, IntentCategory> = {
 
 const INTENT_KEYWORDS: Record<Intent, string[]> = {
   TODAY_SALES: ['aaj', 'today', 'ajj', 'sale', 'bikri', 'revenue', 'kitna bika', 'total sales', 'aaj ki kamai', 'aaj ka kaam', 'aaj kitni sale', 'sales check', 'sela', 'sail', 'selae', 'sel', 'aj', 'ajh', 'aje', 'abi', 'abhi', 'ab tak', 'din bhar', 'ajj ki', 'aj ki'],
-  YESTERDAY_SALES: ['kal', 'yesterday', 'pichle din', 'pichla din', 'pichli sale', 'kal kitna bika', 'kal ki sale', 'kl', 'kla', 'klaa', 'kall', 'kell', 'kel', 'pishli', 'petli', 'pechli', 'kal wali', 'kl wali', 'klla', 'kalla', 'kalay'],
-  WEEK_SALES: ['hafte', 'hafta', 'week', '7 din', 'saat din', 'weekly', 'is hafte', 'hfta', 'hefte', 'hftha', 'haftah', 'wike', 'wek'],
-  MONTH_SALES: ['mahine', 'mahina', 'month', 'monthly', 'is mahine', '30 din', 'maheny', 'maheena', 'mhena', 'mheny', 'mhina', 'monath', 'monthali'],
-  YEAR_SALES: ['saal', 'year', 'yearly', 'annual', 'is saal', 'sal', 'sall', 'ayer', 'yearli'],
+  YESTERDAY_SALES: ['kal', 'yesterday', 'pichle din', 'pichla din', 'pichli sale', 'kal kitna bika', 'kal ki sale', 'kl', 'kla', 'klaa', 'kall', 'kell', 'kel'],
+  DAY_BEFORE_YESTERDAY_SALES: ['parson', 'parso', 'day before yesterday', 'pichle se pichla', 'dosra din', 'prson', 'prso', 'parsoon'],
+  WEEK_SALES: ['hafte', 'hafta', 'week', '7 din', 'saat din', 'weekly', 'is hafte'],
+  MONTH_SALES: ['mahine', 'mahina', 'month', 'monthly', 'is mahine', '30 din'],
+  YEAR_SALES: ['saal', 'year', 'yearly', 'annual', 'is saal'],
   
-  TODAY_PROFIT: ['aaj', 'today', 'profit', 'munafa', 'fayda', 'bachat', 'bachhat', 'kitni bachat', 'munafa kitna', 'aaj ka profit', 'aaj kya bacha', 'aaj ki kamai', 'aasli munafa', 'aj ka', 'ajj ka', 'feda', 'faida'],
-  YESTERDAY_PROFIT: ['kal', 'yesterday', 'profit', 'munafa', 'fayda', 'kamai', 'kal ka profit', 'kal kya bacha', 'kal ki bachat', 'kl ka', 'kla ka', 'kall ka', 'kel ka', 'pichly kal'],
+  TODAY_PROFIT: ['aaj', 'today', 'profit', 'munafa', 'fayda', 'bachat', 'bachhat'],
+  YESTERDAY_PROFIT: ['kal', 'yesterday', 'profit', 'munafa', 'fayda', 'kamai'],
+  DAY_BEFORE_YESTERDAY_PROFIT: ['parson', 'parso', 'profit', 'munafa', 'parson ki kamai'],
   WEEK_PROFIT: ['hafte', 'hafta', 'week', 'profit', 'munafa', 'kamai', 'hafte ka profit', 'is hafte kya bacha', '7 din ka munafa', 'hafton ka', 'wike ka'],
   MONTH_PROFIT: ['mahine', 'mahina', 'month', 'profit', 'munafa', 'mahine ka profit', 'poore mahine ki bachat', 'monthly profit', 'monath profit'],
   YEAR_PROFIT: ['saal', 'year', 'profit', 'munafa', 'poore saal ka fayda', 'yearly profit'],
 
-  TODAY_EXPENSE: ['aaj', 'today', 'expense', 'kharcha', 'kharch', 'kitna ukharcha', 'aaj ka kharcha', 'aj ka kharcha', 'ajj ka kharcha', 'aj karcha', 'karcha', 'expance', 'expanse', 'expens'],
-  YESTERDAY_EXPENSE: ['kal', 'yesterday', 'expense', 'kharcha', 'kal ka kharcha', 'kl ka kharcha', 'kla ka kharcha', 'kell ka karcha', 'pichla kharcha'],
+  TODAY_EXPENSE: ['aaj', 'today', 'expense', 'kharcha', 'kharch'],
+  YESTERDAY_EXPENSE: ['kal', 'yesterday', 'expense', 'kharcha', 'kal ka kharcha'],
+  DAY_BEFORE_YESTERDAY_EXPENSE: ['parson', 'parso', 'expense', 'kharcha', 'parson ka kharcha'],
   WEEK_EXPENSE: ['hafte', 'hafta', 'week', 'kharcha', 'hafte ka kharcha', 'weekly expense'],
   MONTH_EXPENSE: ['mahine', 'mahina', 'month', 'kharcha', 'mahine ka kharcha', 'monthly expense'],
   YEAR_EXPENSE: ['saal', 'year', 'kharcha'],
@@ -272,7 +275,15 @@ function detectIntent(query: string, data: ShopData): IntentResult {
   if (/worth|value|asasa|malik|dukan kitne ki/i.test(q)) return { intent: 'NET_WORTH', confidence: 0.95 };
   if (/nuqsan|ghata|loss|red/i.test(q)) return { intent: 'LOSS_MAKING', confidence: 0.95 };
 
-  if (/sale|kamai|aamdan|bikri/.test(q) && !(q.includes('loss') || q.includes('profit') || q.includes('vs'))) return { intent: 'TODAY_SALES', confidence: 0.9 };
+  // Time-sensitive Sales Check (Before generic Sale check)
+  const hasSaleKW = /sale|kamai|aamdan|bikri|sel/.test(q);
+  if (hasSaleKW) {
+    if (/parso|parson|parsun/.test(q)) return { intent: 'DAY_BEFORE_YESTERDAY_SALES', confidence: 0.98 };
+    if (/kal|pichla|yesterday|kl/.test(q)) return { intent: 'YESTERDAY_SALES', confidence: 0.98 };
+    if (/today|aaj|ajj|aj/.test(q)) return { intent: 'TODAY_SALES', confidence: 0.98 };
+  }
+
+  if (hasSaleKW && !(q.includes('loss') || q.includes('profit') || q.includes('vs'))) return { intent: 'TODAY_SALES', confidence: 0.8 };
   if (/stock|maal|item|quantity|invent/.test(q)) return { intent: 'LOW_STOCK', confidence: 0.8 };
 
   // Specific Udhaar
@@ -336,6 +347,10 @@ function detectIntent(query: string, data: ShopData): IntentResult {
   const hasOperator = /[\+\-\*\/]/.test(q.trim());
   if (mathCharsOnly && hasOperator) return { intent: 'MATH', confidence: 0.9 };
 
+  // Day of Week Detection
+  const isDayQuery = /monday|tuesday|wednesday|thursday|friday|saturday|sunday|peer|somwar|mangal|budh|jumeraat|juma|hafta|itwar/i.test(q);
+  if (isDayQuery && (hasBusinessKW || q.length < 15)) return { intent: 'SPECIFIC_DATE', confidence: 0.95 };
+
   return { intent: topIntent, confidence };
 }
 
@@ -352,10 +367,16 @@ function getDates() {
   const yesterdayDate = new Date(d);
   yesterdayDate.setDate(d.getDate() - 1);
   const yesterday = yesterdayDate.toISOString().split('T')[0];
+
+  const dayBeforeYesterdayDate = new Date(d);
+  dayBeforeYesterdayDate.setDate(d.getDate() - 2);
+  const dayBeforeYesterday = dayBeforeYesterdayDate.toISOString().split('T')[0];
+
   const weekStart = new Date(d.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
   const monthStart = new Date(d.getFullYear(), d.getMonth(), 1).toISOString();
   const yearStart = new Date(d.getFullYear(), 0, 1).toISOString();
-  return { today, yesterday, weekStart, monthStart, yearStart };
+
+  return { today, yesterday, dayBeforeYesterday, weekStart, monthStart, yearStart };
 }
 
 // ─── RESPONSE GENERATORS ──────────────────────────────────────────────────────
@@ -515,23 +536,26 @@ function _askLocalAgentInternal(query: string, data: ShopData): string {
     return "I can only help with your shop cashbook and financial records. Karobar ke hawale se kuch poochein.";
   }
 
-  const { today, yesterday, weekStart, monthStart, yearStart } = getDates();
+  const { today, yesterday, dayBeforeYesterday, weekStart, monthStart, yearStart } = getDates();
   let response = "";
 
   switch (intent) {
     case 'TODAY_SALES': response = getSalesText(data, s => s?.date?.startsWith(today) ?? false, 'Aaj Ki Sale'); break;
     case 'YESTERDAY_SALES': response = getSalesText(data, s => s?.date?.startsWith(yesterday) ?? false, 'Kal Ki Sale'); break;
+    case 'DAY_BEFORE_YESTERDAY_SALES': response = getSalesText(data, s => s?.date?.startsWith(dayBeforeYesterday) ?? false, 'Parson Ki Sale'); break;
     case 'WEEK_SALES': response = getSalesText(data, s => s?.date != null && s.date >= weekStart, 'Is Hafte Ki Sale'); break;
     case 'MONTH_SALES': response = getSalesText(data, s => s?.date != null && s.date >= monthStart, 'Is Mahine Ki Sale'); break;
     case 'YEAR_SALES': response = getSalesText(data, s => s?.date != null && s.date >= yearStart, 'Is Saal Ki Sale'); break;
     
     case 'TODAY_PROFIT': response = getProfitText(data, s => s?.date?.startsWith(today) ?? false, 'Aaj Ka Profit'); break;
     case 'YESTERDAY_PROFIT': response = getProfitText(data, s => s?.date?.startsWith(yesterday) ?? false, 'Kal Ka Profit'); break;
+    case 'DAY_BEFORE_YESTERDAY_PROFIT': response = getProfitText(data, s => s?.date?.startsWith(dayBeforeYesterday) ?? false, 'Parson Ka Profit'); break;
     case 'WEEK_PROFIT': response = getProfitText(data, s => s?.date != null && s.date >= weekStart, 'Is Hafte Ka Profit'); break;
     case 'MONTH_PROFIT': response = getProfitText(data, s => s?.date != null && s.date >= monthStart, 'Is Mahine Ka Profit'); break;
     
     case 'TODAY_EXPENSE': response = `💸 **Aaj ka Kharcha:** ${fmt((data.expenses || []).filter(e => e?.date?.startsWith(today)).reduce((a, x) => a + (x?.amount || 0), 0))}`; break;
     case 'YESTERDAY_EXPENSE': response = `💸 **Kal ka Kharcha:** ${fmt((data.expenses || []).filter(e => e?.date?.startsWith(yesterday)).reduce((a, x) => a + (x?.amount || 0), 0))}`; break;
+    case 'DAY_BEFORE_YESTERDAY_EXPENSE': response = `💸 **Parson ka Kharcha:** ${fmt((data.expenses || []).filter(e => e?.date?.startsWith(dayBeforeYesterday)).reduce((a, x) => a + (x?.amount || 0), 0))}`; break;
     
     case 'EXPENSE_BREAKDOWN': {
       const breakdown: Record<string, number> = {};
@@ -726,6 +750,57 @@ function _askLocalAgentInternal(query: string, data: ShopData): string {
     case 'ADVICE': {
       const topBatch = getRandomBatch(3);
       response = `💡 **AI Munshi Business Advice:**\n\n${topBatch.map((a, i) => `${i+1}. **${a.topic}**\n${a.solution}`).join('\n\n')}\n\nKarobar barhane ke liye in pe amal karein!`;
+      break;
+    }
+
+    case 'SPECIFIC_DATE': {
+      const dateMatch = query.match(/(\d{1,2})[\/\-\s](jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec|01|02|03|04|05|06|07|08|09|10|11|12)/i);
+      const daysMap: Record<string, number> = {
+        monday: 1, peer: 1, somwar: 1, somvaar: 1,
+        tuesday: 2, mangal: 2,
+        wednesday: 3, budh: 3,
+        thursday: 4, jumeraat: 4, jumerat: 4,
+        friday: 5, juma: 5, jumma: 5,
+        saturday: 6, hafta: 6,
+        sunday: 0, itwar: 0, itvaar: 0
+      };
+
+      let targetDate = '';
+      let displayDate = '';
+
+      if (dateMatch) {
+        const dMatch = dateMatch[0].replace(/[\/\s]/g, '-');
+        targetDate = dMatch;
+        displayDate = dateMatch[0];
+      } else {
+        const words = q.split(' ');
+        const foundDay = words.find(w => daysMap[w] !== undefined);
+        if (foundDay !== undefined) {
+            const targetDay = daysMap[foundDay];
+            const d = new Date();
+            const currentDay = d.getDay();
+            let diff = currentDay - targetDay;
+            if (diff < 0) diff += 7;
+            if (diff === 0) diff = 7; // Assume last week if same day
+            d.setDate(d.getDate() - diff);
+            targetDate = d.toISOString().split('T')[0];
+            displayDate = foundDay.charAt(0).toUpperCase() + foundDay.slice(1) + ` (${targetDate})`;
+        }
+      }
+
+      if (targetDate) {
+        const isProfit = /profit|munafa|fayda|bachat/.test(q);
+        const isExpense = /kharcha|expense/.test(q);
+
+        if (isProfit) response = getProfitText(data, s => s?.date?.startsWith(targetDate) ?? false, `${displayDate} Ka Profit`);
+        else if (isExpense) {
+          const total = (data.expenses || []).filter(e => e?.date?.startsWith(targetDate)).reduce((a, x) => a + (x?.amount || 0), 0);
+          response = `💸 **${displayDate} ka Kharcha:** ${fmt(total)}`;
+        }
+        else response = getSalesText(data, s => s?.date?.startsWith(targetDate) ?? false, `${displayDate} Ki Sale`);
+      } else {
+        response = "Maaf kijiye, ye date ya din samajh nahi aaya. 'Monday sale' ya '15-04' jesi query karein.";
+      }
       break;
     }
 

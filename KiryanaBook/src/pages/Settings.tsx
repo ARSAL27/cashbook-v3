@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, User, Store, ChevronRight, Database, FileText, Moon, Crown } from 'lucide-react';
+import { ArrowLeft, User, Store, ChevronRight, Database, FileText, Moon, Crown, MessageCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { PageTransition } from '../components/PageTransition';
 import { useAuth } from '../context/AuthContext';
@@ -12,181 +12,268 @@ import autoTable from 'jspdf-autotable';
 import { Capacitor } from '@capacitor/core';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 import { Share } from '@capacitor/share';
-
+import toast from 'react-hot-toast';
 
 
 export const Settings: React.FC = () => {
   const navigate = useNavigate();
   const {} = useAuth();
-  const { profile, sales, expenses, stock, contacts, invoices } = useShop();
+  const { profile, sales, expenses, stock, contacts, invoices, udhaars } = useShop();
   const { setMode, isDarkMode } = useTheme();
   const { language, setLanguage, t } = useLanguage();
+  const [backupFreq, setBackupFreq] = React.useState(localStorage.getItem('backup_freq') || '24h');
   const storageUsed = React.useMemo(() => {
     const dataSize = JSON.stringify({ sales, expenses, stock, contacts, invoices }).length;
     return (dataSize / (1024)).toFixed(1); // KB
   }, [sales, expenses, stock, contacts, invoices]);
 
+  const generateAuditSuggestions = () => {
+    const revenue = sales.reduce((sum, s) => sum + s.total, 0);
+    let cogs = 0;
+    sales.forEach(s => {
+        if(s.items) {
+            s.items.forEach(i => {
+                const st = stock.find(x => x.id === i.itemId);
+                const unitCost = st?.buyingPrice ? st.buyingPrice : (i.price * 0.8);
+                cogs += unitCost * i.qty;
+            });
+        } else {
+          cogs += s.total * 0.8;
+        }
+    });
+    const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
+    const netProfit = revenue - cogs - totalExpenses;
+    const netMarginPercent = revenue > 0 ? ((netProfit / revenue) * 100).toFixed(1) : '0.0';
+    
+    const totalStockValue = stock.reduce((sum, s) => sum + (s.price * s.quantity), 0);
+    const deadStockValue = stock.filter(s => (s.soldCount || 0) === 0).reduce((sum, s) => sum + (s.price * s.quantity), 0);
+    const deadStockPercent = totalStockValue > 0 ? ((deadStockValue / totalStockValue) * 100).toFixed(1) : '0';
+    
+    const udhaarSales = sales.filter(s => s.type !== 'cash').reduce((sum, s) => sum + s.total, 0);
+    const cashSales = sales.filter(s => s.type === 'cash').reduce((sum, s) => sum + s.total, 0);
+    const avgBill = sales.length > 0 ? Math.round(revenue / sales.length) : 0;
+    const topDebtors = [...udhaars].sort((a, b) => b.amount - a.amount).slice(0, 5);
+    const fastMoving = [...stock].sort((a, b) => (b.soldCount || 0) - (a.soldCount || 0)).slice(0, 5);
 
+    const suggestions = [];
+    if (parseFloat(deadStockPercent) > 10) suggestions.push(`- Dead stock (${deadStockPercent}%) ko clearance sale par lagayen.`);
+    if (udhaarSales > cashSales) suggestions.push('- Market mein udhaar barh raha hai. Purani wasooli tez karein.');
+    if (parseFloat(netMarginPercent) < 15) suggestions.push('- Profit margin kam hai. Expenses kam karein.');
+    if (avgBill < 3000) suggestions.push('- Average bill kam hai. Counter pe chocolates rakhen.');
+    if (topDebtors.length > 0 && topDebtors[0].amount > 10000) suggestions.push(`- ${topDebtors[0].customerName} se payment ka mutalba karein.`);
+    if (fastMoving.length > 0 && (fastMoving[0].quantity || 0) < 10) suggestions.push(`- Aapka best item (${fastMoving[0].name}) khatam hone wala hai.`);
+    
+    return suggestions.join('\n');
+  };
 
+  const handleWhatsAppAudit = () => {
+    const revenue = sales.reduce((sum, s) => sum + s.total, 0);
+    const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
+    const profit = revenue - totalExpenses;
 
+    const suggestionsStr = generateAuditSuggestions();
+    const msg = `*${profile?.name || 'Shop'} - Business Audit* 📊\n\n` 
+      + `*Kul Sale:* Rs. ${revenue.toLocaleString()}\n` 
+      + `*Kul Kharchay:* Rs. ${totalExpenses.toLocaleString()}\n` 
+      + `*Net Profit:* Rs. ${profit.toLocaleString()}\n\n` 
+      + `*Manager Suggestions:*\n${suggestionsStr ? suggestionsStr.replace(/^- /gm, '• ') : '• Business stable hai.'}\n\n` 
+      + `_KiryanaBook AI Audit_`;
+
+    window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
+  };
 
   const handleExportPDF = async () => {
     const doc = new jsPDF() as any;
+    const pageWidth = doc.internal.pageSize.width;
+    const margin = 14;
+
+    // --- Data Calculations ---
+    const revenue = sales.reduce((sum, s) => sum + s.total, 0);
     
+    // Calculate COGS approximately (using buyingPrice if available, else 80% of selling price)
+    let cogs = 0;
+    sales.forEach(s => {
+        if(s.items) {
+            s.items.forEach(i => {
+                const st = stock.find(x => x.id === i.itemId);
+                const unitCost = st?.buyingPrice ? st.buyingPrice : (i.price * 0.8);
+                cogs += unitCost * i.qty;
+            });
+        } else {
+            cogs += s.total * 0.8;
+        }
+    });
+    
+    const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
+    const grossProfit = revenue - cogs;
+    const netProfit = grossProfit - totalExpenses;
+    const netMarginPercent = revenue > 0 ? ((netProfit / revenue) * 100).toFixed(1) : '0.0';
+
+    // Inventory Analysis
+    const sortedBySales = [...stock].sort((a, b) => (b.soldCount || 0) - (a.soldCount || 0));
+    const fastMoving = sortedBySales.slice(0, 5);
+    const slowDead = sortedBySales.filter(s => (s.soldCount || 0) === 0 && s.quantity > 0).slice(0, 5);
+    const deadStockValue = stock.filter(s => (s.soldCount || 0) === 0).reduce((sum, s) => sum + (s.price * s.quantity), 0);
+    const totalStockValue = stock.reduce((sum, s) => sum + (s.price * s.quantity), 0);
+    const deadStockPercent = totalStockValue > 0 ? ((deadStockValue / totalStockValue) * 100).toFixed(1) : '0';
+
+    // Sales Analysis
+    const cashSales = sales.filter(s => s.type === 'cash').reduce((sum, s) => sum + s.total, 0);
+    const udhaarSales = sales.filter(s => s.type !== 'cash').reduce((sum, s) => sum + s.total, 0);
+    const avgBill = sales.length > 0 ? Math.round(revenue / sales.length) : 0;
+
     // Header
     doc.setFontSize(22);
     doc.setTextColor(10, 61, 36);
-    doc.text(profile?.name || 'KiryanaBook Ledger', 14, 20);
-    
+    doc.text(profile?.name || 'KiryanaBook Ledger', margin, 20);
     doc.setFontSize(10);
     doc.setTextColor(120);
-    doc.text(`Full Business Audit | ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`, 14, 28);
-    
-    // Line Separator
+    doc.text(`Comprehensive All-Time Business Audit | ${new Date().toLocaleDateString()}`, margin, 28);
     doc.setDrawColor(200);
-    doc.line(14, 32, 196, 32);
+    doc.line(margin, 32, pageWidth - margin, 32);
 
-    // SECTION 1: SALES
-    doc.setFontSize(14);
+    let yPos = 42;
+
+    // 1. FINANCIAL SNAPSHOT
+    doc.setFontSize(16);
+    doc.setTextColor(0);
+    doc.text('1. Financial Snapshot', margin, yPos);
+    yPos += 8;
+    doc.setFontSize(11);
+    doc.setTextColor(60);
+    doc.text(`Total Revenue: Rs. ${Math.round(revenue).toLocaleString()}`, margin + 5, yPos); yPos += 6;
+    doc.text(`Cost of Goods (Est.): Rs. ${Math.round(cogs).toLocaleString()}`, margin + 5, yPos); yPos += 6;
+    doc.text(`Total Expenses: Rs. ${Math.round(totalExpenses).toLocaleString()}`, margin + 5, yPos); yPos += 6;
+    doc.setFontSize(12);
+    doc.setFont('', 'bold');
+    if (netProfit >= 0) {
+        doc.setTextColor(10, 61, 36);
+        doc.text(`Net Profit: Rs. ${Math.round(netProfit).toLocaleString()}`, margin + 5, yPos);
+    } else {
+        doc.setTextColor(197, 34, 34);
+        doc.text(`Net Loss: Rs. ${Math.round(Math.abs(netProfit)).toLocaleString()}`, margin + 5, yPos);
+    }
+    yPos += 8;
+    
+    // Audit Check
+    doc.setFontSize(10);
+    const marginVal = parseFloat(netMarginPercent);
+    if (marginVal < 0) doc.setTextColor(197, 34, 34); // Red
+    else if (marginVal < 10) doc.setTextColor(180, 100, 0); // Orange/Brown
+    else if (marginVal < 30) doc.setTextColor(10, 61, 36); // Dark Green
+    else doc.setTextColor(0, 150, 0); // Bright Green
+
+    const advice = marginVal < 0 ? 'Karobar loss mein hai, kharchay kam karein!' 
+                  : marginVal < 10 ? 'Margin bohat kam hai, prices aur expenses check karein.'
+                  : marginVal < 30 ? 'Margin OK hai. Isey 30% tak le jaane ki koshish karein.'
+                  : 'Masha\'Allah! Margin bohat zabardast (Good) hai.';
+
+    doc.text(`Audit Check: Net Margin is ~${netMarginPercent}%. ${advice}`, margin + 5, yPos);
+    yPos += 15;
+
+    // 2. INVENTORY AUDIT
+    doc.setFontSize(16);
+    doc.setTextColor(0);
+    doc.setFont('', 'normal');
+    doc.text('2. Inventory Audit (Fast & Slow Movers)', margin, yPos);
+    yPos += 6;
+
+    autoTable(doc, {
+        head: [['Fast-Moving Products', 'Sold', 'Slow/Dead Stock']],
+        body: Array.from({ length: 5 }).map((_, i) => [
+            fastMoving[i]?.name || '-', 
+            fastMoving[i]?.soldCount || '-', 
+            slowDead[i]?.name || '-'
+        ]),
+        startY: yPos,
+        theme: 'grid',
+        styles: { fontSize: 9 },
+        headStyles: { fillColor: [43, 110, 75] }
+    });
+    yPos = (doc as any).lastAutoTable.finalY + 8;
+    doc.setFontSize(10);
+    doc.setTextColor(197, 34, 34);
+    const deadNames = sortedBySales.filter(s => (s.soldCount || 0) === 0 && s.quantity > 0).map(s => s.name).slice(0, 3).join(', ');
+    const deadMsg = `Audit Check: Aapke paas Rs. ${deadStockValue.toLocaleString()} ka dead stock pada hai (${deadStockPercent}%). ${deadNames ? `(Items: ${deadNames}${deadStockValue > 0 ? '...' : ''})` : ''}`;
+    doc.text(deadMsg, margin + 5, yPos);
+    yPos += 15;
+
+    // 3. SALES AUDIT
+    if (yPos > 240) { doc.addPage(); yPos = 20; }
+    doc.setFontSize(16);
+    doc.setTextColor(0);
+    doc.text('3. Sales Audit', margin, yPos);
+    yPos += 8;
+    doc.setFontSize(11);
+    doc.setTextColor(60);
+    doc.text(`Total Cash Sales: Rs. ${cashSales.toLocaleString()}`, margin + 5, yPos); yPos += 6;
+    doc.text(`Total Udhaar Sales: Rs. ${udhaarSales.toLocaleString()}`, margin + 5, yPos); yPos += 6;
+    doc.text(`Average Bill Value: Rs. ${avgBill.toLocaleString()}`, margin + 5, yPos); yPos += 8;
+    doc.setFontSize(10);
+    if (avgBill > 5000) doc.setTextColor(0, 150, 0); // Green
+    else doc.setTextColor(197, 34, 34); // Red
+
+    const avgAdvice = avgBill > 5000 ? 'Masha\'Allah, average sale achi hai!' : 'Isey mazeed barhane ki koshish karein.';
+    doc.text(`Audit Check: Har customer se average Rs. ${avgBill.toLocaleString()} ki sale ho rahi hai. ${avgAdvice}`, margin + 5, yPos);
+    yPos += 15;
+
+    // 4. SHOP LAYOUT & RECOMMENDATIONS
+    if (yPos > 240) { doc.addPage(); yPos = 20; }
+    doc.setFontSize(16);
+    doc.setTextColor(0);
+    doc.text('4. Final Recommendations & Layout Audit', margin, yPos);
+    yPos += 8;
+    doc.setFontSize(11);
+    doc.setTextColor(60);
+    doc.text('-> Kya running/fast-moving items pehle counter par hain?', margin + 5, yPos); yPos += 6;
+    doc.text('-> Kya chocolates/snacks jesi impulse items customer ke samne hain?', margin + 5, yPos); yPos += 10;
+    
+    doc.setFontSize(12);
     doc.setTextColor(10, 61, 36);
-    doc.text('1. Sales Transaction History', 14, 42);
-    
-    const salesData = sales.map(s => [
-        new Date(s.date).toLocaleDateString(), 
-        s.type.toUpperCase(), 
-        `Rs. ${s.total.toLocaleString()}`
-    ]);
-    
-    autoTable(doc, {
-      head: [['Date', 'Payment', 'Amount']],
-      body: salesData,
-      startY: 46,
-      theme: 'grid',
-      styles: { fontSize: 8, cellPadding: 3 },
-      headStyles: { fillColor: [10, 61, 36], textColor: [255, 255, 255] }
-    });
-
-    let currentY = (doc as any).lastAutoTable.finalY + 15;
-
-    // SECTION 2: EXPENSES
-    doc.setFontSize(14);
-    doc.text('2. Business Expenses', 14, currentY);
-    
-    const expensesData = expenses.map(e => [
-        new Date(e.date).toLocaleDateString(),
-        e.description || 'N/A',
-        `Rs. ${e.amount.toLocaleString()}`
-    ]);
-
-    autoTable(doc, {
-      head: [['Date', 'Description', 'Amount']],
-      body: expensesData,
-      startY: currentY + 4,
-      theme: 'grid',
-      styles: { fontSize: 8, cellPadding: 3 },
-      headStyles: { fillColor: [197, 34, 34], textColor: [255, 255, 255] }
-    });
-
-    currentY = (doc as any).lastAutoTable.finalY + 15;
-
-    // NEW PAGE FOR NEXT SECTIONS IF NEEDED
-    if (currentY > 230) {
-      doc.addPage();
-      currentY = 20;
+    doc.setFont('', 'bold');
+    doc.text('Action Plan (AI Suggestions):', margin + 5, yPos); yPos += 6;
+    doc.setFont('', 'normal');
+    doc.setFontSize(10);
+    doc.setTextColor(40);
+    const suggestionsStr = generateAuditSuggestions();
+    if (!suggestionsStr) {
+        doc.text('- Business stable hai. Customer loyalty programs par kaam karein.', margin + 5, yPos); yPos += 6;
+    } else {
+        suggestionsStr.split('\n').slice(0, 5).forEach(s => {
+            if (yPos > 270) { doc.addPage(); yPos = 20; }
+            doc.text(s, margin + 5, yPos); yPos += 6;
+        });
     }
 
-    // SECTION 3: STOCK INVENTORY
-    doc.setFontSize(14);
-    doc.text('3. Current Stock Inventory', 14, currentY);
-    
-    const stockData = stock.map(s => [
-        s.name,
-        `Rs. ${s.price.toLocaleString()}`,
-        `${s.quantity} ${s.unit}`,
-        `Rs. ${(s.price * s.quantity).toLocaleString()}`
-    ]);
+    const fileName = `Audit_${Date.now()}.pdf`;
 
-    autoTable(doc, {
-      head: [['Item Name', 'Price', 'Qty', 'Value']],
-      body: stockData,
-      startY: currentY + 4,
-      theme: 'grid',
-      styles: { fontSize: 8, cellPadding: 3 },
-      headStyles: { fillColor: [34, 139, 34], textColor: [255, 255, 255] }
-    });
-
-    currentY = (doc as any).lastAutoTable.finalY + 15;
-
-    // SECTION 4: CUSTOMERS & UDHAAR
-    doc.setFontSize(14);
-    doc.text('4. Customer Ledger (Total Balance)', 14, currentY);
-    
-    const contactData = contacts.map(c => [
-        c.name,
-        c.phone || '-',
-        c.type.toUpperCase(),
-        `Rs. ${(c.initialBalance || 0).toLocaleString()}`
-    ]);
-
-    autoTable(doc, {
-      head: [['Customer', 'Phone', 'Type', 'Balance']],
-      body: contactData,
-      startY: currentY + 4,
-      theme: 'grid',
-      styles: { fontSize: 8, cellPadding: 3 },
-      headStyles: { fillColor: [15, 23, 42], textColor: [255, 255, 255] }
-    });
-
-    // FINAL SUMMARY
-    doc.addPage();
-    doc.setFontSize(22);
-    doc.setTextColor(10, 61, 36);
-    doc.text('FINAL PERFORMANCE SUMMARY', 14, 30);
-    
-    doc.setDrawColor(10, 61, 36);
-    doc.setLineWidth(1);
-    doc.line(14, 35, 196, 35);
-
-    const totalSales = sales.reduce((sum, s) => sum + s.total, 0);
-    const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
-    const totalStockValue = stock.reduce((sum, s) => sum + (s.price * s.quantity), 0);
-    const totalUdhaar = contacts.reduce((sum, c) => sum + (c.type === 'customer' ? (c.initialBalance || 0) : 0), 0);
-
-    doc.setFontSize(12);
-    doc.setTextColor(0);
-    doc.text(`TOTAL REVENUE (SALES): Rs. ${totalSales.toLocaleString()}`, 20, 50);
-    doc.text(`TOTAL BUSINESS EXPENSES: Rs. ${totalExpenses.toLocaleString()}`, 20, 60);
-    doc.text(`CURRENT STOCK ASSETS: Rs. ${totalStockValue.toLocaleString()}`, 20, 70);
-    doc.text(`TOTAL PENDING UDHAAR: Rs. ${totalUdhaar.toLocaleString()}`, 20, 80);
-
-    const fileName = `${profile?.name || 'KiryanaBook'}_FullAudit.pdf`;
-
+    const toastId = toast.loading('Report tayyar ho rahi hai...');
     try {
       if (Capacitor.isNativePlatform()) {
         const dataUri = doc.output('datauristring');
         const base64Data = dataUri.split(',')[1];
         
+        // Write to Cache directory for easier sharing
         const savedFile = await Filesystem.writeFile({
           path: fileName.replace(/[^a-z0-9_.-]/gi, '_'),
           data: base64Data,
-          directory: Directory.Documents,
+          directory: Directory.Cache,
         });
 
         await Share.share({
-          title: 'KiryanaBook Audit Report',
-          text: 'Here is your PDF Report',
+          title: 'Business Audit Report',
+          text: 'Business History & Detailed Audit Report',
           url: savedFile.uri,
-          dialogTitle: 'Save or Share PDF'
+          dialogTitle: 'Open Audit Report'
         });
-        
-        import('react-hot-toast').then(t => t.default.success('Full Professional Audit Report Generated!'));
+        toast.success('Report ready hai!', { id: toastId });
       } else {
         doc.save(fileName);
-        import('react-hot-toast').then(t => t.default.success('Full Professional Audit Report Generated!'));
+        toast.success('Report Download ho gai!', { id: toastId });
       }
     } catch (error) {
       console.error(error);
-      import('react-hot-toast').then(t => t.default.error('PDF export failed.'));
+      toast.error('Report generating mein masla aaya.', { id: toastId });
     }
   };
 
@@ -282,13 +369,11 @@ export const Settings: React.FC = () => {
             <div className="space-y-4">
                 {/* ── DATA & EXPORTS ── */}
                 <h3 className="text-[10px] font-black text-text-muted uppercase tracking-[0.2em] ml-2 mt-4 opacity-50">Reports & Data</h3>
-                <div className="bg-card border border-border/60 rounded-[1.8rem] p-4 space-y-4 shadow-sm">
-                    <div className="flex gap-3">
-                        <button onClick={handleExportPDF} className="w-full bg-red-500/10 text-red-600 rounded-2xl py-4 flex items-center justify-center gap-2 border border-red-500/20 active:scale-95 transition-all">
-                            <FileText size={20} strokeWidth={2.5} />
-                            <span className="text-[9px] font-black uppercase tracking-widest">Full Audit PDF</span>
-                        </button>
-                    </div>
+                <div className="bg-card border border-border/60 rounded-[1.8rem] p-4 shadow-sm">
+                    <button onClick={handleExportPDF} className="w-full bg-red-500/10 text-red-600 rounded-2xl py-4 flex items-center justify-center gap-2 border border-red-500/20 active:scale-95 transition-all">
+                        <FileText size={20} strokeWidth={2.5} />
+                        <span className="text-[9px] font-black uppercase tracking-widest">Full Audit PDF</span>
+                    </button>
                 </div>
 
                 {/* ── PREFERENCES ── */}
@@ -305,6 +390,32 @@ export const Settings: React.FC = () => {
                             </div>
                         </div>
                         <Toggle active={isDarkMode} onClick={() => setMode(isDarkMode ? 'light' : 'dark')} />
+                    </div>
+
+                    <div className="flex items-center justify-between pt-4 border-t border-border/20">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-[#00E676]/10 text-[#0A3D24] dark:text-[#00E676] rounded-xl flex items-center justify-center">
+                                <Database size={18} strokeWidth={2.5} />
+                            </div>
+                            <div className="text-left">
+                                <p className="text-[13px] font-black text-text-primary leading-tight">Data Backup</p>
+                                <p className="text-[9px] font-bold text-text-muted opacity-60 uppercase tracking-tight">Offline safe storage</p>
+                            </div>
+                        </div>
+                        <select 
+                            value={backupFreq}
+                            onChange={(e) => {
+                                const val = e.target.value;
+                                setBackupFreq(val);
+                                localStorage.setItem('backup_freq', val);
+                                import('react-hot-toast').then(t => t.default.success(`Backup set to ${e.target.options[e.target.selectedIndex].text}`));
+                            }}
+                            className="bg-card text-text-primary border border-border focus:border-[#00E676]/50 rounded-xl px-3 py-1.5 text-[11px] font-black outline-none cursor-pointer shadow-sm active:scale-95 transition-all"
+                        >
+                            <option value="12h">12 Hours</option>
+                            <option value="24h">24 Hours</option>
+                            <option value="7d">7 Days</option>
+                        </select>
                     </div>
 
 
