@@ -19,7 +19,12 @@ export const LedgerDetail: React.FC = () => {
   const balanceMap = useMemo(() => {
     const map = new Map<string, number>();
     udhaars.forEach(u => {
-      map.set(u.customerName, (map.get(u.customerName) || 0) + u.amount);
+      if (!u.customerName) return;
+      const nameKey = u.customerName.trim();
+      // Look for an existing key that matches case-insensitively
+      const existingKey = Array.from(map.keys()).find(k => k.toLowerCase() === nameKey.toLowerCase());
+      const finalKey = existingKey || nameKey;
+      map.set(finalKey, (map.get(finalKey) || 0) + (u.amount || 0));
     });
     return map;
   }, [udhaars]);

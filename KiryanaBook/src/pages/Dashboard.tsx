@@ -57,8 +57,7 @@ export const Dashboard: React.FC = () => {
     
     let receivable = 0;
     let payable = 0;
-    let customerAdvance = 0;
-    let supplierAdvance = 0;
+    let advance = 0;
 
     Object.entries(customerBalances).forEach(([name, bal]) => {
       const contact = contactsMap.get(name.toLowerCase());
@@ -66,10 +65,11 @@ export const Dashboard: React.FC = () => {
       
       if (type === 'customer') {
         if (bal > 0) receivable += bal;
-        else if (bal < 0) customerAdvance += Math.abs(bal);
+        else if (bal < 0) advance += Math.abs(bal); // Customer advance
       } else {
-        if (bal < 0) payable += Math.abs(bal);
-        else if (bal > 0) supplierAdvance += bal;
+        // Supplier
+        if (bal < 0) payable += Math.abs(bal); // Payable to supplier
+        else if (bal > 0) advance += bal; // Advance to supplier
       }
     });
 
@@ -80,7 +80,7 @@ export const Dashboard: React.FC = () => {
     const lowStockItems = (stock || []).filter(item => (item?.quantity || 0) <= (item?.minThreshold || 5));
     
     return { 
-      totalToday, totalExpenses, receivable, payable, customerAdvance, supplierAdvance, 
+      totalToday, totalExpenses, receivable, payable, advance,
       dueCustomersCount, uniqueCustomers, lowStockItems 
     };
   }, [sales, expenses, udhaars, contacts, stock]);
@@ -348,20 +348,20 @@ export const Dashboard: React.FC = () => {
               </div>
             </div>
             
-            <div className="flex items-center gap-3 pt-3 border-t border-gray-50 dark:border-white/5">
+            <div className="flex items-center gap-2 pt-3 border-t border-gray-50 dark:border-white/5">
                 <div className="flex-1">
                     <p className="text-[7.5px] font-black text-gray-400 uppercase tracking-widest mb-0.5">Lena Hai</p>
-                    <p className="text-[13px] font-black text-green-600 truncate">Rs. {stats.receivable.toLocaleString()}</p>
+                    <p className="text-[12px] font-black text-green-600 truncate">Rs. {stats.receivable.toLocaleString()}</p>
                 </div>
-                <div className="w-px h-6 bg-gray-100 dark:border-white/5" />
+                <div className="w-px h-6 bg-gray-100 dark:bg-white/5" />
                 <div className="flex-1 px-1">
                     <p className="text-[7.5px] font-black text-gray-400 uppercase tracking-widest mb-0.5">Dena Hai</p>
-                    <p className="text-[13px] font-black text-red-500 truncate">{stats.payable.toLocaleString()}</p>
+                    <p className="text-[12px] font-black text-red-500 truncate">{stats.payable.toLocaleString()}</p>
                 </div>
-                <div className="w-px h-6 bg-gray-100 dark:border-white/5" />
+                <div className="w-px h-6 bg-gray-100 dark:bg-white/5" />
                 <div className="flex-1">
-                    <p className="text-[7.5px] font-black text-gray-400 uppercase tracking-widest mb-0.5">Advances</p>
-                    <p className="text-[13px] font-black text-blue-500 truncate">{(stats.customerAdvance + stats.supplierAdvance).toLocaleString()}</p>
+                    <p className="text-[7.5px] font-black text-gray-400 uppercase tracking-widest mb-0.5">Advance</p>
+                    <p className="text-[12px] font-black text-blue-500 truncate">{stats.advance.toLocaleString()}</p>
                 </div>
             </div>
           </button>

@@ -84,12 +84,7 @@ export const Invoices: React.FC = () => {
                 >
                     <ArrowLeft size={20} />
                 </button>
-                <button 
-                  onClick={() => setIsSidebarOpen(true)} 
-                  className="w-10 h-10 flex items-center justify-center bg-white/10 rounded-xl text-white active:scale-90 transition-all shadow-lg"
-                >
-                    <Menu size={18} />
-                </button>
+
                 <div className="flex-1">
                    <p className="text-white/40 text-[9px] font-black uppercase tracking-[0.2em] leading-none mb-1">
                      The Sovereign Ledger

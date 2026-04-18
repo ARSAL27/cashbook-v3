@@ -30,17 +30,21 @@ export const ProfileSettings: React.FC = () => {
   };
 
   useEffect(() => {
-    if (profile && !isSaving) {
+    // Only update from profile if we haven't saved in the last 2 seconds
+    // to avoid race conditions with Firestore snapshots
+    const recentlySaved = lastSaved && (Date.now() - lastSaved < 2000);
+    
+    if (profile && !isSaving && !recentlySaved) {
       setFormData({
-        name: profile.name,
-        owner: profile.owner,
-        phone: profile.phone,
-        city: profile.city,
-        currency: profile.currency,
+        name: profile.name || '',
+        owner: profile.owner || '',
+        phone: profile.phone || '',
+        city: profile.city || '',
+        currency: profile.currency || 'PKR',
         logoUrl: profile.logoUrl || ''
       });
     }
-  }, [profile, isSaving]);
+  }, [profile, isSaving, lastSaved]);
 
   const handleSave = async () => {
     if (!formData.name.trim()) return toast.error('Shop ka naam zaruri hai');

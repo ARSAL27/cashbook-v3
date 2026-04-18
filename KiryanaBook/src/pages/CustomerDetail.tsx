@@ -26,8 +26,9 @@ export const CustomerDetail: React.FC = () => {
     const isSupplier = contact?.type === 'supplier';
 
     const transactions = useMemo(() => {
+        const lowerName = name?.toLowerCase().trim();
         return udhaars
-            .filter(u => u.customerName === name)
+            .filter(u => u.customerName?.toLowerCase().trim() === lowerName)
             .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     }, [udhaars, name]);
 

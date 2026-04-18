@@ -383,26 +383,28 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
       clearTimeout(timer);
       unsubs.forEach(u => u());
     };
-  }, [user]);
+  }, [user, currentShopId]);
 
   const updateProfile = async (newProfile: ShopProfile) => {
-    if (!user) return;
+    const shopId = currentShopId || user?.uid;
+    if (!shopId) return;
     const cleanProfile = Object.fromEntries(Object.entries(newProfile).filter(([_, v]) => v !== undefined));
-    await setDoc(doc(db, 'shops', user.uid), { ...cleanProfile, ownerUid: user.uid, updatedAt: serverTimestamp() }, { merge: true });
+    setDoc(doc(db, 'shops', shopId), { ...cleanProfile, updatedAt: serverTimestamp() }, { merge: true });
   };
 
   const updateRolePermissions = async (role: string, permissions: any) => {
-    if (!user || !profile) return;
-    const shopRef = doc(db, 'shops', user.uid);
-    await updateDoc(shopRef, { 
+    const shopId = currentShopId || user?.uid;
+    if (!shopId) return;
+    const shopRef = doc(db, 'shops', shopId);
+    updateDoc(shopRef, { 
       [`rolePermissions.${role}`]: permissions 
     });
   };
 
   const updateSecuritySettings = async (settings: Partial<ShopProfile['securitySettings']>) => {
-    if (!user || !profile || !currentShopId) return;
+    if (!profile || !currentShopId) return;
     const shopRef = doc(db, 'shops', currentShopId);
-    await updateDoc(shopRef, { 
+    updateDoc(shopRef, { 
       securitySettings: { ...profile.securitySettings, ...settings }
     });
   };
@@ -516,8 +518,8 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
         });
       }
 
-      await batch.commit();
-      await updateLastSync();
+      batch.commit().catch(e => console.error("Batch commit failed", e));
+      updateLastSync();
       return invRef.id;
     } catch (e) {
       console.error("Sale Atomic Transaction Failed", e);
@@ -528,27 +530,27 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const addExpense = async (amount: number, description: string, category: string = 'Other') => {
     if (!user || !currentShopId) return;
     const date = new Date().toISOString();
-    const docRef = await addDoc(collection(doc(db, 'shops', currentShopId), 'expenses'), { 
+    addDoc(collection(doc(db, 'shops', currentShopId), 'expenses'), { 
       amount, 
       description: sanitizeString(description), 
       category: sanitizeString(category),
       date,
       isDeleted: false
     });
-    await updateDailyBalance(date, amount, 'debit');
-    await updateLastSync();
+    updateDailyBalance(date, amount, 'debit');
+    updateLastSync();
   };
 
   const addUdhaar = async (customerName: string, amount: number, note?: string) => {
     if (!user || !currentShopId) return;
     const date = new Date().toISOString();
-    await addDoc(collection(doc(db, 'shops', currentShopId), 'udhaar'), { 
+    addDoc(collection(doc(db, 'shops', currentShopId), 'udhaar'), { 
       customerName: sanitizeString(customerName), 
       amount, date, note: sanitizeString(note || ''),
       isDeleted: false 
     });
-    await updateDailyBalance(date, amount, 'debit');
-    await updateLastSync();
+    updateDailyBalance(date, amount, 'debit');
+    updateLastSync();
   };
 
   const addUdhaarPayment = async (customerName: string, amount: number, note?: string) => {
@@ -573,8 +575,8 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
           type: 'customer', date
         });
       });
-      await updateDailyBalance(date, amount, 'credit');
-      await updateLastSync();
+      updateDailyBalance(date, amount, 'credit');
+      updateLastSync();
       toast.success('Wasooli recorded atomically');
     } catch (e) {
       toast.error('Payment failed');
@@ -611,7 +613,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const addContact = async (contact: Omit<Contact, 'id' | 'createdAt'>) => {
     if (!user) return;
     const shopRef = doc(db, 'shops', user.uid);
-    await addDoc(collection(shopRef, 'contacts'), { 
+    addDoc(collection(shopRef, 'contacts'), { 
       ...contact, createdAt: new Date().toISOString(), isDeleted: false 
     });
     if (contact.initialBalance !== 0) {
@@ -725,7 +727,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
           staffName: profile?.owner || 'Owner', action: 'New Invoice', details: `Invoice ${invoiceNumber} created for Rs. ${invoice.total}`, type: 'sale', date: new Date().toISOString()
         });
       });
-      await updateLastSync();
+      updateLastSync();
       return newInvoiceId;
     } catch (e: any) {
       throw new Error("Transaction failed: " + e.message);
@@ -763,8 +765,8 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
     }
 
-    await batch.commit();
-    await updateLastSync();
+    batch.commit();
+    updateLastSync();
   };
 
   const addStaff = async (member: Omit<Staff, 'id' | 'joinedAt'> & { uid?: string }) => {
@@ -854,7 +856,13 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return obj;
   };
 
-  const updateLastSync = async () => { if (!user) return; try { await updateDoc(doc(db, 'shops', user.uid), { lastSync: new Date().toISOString() }); } catch (e) {} };
+  const updateLastSync = async () => { 
+    const shopId = currentShopId || user?.uid;
+    if (!shopId) return; 
+    try { 
+      updateDoc(doc(db, 'shops', shopId), { lastSync: new Date().toISOString() }); 
+    } catch (e) {} 
+  };
   const addCategory = async (cat: string) => { if (!user) return; const newCats = Array.from(new Set([...categories, cat])); setCategories(newCats); await updateDoc(doc(db, 'shops', user.uid), { categories: newCats }); };
   const deleteCategory = async (cat: string) => { if (!user) return; const newCats = categories.filter(c => c !== cat); setCategories(newCats); await updateDoc(doc(db, 'shops', user.uid), { categories: newCats }); };
 

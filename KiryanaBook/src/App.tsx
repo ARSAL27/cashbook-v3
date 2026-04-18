@@ -61,7 +61,7 @@ const SplashLoader = () => {
         initial={{ scale: 1.15 }}
         animate={{ scale: 1 }}
         transition={{ duration: 1.2, ease: "easeOut" }}
-        className="relative flex items-center justify-center w-full max-w-lg h-64"
+        className="relative flex items-center justify-center w-full max-w-lg h-64 mt-12"
       >
         
         {/* Main Text: KiryanaBook */}

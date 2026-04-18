@@ -118,7 +118,7 @@ export const Login: React.FC = () => {
     <div className="w-full bg-[#FAFAFA] dark:bg-[#0A0A0A] flex flex-col font-outfit max-w-md mx-auto transition-colors duration-300 pb-8 min-h-[100dvh]">
 
       {/* HEADER */}
-      <div className="px-6 pt-5 pb-4 flex items-center justify-center relative">
+      <div className="px-6 pt-10 pb-4 flex items-center justify-center relative">
         {mode !== 'welcome' && (
           <button
             onClick={() => setMode('welcome')}

@@ -35,7 +35,7 @@ export const Onboarding: React.FC = () => {
     {
       id: 1,
       content: (
-        <div className="flex flex-col items-center text-center w-full px-8 font-outfit">
+        <div className="flex flex-col items-center text-center w-full px-8 font-outfit pt-10">
           <div className="relative mb-8">
             <motion.div 
               initial={{ scale: 0.8, opacity: 0 }}
@@ -66,7 +66,7 @@ export const Onboarding: React.FC = () => {
     {
       id: 2,
       content: (
-        <div className="flex flex-col items-center text-center w-full px-8 font-outfit">
+        <div className="flex flex-col items-center text-center w-full px-8 font-outfit pt-10">
           <motion.div 
             initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }}
             className="w-20 h-20 bg-danger/5 rounded-[2rem] border border-danger/10 flex items-center justify-center mb-8 shadow-sm"
@@ -103,7 +103,7 @@ export const Onboarding: React.FC = () => {
     {
       id: 3,
       content: (
-        <div className="flex flex-col items-center text-center w-full px-8 font-outfit">
+        <div className="flex flex-col items-center text-center w-full px-8 font-outfit pt-10">
           <motion.div 
             initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
             className="w-20 h-20 bg-warning/5 rounded-[2rem] border border-warning/10 flex items-center justify-center mb-8 shadow-sm"

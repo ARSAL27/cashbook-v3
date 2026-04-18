@@ -112,12 +112,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   useEffect(() => {
-    // 🚀 MAX SPLASH LIMIT: If firestore hangs (offline), force ready after 3s
+    // 🚀 MAX SPLASH LIMIT: If firestore hangs (offline)
+    const hasPreviousLogin = !!localStorage.getItem('last_active_time');
     const forceReadyTimer = setTimeout(() => {
       setIsSecurityReady(true);
-      setLoading(false);
+      // Only force drop loading if we never logged in before, or if it's been a long time (8s)
+      // We will handle the long timeout down below or just drop it here.
+      if (!hasPreviousLogin) {
+        setLoading(false);
+      }
       console.log("Auth Offline Safety Triggered");
     }, 3000);
+
+    const ultimateSafetyTimer = setTimeout(() => {
+      setLoading(false);
+      setIsSecurityReady(true);
+    }, 8000);
 
     let unsubDoc: (() => void) | null = null;
 
@@ -180,6 +190,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       unsubAuth();
       if (unsubDoc) unsubDoc();
       clearTimeout(forceReadyTimer);
+      clearTimeout(ultimateSafetyTimer);
     };
   }, [checkPinRequirement]);
 

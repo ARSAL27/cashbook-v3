@@ -99,9 +99,10 @@ export const ReportsDetail: React.FC = () => {
     };
 
     return (
-        <PageTransition> <div className="w-full font-outfit max-w-md mx-auto bg-background text-text-primary pb-20 ">
+        <PageTransition> 
+            <div className="w-full h-[100dvh] font-outfit max-w-md mx-auto bg-background text-text-primary overflow-hidden flex flex-col">
                 {/* HEADER */}
-                <div className="pt-16 pb-4 px-5 flex items-center justify-between sticky top-0 bg-background/80 backdrop-blur-md z-40">
+                <div className="pt-10 pb-2 px-5 flex items-center justify-between shrink-0">
                     <button onClick={() => navigate(-1)} className="p-2.5 rounded-2xl bg-card shadow-sm border border-border text-text-primary active:scale-90 transition-transform">
                         <ArrowLeft size={20} />
                     </button>
@@ -109,8 +110,9 @@ export const ReportsDetail: React.FC = () => {
                     <div className="w-10" />
                 </div>
 
-                {/* RANGE TOGGLE */}
-                <div className="px-5 mb-6">
+                <div className="flex-1 overflow-y-auto px-5 pt-2 pb-6 space-y-4">
+                    {/* RANGE TOGGLE */}
+                    <div>
                     <div className="bg-gray-100 dark:bg-[#1A1A1A] p-1.5 rounded-2xl flex gap-1 shadow-inner">
                         {(['1D', '1W', '1M', '1Y'] as const).map(r => (
                             <button 
@@ -211,6 +213,7 @@ export const ReportsDetail: React.FC = () => {
                     </div>
                 </div>
             </div>
-        </PageTransition>
-    );
+        </div>
+    </PageTransition>
+);
 };

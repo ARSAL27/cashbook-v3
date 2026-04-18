@@ -43,7 +43,7 @@ function saveSessions(sessions: ChatSession[]) {
 function makeWelcomeMessage(): Message {
   return {
     id: `b-welcome`,
-    text: `🌟 **Assalam-o-Alaikum!**\n\nMain aapka **Business Manager** hoon.`,
+    text: `🌟 **Assalam-o-Alaikum!**\n\nMain aapka **Business Manager** hoon, ab **Dukaan Mitra** expert knowledge ke saath upgrade ho chuka hoon! 🚀`,
     isBot: true,
     time: new Date().toISOString(),
     isWelcome: true // New flag for dynamic rendering
@@ -160,12 +160,8 @@ function renderInlineBold(text: string): React.ReactNode {
 
 // ─── Quick Chips ──────────────────────────────────────────────────────────────
 const QUICK_CHIPS = [
-  "💰 Galle mein cash?",
   "📊 Aaj ki sale?",
-  "🚨 Masail hal karein (Problems)",
-  "⏳ Purani recovery?",
-  "📈 Munafa barhaun?",
-  "📦 Stock alert?",
+  "💸 Aaj ka expense?",
 ];
 
 // ─── History Panel ────────────────────────────────────────────────────────────
@@ -390,6 +386,14 @@ export const Manager: React.FC = () => {
 
 
   const startListening = async (silent = false) => {
+    if (isListening) {
+      if (Capacitor.isNativePlatform()) {
+        try { await SpeechRecognition.stop(); } catch (e) {}
+      }
+      setIsListening(false);
+      return;
+    }
+
     // 🌐 WEB SPEECH API FALLBACK (Reliable for Browsers)
     const WebSpeech = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     
@@ -416,11 +420,6 @@ export const Manager: React.FC = () => {
         recognition.onend = async () => {
           if (!isMounted.current) return;
           setIsListening(false);
-          
-          const currentInput = inputRef.current;
-          if (currentInput.trim().length > 2) {
-            handleSend(currentInput);
-          }
         };
 
         recognition.onerror = () => {
@@ -482,10 +481,6 @@ export const Manager: React.FC = () => {
           if (cancelled || !isMounted.current) return;
           if (state && state.status === 'stopped') {
             setIsListening(false);
-            const currentInput = inputRef.current || '';
-            if (currentInput.trim().length > 2) {
-              handleSend(currentInput);
-            }
           }
         });
         if (stopHandle && !cancelled) {

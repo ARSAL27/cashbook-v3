@@ -1,4 +1,5 @@
-import { getRandomBatch } from './adviceLibrary';
+import { getRandomBatch, MASTER_ADVICE_LIBRARY } from './adviceLibrary';
+import { searchDukaanMitra, DUKAAN_MITRA_LIBRARY } from './dukanMitraLibrary';
 
 /**
  * 🤖 KiryanaBook Local Agent — Zero API, Zero Internet
@@ -26,7 +27,7 @@ type Intent =
   | 'CUSTOMER_COUNT' | 'BEST_CUSTOMER' | 'CUSTOMER_HISTORY'
   | 'STAFF_OVERVIEW' | 'STAFF_PERFORMANCE' | 'STAFF_ACTIVITY' | 'STAFF_ATTENDANCE'
   | 'FORECAST_REVENUE' | 'FORECAST_STOCK'
-  | 'EXPENSE_BREAKDOWN' | 'CASH_FLOW' | 'TOP_EXPENSE' | 'PROFIT_MARGIN' | 'CASH_HAND' | 'NET_WORTH' | 'LOSS_MAKING'
+  | 'EXPENSE_BREAKDOWN' | 'SALES_BREAKDOWN' | 'CASH_FLOW' | 'TOP_EXPENSE' | 'PROFIT_MARGIN' | 'CASH_HAND' | 'NET_WORTH' | 'LOSS_MAKING'
   | 'SHOP_HEALTH' | 'SHOP_INFO' | 'COMPARISON' | 'GREETING' | 'ADVICE' | 'DATA_AUDIT' | 'MATH' | 'SPECIFIC_DATE' | 'UNKNOWN';
 
 type IntentCategory = 'greeting' | 'cashbook_action' | 'report_request' | 'irrelevant';
@@ -87,6 +88,7 @@ const INTENT_TO_CATEGORY: Record<Intent, IntentCategory> = {
   DAY_BEFORE_YESTERDAY_SALES: 'report_request',
   DAY_BEFORE_YESTERDAY_PROFIT: 'report_request',
   DAY_BEFORE_YESTERDAY_EXPENSE: 'report_request',
+  SALES_BREAKDOWN: 'report_request',
   UNKNOWN: 'irrelevant'
 };
 
@@ -141,7 +143,8 @@ const INTENT_KEYWORDS: Record<Intent, string[]> = {
   FORECAST_REVENUE: ['projected', 'forecast', 'aglay mahine', 'estimate', 'saal ke end tak', 'agay kya hoga'],
   FORECAST_STOCK: ['stock kab khatam', 'kab tak chalega', 'reorder point', 'kab mangwana hai'],
 
-  EXPENSE_BREAKDOWN: ['kharchay', 'categories', 'kahan gaya', 'breakdown', 'kharch kahan', 'kharchon ki list', 'fuzool kharch', 'expense report'],
+  EXPENSE_BREAKDOWN: ['kharchay', 'categories', 'kahan gaya', 'breakdown', 'kharch kahan', 'kharchon ki list', 'fuzool kharch', 'expense report', 'kharch ka tafseel', 'detail expense'],
+  SALES_BREAKDOWN: ['sale breakdown', 'sales list', 'orders list', 'bikri ki tafseel', 'detail sale', 'items sold', 'kaun kaun si sale हुई', 'sale ki list'],
   TOP_EXPENSE: ['top kharcha', 'sabse zyada kharcha', 'biggest expense', 'sabse bara kharch', 'bara kharcha', 'main kharch'],
   CASH_FLOW: ['cash in', 'cash out', 'flow', 'hath mein', 'cash balance', 'cash flow report', 'paisa kahan se aya', 'paisa kahan gaya'],
   CASH_HAND: ['kitne paise hain', 'galla', 'galle mein kitne hain', 'cash kitna hai', 'hath mein cash', 'cash in hand', 'available cash', 'kitne paise bache', 'rokra kitna he', 'counter cash'],
@@ -389,10 +392,14 @@ function getSalesText(d: ShopData, filter: (s: any) => boolean, title: string): 
   const s = allSales.filter(filter);
   const total = s.reduce((a, x) => a + (x?.total || 0), 0);
   
+  // Extract time label from title (e.g., "Kal Ki Sale" -> "kal")
+  const lowerTitle = title.toLowerCase();
+  const timeWord = lowerTitle.includes('kal') ? 'kal' : lowerTitle.includes('parson') ? 'parson' : 'aaj';
+
   // Logic: Compare with historical average per day
   const historyTotal = allSales.reduce((a, x) => a + (x?.total || 0), 0);
   const avgPerSale = historyTotal / (allSales.length || 1);
-  const performance = total > (avgPerSale * 0.8) ? "✅ Sales stable hain." : "⚠️ Sales thori kam hain aaj.";
+  const performance = total > (avgPerSale * 0.8) ? `✅ Sales stable hain.` : `⚠️ Sales thori kam hain ${timeWord}.`;
 
   if (s.length === 0) return `📊 **${title}**\n\nAbhi tak koi sale nahi hui. ${allSales.length > 0 ? "Purana record check karein?" : ""}`;
 
@@ -400,7 +407,7 @@ function getSalesText(d: ShopData, filter: (s: any) => boolean, title: string): 
     `Total: **${fmt(total)}**\n` +
     `Orders: ${s.length}\n` +
     `Avg/Bill: ${fmt(total / s.length)}\n\n` +
-    `💡 **Manager Insight:** ${performance} ${total > avgPerSale ? "Masha'Allah, aaj kaam acha hai!" : "Thori mehnat aur chahiye."}`;
+    `💡 **Manager Insight:** ${performance} ${total > avgPerSale ? `Masha'Allah, ${timeWord} kaam acha hai!` : "Thori mehnat aur chahiye."}`;
 }
 
 function getProfitText(d: ShopData, filter: (s: any) => boolean, title: string): string {
@@ -413,24 +420,41 @@ function getProfitText(d: ShopData, filter: (s: any) => boolean, title: string):
   
   let cogs = 0;
   s.forEach(sale => (sale?.items || []).forEach((i: any) => {
-    const item = allStock.find(st => st?.id === i?.itemId);
+    const item = allStock.find(st => st?.id === i?.itemId || st?.name === i?.name);
     cogs += (item?.buyingPrice || 0) * (i?.qty || 0);
   }));
 
-  const profit = revenue - cogs - expense;
-  const margin = revenue > 0 ? ((profit / revenue) * 100).toFixed(0) : '0';
+  const grossProfit = revenue - cogs;
+  
+  // Treat negative expenses as "Other Income"
+  const otherIncome = allExpenses.filter(filter)
+    .filter(e => (e?.amount || 0) < 0)
+    .reduce((a, x) => a + Math.abs(x?.amount || 0), 0);
 
-  let commentary = "Karobar theek chal raha hai.";
-  if (profit < 0) commentary = "⚠️ Loss ho raha hai! Kharchay kam karein.";
-  else if (Number(margin) > 25) commentary = "🌟 Excellent Profit Margin!";
+  const expenseTotal = allExpenses.filter(filter)
+    .filter(e => (e?.amount || 0) > 0)
+    .reduce((a, x) => a + (x?.amount || 0), 0);
 
-  return `📈 **${title}**\n` +
-    `--------------------------------\n` +
-    `Aamdan: ${fmt(revenue)}\n` +
-    `Maal ki qeemat: -${fmt(cogs)}\n` +
-    `Kharcha: -${fmt(expense)}\n` +
-    `--------------------------------\n` +
-    `**Net Munafa: ${fmt(profit)}** (${margin}%)\n\n` +
+  // ...
+  const netProfit = grossProfit - expenseTotal + otherIncome;
+  const margin = revenue > 0 ? ((netProfit / revenue) * 100).toFixed(0) : '0';
+
+  let commentary = "Karobar stable hai.";
+  if (netProfit < 0) commentary = "⚠️ Loss ho raha hai! Kharchay zyada hain ya margin kam.";
+  else if (Number(margin) > 20) commentary = "🌟 Zabardast munafa milt raha hai!";
+
+  return `📄 **Income Statement (${title})**\n` +
+    `━━━━━━━━━━━━━━━━━━━━\n` +
+    `(+) **Total Sales:** ${fmt(revenue)}\n` +
+    `(-) **Maal ki Qeemat (COGS):** ${fmt(cogs)}\n` +
+    `────────────────────\n` +
+    `(=) **Gross Profit:** ${fmt(grossProfit)}\n\n` +
+    `(-) **Kharchay (Expenses):** ${fmt(expenseTotal)}\n` +
+    `(+) **Other Income:** ${fmt(otherIncome)}\n` +
+    `────────────────────\n` +
+    `**NET PROFIT/LOSS: ${fmt(netProfit)}**\n` +
+    `Percentage: **${margin}%**\n` +
+    `━━━━━━━━━━━━━━━━━━━━\n\n` +
     `💡 **Manager Advice:** ${commentary}`;
 }
 
@@ -541,6 +565,13 @@ function _askLocalAgentInternal(query: string, data: ShopData): string {
 
   const { today, yesterday, dayBeforeYesterday, weekStart, monthStart, yearStart } = getDates();
   let response = "";
+  const hasSaleKW = /sale|kamai|aamdan|bikri|sel/.test(q);
+
+  // 🚀 LOOKUP IN DUKAAN MITRA LIBRARY (FAQ/Advice)
+  const mitraMatch = searchDukaanMitra(query);
+  if (mitraMatch && confidence < 0.95 && !hasSaleKW && !query.includes('udhar') && !query.includes('udhaar')) {
+    return `💡 **Dukaan Mitra Expert Advice:**\n\n${mitraMatch.a}\n\n*Source: ${mitraMatch.category}*`;
+  }
 
   switch (intent) {
     case 'TODAY_SALES': response = getSalesText(data, s => s?.date?.startsWith(today) ?? false, 'Aaj Ki Sale'); break;
@@ -562,15 +593,29 @@ function _askLocalAgentInternal(query: string, data: ShopData): string {
     
     case 'EXPENSE_BREAKDOWN': {
       const breakdown: Record<string, number> = {};
+      const items: Array<{desc: string, amount: number}> = [];
       (data.expenses || []).forEach(e => {
         if (!e) return;
         const cat = e.category || 'Deegar';
         breakdown[cat] = (breakdown[cat] || 0) + (e.amount || 0);
+        items.push({ desc: e.description || e.category || 'Expense', amount: e.amount || 0 });
       });
       const top = Object.entries(breakdown).sort(([,a], [,b]) => b - a).slice(0, 5);
-      if (top.length === 0) response = "💸 Abhi tak koi kharcha darj nahi hai.";
-      else response = `📊 **Kharchay (Expenses) Breakdown:**\n\n${top.map(([c, a], i) => `${i+1}. ${c}: **${fmt(a)}**`).join('\n')}`;
+      if (items.length === 0) response = "💸 Abhi tak koi kharcha darj nahi hai.";
+      else {
+        response = `📊 **Kharchay (Expenses) Breakdown:**\n\n`;
+        response += `**Categories:**\n${top.map(([c, a], i) => `${i+1}. ${c}: **${fmt(a)}**`).join('\n')}\n\n`;
+        response += `**Tafseel (All Items):**\n${items.slice(0, 20).map(it => `• ${it.desc}: ${fmt(it.amount)}`).join('\n')}`;
+        if (items.length > 20) response += `\n...aur ${items.length - 20} mazeed kharchay.`;
+      }
       break;
+    }
+
+    case 'SALES_BREAKDOWN': {
+      const { today } = getDates();
+      const s = (data.sales || []).filter(x => x?.date?.startsWith(today)).slice(0, 15);
+      if (s.length === 0) return "📊 Aaj abhi tak koi sale nahi hui.";
+      return `📜 **Aaj ki Sales List:**\n\n${s.map((sale, i) => `${i+1}. Order **#${sale.id.slice(-4)}**: **${fmt(sale.total)}** (${(sale.type || 'Cash')})`).join('\n')}\n\nTamam sales ke liye "All Activity" check karein.`;
     }
 
     case 'TOP_EXPENSE': {
@@ -587,12 +632,23 @@ function _askLocalAgentInternal(query: string, data: ShopData): string {
       let cogs = 0;
       s.forEach(sale => (sale?.items || []).forEach((i: any) => {
         if (!i) return;
-        const item = (data.stock || []).find(st => st?.id === i?.itemId);
+        const item = (data.stock || []).find(st => st?.id === i?.itemId || st?.name === i?.name);
         cogs += (item?.buyingPrice || 0) * (i?.qty || 0);
       }));
-      if (revenue === 0) return "📊 Aaj abhi tak koi sale nahi hui calculation ke liye.";
-      const margin = ((revenue - cogs) / revenue) * 100;
-      return `📈 **Profit Margin (Aaj):**\n\nGross Margin: **${margin.toFixed(1)}%**\nHar Rs. 100 ki sale per aapko lag bhag Rs. ${margin.toFixed(0)} bach rahe hain (bina kharcha nikalay).`;
+      
+      const expense = (data.expenses || []).filter(e => e?.date?.startsWith(today) && (e?.amount || 0) > 0).reduce((a, x) => a + (x?.amount || 0), 0);
+      const otherIncome = (data.expenses || []).filter(e => e?.date?.startsWith(today) && (e?.amount || 0) < 0).reduce((a, x) => a + Math.abs(x?.amount || 0), 0);
+
+      const grossProfit = revenue - cogs;
+      const netProfit = grossProfit - expense + otherIncome;
+      const margin = revenue > 0 ? ((netProfit / revenue) * 100).toFixed(1) : '0';
+
+      return `📊 **Income Summary (Aaj):**\n\n` +
+        `Sales: **${fmt(revenue)}**\n` +
+        `Gross Profit: **${fmt(grossProfit)}**\n` +
+        `Net Profit: **${fmt(netProfit)}**\n` +
+        `Net Margin: **${margin}%**\n\n` +
+        `💡 Har Rs. 100 ki sale per aapko Rs. ${Math.round(Number(margin))} bachat ho rahi hai.`;
     }
     
     case 'CUSTOMER_UDHAAR': return customerUdhaar(query, data);
@@ -607,17 +663,27 @@ function _askLocalAgentInternal(query: string, data: ShopData): string {
     
     case 'TOTAL_UDHAAR': {
       const safeUdhaarsLocal = data.udhaars || [];
-      const total = safeUdhaarsLocal.reduce((a, x) => a + (x?.amount || 0), 0);
       const balances: Record<string, number> = {};
       safeUdhaarsLocal.forEach(u => { if (u?.customerName) balances[u.customerName] = (balances[u.customerName] || 0) + (u?.amount || 0); });
+      
+      let receivable = 0;
+      let payable = 0;
+      Object.values(balances).forEach(b => {
+        if (b > 0) receivable += b;
+        else if (b < 0) payable += Math.abs(b);
+      });
+
       const top = Object.entries(balances)
         .filter(([, b]) => b > 1)
         .sort(([, a], [, b]) => b - a)
-        .slice(0, 3);
+        .slice(0, 5);
 
-      let text = `💰 **Total Udhaar (Receivable):**\n\nAbhi market se **${fmt(total)}** lene hain.`;
+      let text = `💰 **Total Udhaar (Accounting Status):**\n\n`;
+      text += `• **Lena Hai (Receivable):** ${fmt(receivable)}\n`;
+      text += `• **Dena Hai (Payable):** ${fmt(payable)}\n`;
+      
       if (top.length > 0) {
-        text += `\n\n**Bade Udhaar:**\n${top.map(([n, a]) => `• ${n}: ${fmt(a)}`).join('\n')}\n\nTamam list ke liye "Udhari list" likhein.`;
+        text += `\n**Bade Udhaar (Lena hai):**\n${top.map(([n, a]) => `• ${n}: ${fmt(a)}`).join('\n')}\n\nTamam list ke liye "Udhar list" likhein.`;
       }
       return text;
     }
@@ -628,9 +694,10 @@ function _askLocalAgentInternal(query: string, data: ShopData): string {
       const top = Object.entries(balances)
         .filter(([, b]) => b > 0)
         .sort(([, a], [, b]) => b - a)
-        .slice(0, 5);
-      if (top.length === 0) return "✅ Kisi ka udhaar nahi hai!";
-      return `👥 **Top 5 Udhaar Wale:**\n\n${top.map(([n, a], i) => `${i+1}. ${n}: **${fmt(a)}**`).join('\n')}`;
+        .slice(0, 15); // Show more people when asked "kis kis ka"
+      
+      if (top.length === 0) return "✅ Kisi ka udhaar (Lena) nahi hai!";
+      return `👥 **Udhaar Lene Wale (Debtors List):**\n\n${top.map(([n, a], i) => `${i+1}. ${n}: **${fmt(a)}**`).join('\n')}`;
     }
 
     case 'RECOVERY_CHASE':
@@ -638,11 +705,11 @@ function _askLocalAgentInternal(query: string, data: ShopData): string {
       const balances: Record<string, number> = {};
       (data.udhaars || []).forEach(u => { if (u?.customerName) balances[u.customerName] = (balances[u.customerName] || 0) + (u?.amount || 0); });
       const overdue = Object.entries(balances)
-        .filter(([, b]) => b > 500)
+        .filter(([, b]) => b > 100)
         .sort(([, a], [, b]) => b - a)
-        .slice(0, 5);
+        .slice(0, 7);
       if (overdue.length === 0) return "✅ Bohat purana ya bada udhaar kisi ka baqi nahi hai. Recovery stable hai.";
-      return `⏳ **Purani Recovery / Overdue:**\n\nIn logon se jald wasooli ki zaroorat hai:\n\n${overdue.map(([n, a]) => `• ${n}: **${fmt(a)}**`).join('\n')}\n\n💡 **Tip:** Inhein WhatsApp par reminder bhejein.`;
+      return `⏳ **Recovery Alert:**\n\nIn logon se paise lenay walay hain:\n\n${overdue.map(([n, a]) => `• ${n}: **${fmt(a)}**`).join('\n')}\n\n💡 **Tip:** Inhein WhatsApp Reminder bhejein.`;
     }
 
     case 'BEST_SELLING': {
@@ -751,13 +818,27 @@ function _askLocalAgentInternal(query: string, data: ShopData): string {
     }
 
     case 'ADVICE': {
-      const topBatch = getRandomBatch(3);
-      response = `💡 **AI Munshi Business Advice:**\n\n${topBatch.map((a, i) => `${i+1}. **${a.topic}**\n${a.solution}`).join('\n\n')}\n\nKarobar barhane ke liye in pe amal karein!`;
+      // 🛒 Strictly Grocery-Centric Advice Filtering
+      const topBatch = getRandomBatch(2).filter(a => 
+        !a.solution.toLowerCase().includes('nahsta') && 
+        !a.solution.toLowerCase().includes('nashta') &&
+        !a.solution.toLowerCase().includes('ice ')
+      );
+      
+      const mitraAdvice = DUKAAN_MITRA_LIBRARY
+        .filter(m => m.category !== 'Services' && !m.a.toLowerCase().includes('nahsta'))
+        .sort(() => 0.5 - Math.random())
+        .slice(0, 1)[0];
+      
+      response = `💡 **Grocery Expert Advice:**\n\n` + 
+        (topBatch.length > 0 ? topBatch.map((a, i) => `${i+1}. **${a.topic}**\n${a.solution}`).join('\n\n') : "") +
+        (mitraAdvice ? `\n\n${topBatch.length + 1}. **${mitraAdvice.q}**\n${mitraAdvice.a}\n\n` : "") +
+        `Karobar (Grocery) ko behtar banane ke liye in pe amal karein!`;
       break;
     }
 
     case 'SPECIFIC_DATE': {
-      const dateMatch = query.match(/(\d{1,2})[\/\-\s](jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec|01|02|03|04|05|06|07|08|09|10|11|12)/i);
+      const dateMatch = query.match(/(\d{1,2})[\/\-\s](jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec|01|02|03|04|05|06|07|08|09|10|11|12|january|february|march|april|june|july|august|september|october|november|december)/i);
       const daysMap: Record<string, number> = {
         monday: 1, peer: 1, somwar: 1, somvaar: 1,
         tuesday: 2, mangal: 2,
@@ -772,9 +853,22 @@ function _askLocalAgentInternal(query: string, data: ShopData): string {
       let displayDate = '';
 
       if (dateMatch) {
-        const dMatch = dateMatch[0].replace(/[\/\s]/g, '-');
-        targetDate = dMatch;
-        displayDate = dateMatch[0];
+        // Handle full month names mapping to index
+        const months: Record<string, string> = {
+          january: '01', february: '02', march: '03', april: '04', may: '05', june: '06',
+          july: '07', august: '08', september: '09', october: '10', november: '11', december: '12',
+          jan: '01', feb: '02', mar: '03', apr: '04', jun: '06', jul: '07', aug: '08', sep: '09', oct: '10', nov: '11', dec: '12'
+        };
+        const day = dateMatch[1].padStart(2, '0');
+        const monthPart = dateMatch[2].toLowerCase();
+        const month = months[monthPart] || (monthPart.length <= 2 ? monthPart.padStart(2, '0') : '01');
+        
+        // Use current year or extracted year
+        const yearMatch = query.match(/(\d{4})/);
+        const year = yearMatch ? yearMatch[1] : new Date().getFullYear().toString();
+        
+        targetDate = `${year}-${month}-${day}`;
+        displayDate = `${day} ${monthPart.charAt(0).toUpperCase() + monthPart.slice(1)} ${year}`;
       } else {
         const words = q.split(' ');
         const foundDay = words.find(w => daysMap[w] !== undefined);
@@ -794,15 +888,37 @@ function _askLocalAgentInternal(query: string, data: ShopData): string {
       if (targetDate) {
         const isProfit = /profit|munafa|fayda|bachat/.test(q);
         const isExpense = /kharcha|expense/.test(q);
-
-        if (isProfit) response = getProfitText(data, s => s?.date?.startsWith(targetDate) ?? false, `${displayDate} Ka Profit`);
+        const isBreakdown = /breakdown|tafseel|detail|list/.test(q);
+        
+        const dayFilter = (x: any) => x?.date?.startsWith(targetDate) ?? false;
+        
+        if (isProfit) response = getProfitText(data, dayFilter, displayDate);
         else if (isExpense) {
-          const total = (data.expenses || []).filter(e => e?.date?.startsWith(targetDate)).reduce((a, x) => a + (x?.amount || 0), 0);
-          response = `💸 **${displayDate} ka Kharcha:** ${fmt(total)}`;
+          const dayExpenses = (data.expenses || []).filter(dayFilter);
+          const total = dayExpenses.reduce((a, x) => a + (x?.amount || 0), 0);
+          if (dayExpenses.length === 0) response = `💸 **${displayDate}** ko koi kharcha darj nahi hai.`;
+          else {
+            response = `💸 **${displayDate} ka Kharcha:** ${fmt(total)}\n\n`;
+            if (isBreakdown) {
+              response += `**Detail:**\n${dayExpenses.map(e => `• ${e.description || e.category || 'Expense'}: ${fmt(e.amount)}`).join('\n')}`;
+            }
+          }
+        } else {
+          // Default: Sales or Breakdown
+          const daySales = (data.sales || []).filter(dayFilter);
+          const total = daySales.reduce((a, x) => a + (x?.total || 0), 0);
+          if (daySales.length === 0) response = `📊 **${displayDate}** ko koi sale nahi hui.`;
+          else {
+            if (isBreakdown) {
+               response = `📜 **${displayDate} ki Sales List:**\n\n` + 
+                 daySales.map((s, i) => `${i+1}. Order **#${s.id.slice(-4)}**: **${fmt(s.total)}**`).join('\n');
+            } else {
+               response = getSalesText(data, dayFilter, displayDate);
+            }
+          }
         }
-        else response = getSalesText(data, s => s?.date?.startsWith(targetDate) ?? false, `${displayDate} Ki Sale`);
       } else {
-        response = "Maaf kijiye, ye date ya din samajh nahi aaya. 'Monday sale' ya '15-04' jesi query karein.";
+        response = "Maaf kijiye, ye date samajh nahi aayi. '10 February 2026' ya 'Monday sale' jesi query karein.";
       }
       break;
     }

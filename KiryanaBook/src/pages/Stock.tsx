@@ -94,13 +94,7 @@ export const Stock: React.FC = () => {
          
          <div className="pt-16 pb-3 px-5 flex items-center justify-between sticky top-0 z-50 transition-all duration-300" style={{ backgroundColor: bg + 'CC', backdropFilter: 'blur(10px)' }}>
           <div className="flex items-center gap-3">
-            <button 
-              onClick={() => setIsSidebarOpen(true)}
-              className="w-9 h-9 flex items-center justify-center bg-card shadow-sm border border-border rounded-xl active:scale-90 transition-all duration-200"
-              style={{ color: text }}
-            >
-              <Menu size={18} />
-            </button>
+
             <h1 className="text-[20px] font-black tracking-tight" style={{ color: text }}>The Stock</h1>
           </div>
           <button 

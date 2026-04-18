@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { PageTransition } from '../components/PageTransition';
 import { useShop } from '../context/ShopContext';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, ArrowDownLeft, ArrowUpRight, Calendar, Filter } from 'lucide-react';
+import { ArrowLeft, ArrowDownLeft, ArrowUpRight, Calendar, Filter, Plus } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../context/ThemeContext';
 import { EmptyState } from '../components/EmptyState';
@@ -13,7 +13,7 @@ export const CashFlow: React.FC = () => {
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
     const mode = searchParams.get('type') === 'out' ? 'out' : 'in';
-    const { sales, expenses } = useShop();
+    const { sales, expenses, udhaars } = useShop();
     const { isDarkMode } = useTheme();
 
     const [range, setRange] = useState<RangeType>('daily');
@@ -58,7 +58,7 @@ export const CashFlow: React.FC = () => {
     const filtered = useMemo(() => {
         const { from, to } = getDateRange();
         if (isIn) {
-            return sales
+            const s = sales
                 .filter(s => {
                     const d = new Date(s.date);
                     return d >= from && d <= to;
@@ -70,10 +70,25 @@ export const CashFlow: React.FC = () => {
                     subLabel: (s as any).type === 'udhaar' ? 'Udhaar Sale' : 'Cash Sale',
                     date: s.date,
                     type: (s as any).type as string,
-                }))
-                .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+                }));
+            
+            const u = udhaars
+                .filter(u => {
+                    const d = new Date(u.date);
+                    return d >= from && d <= to && u.amount < 0; // Payment Received (Inflow)
+                })
+                .map(u => ({
+                    id: u.id,
+                    amount: Math.abs(u.amount),
+                    label: `Wasooli: ${u.customerName}`,
+                    subLabel: 'Advance / Wasooli',
+                    date: u.date,
+                    type: 'advance',
+                }));
+
+            return [...s, ...u].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
         } else {
-            return expenses
+            const e = expenses
                 .filter(e => {
                     const d = new Date(e.date);
                     return d >= from && d <= to;
@@ -85,8 +100,23 @@ export const CashFlow: React.FC = () => {
                     subLabel: e.category || 'Other',
                     date: e.date,
                     type: 'expense',
-                }))
-                .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+                }));
+
+            const u = udhaars
+                .filter(u => {
+                    const d = new Date(u.date);
+                    return d >= from && d <= to && u.amount > 0; // Udhaar Given (Outflow)
+                })
+                .map(u => ({
+                    id: u.id,
+                    amount: u.amount,
+                    label: `Udhaar: ${u.customerName}`,
+                    subLabel: 'Udhaar Given',
+                    date: u.date,
+                    type: 'udhaar_given',
+                }));
+
+            return [...e, ...u].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isIn, sales, expenses, range, customFrom, customTo]);
@@ -108,10 +138,11 @@ export const CashFlow: React.FC = () => {
 
 
     return (
-        <PageTransition> <div className="w-full font-outfit max-w-md mx-auto " style={{ backgroundColor: bg }}>
+        <PageTransition> 
+            <div className="w-full font-outfit max-w-md mx-auto min-h-screen flex flex-col relative pb-40" style={{ backgroundColor: bg }}>
 
                 {/* HEADER */}
-                <div style={{ backgroundColor: headerBg }} className="px-5 pt-6 pb-8">
+                <div style={{ backgroundColor: headerBg }} className="px-5 pt-10 pb-8 sticky top-0 z-40 shadow-lg">
                     <div className="flex items-center justify-between mb-6">
                         <button onClick={() => navigate(-1)} className="text-white active:scale-90 transition-transform">
                             <ArrowLeft size={22} />
@@ -122,19 +153,33 @@ export const CashFlow: React.FC = () => {
                         <div className="w-7" />
                     </div>
 
-                    {/* Total */}
-                    <div className="flex items-center gap-4">
-                        <div className="w-14 h-14 rounded-2xl flex items-center justify-center" style={{ backgroundColor: isIn ? 'rgba(75,255,148,0.15)' : 'rgba(255,82,82,0.15)' }}>
-                            {isIn
-                                ? <ArrowDownLeft size={26} className="text-[#4BFF94]" />
-                                : <ArrowUpRight size={26} className="text-[#FF7070]" />
-                            }
+                    {/* Total & Action */}
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                            <div className="w-14 h-14 rounded-2xl flex items-center justify-center" style={{ backgroundColor: isIn ? 'rgba(75,255,148,0.15)' : 'rgba(255,82,82,0.15)' }}>
+                                {isIn
+                                    ? <ArrowDownLeft size={26} className="text-[#4BFF94]" />
+                                    : <ArrowUpRight size={26} className="text-[#FF7070]" />
+                                }
+                            </div>
+                            <div>
+                                <p className="text-white/40 text-[10px] font-black uppercase tracking-widest mb-0.5">Total {isIn ? 'Cash In' : 'Cash Out'}</p>
+                                <p className="text-white font-black text-[32px] leading-none">Rs. {total.toLocaleString()}</p>
+                                <p className="text-white/30 text-[11px] mt-1">{filtered.length} transaction{filtered.length !== 1 ? 's' : ''}</p>
+                            </div>
                         </div>
-                        <div>
-                            <p className="text-white/40 text-[10px] font-bold uppercase tracking-widest mb-0.5">Total {isIn ? 'Cash In' : 'Cash Out'}</p>
-                            <p className="text-white font-black text-[32px] leading-none">Rs. {total.toLocaleString()}</p>
-                            <p className="text-white/30 text-[11px] mt-1">{filtered.length} transaction{filtered.length !== 1 ? 's' : ''}</p>
-                        </div>
+
+                        {/* Quick Record Button */}
+                        <motion.button 
+                            whileTap={{ scale: 0.9 }}
+                            onClick={() => navigate(isIn ? '/add-udhaar' : '/add-expense')}
+                            className="bg-white/10 p-4 rounded-2xl border border-white/10 flex flex-col items-center gap-1 active:bg-white/20 transition-all"
+                        >
+                            <Plus size={20} className="text-white" strokeWidth={3} />
+                            <span className="text-[8px] font-black text-white/70 uppercase tracking-tighter">
+                                {isIn ? 'Add Wasooli' : 'Add Expense'}
+                            </span>
+                        </motion.button>
                     </div>
                 </div>
 

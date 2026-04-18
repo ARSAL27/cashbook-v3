@@ -63,7 +63,7 @@ export const HelpSupport: React.FC = () => {
                 whileTap={{ scale: 0.95 }}
                 onClick={() => { 
                   triggerHaptic(); 
-                  window.location.href = 'mailto:support@kiryanabook.io';
+                  window.location.href = 'mailto:supportkiryanabook@gmail.com';
                 }} 
                 className="flex flex-col items-center justify-center p-6 rounded-2xl bg-card border border-border/50 shadow-sm hover:border-primary/20 transition-all"
               >
