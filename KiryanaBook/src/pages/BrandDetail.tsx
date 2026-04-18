@@ -21,8 +21,12 @@ export const BrandDetail: React.FC = () => {
     [stock, brandName]);
 
     const stats = useMemo(() => {
-        const totalItems = brandStock.reduce((acc, item) => acc + (Number(item.quantity) || 0), 0);
-        const totalValue = brandStock.reduce((acc, item) => acc + ((Number(item.quantity) || 0) * (Number(item.price) || 0)), 0);
+        const totalItems = brandStock.reduce((acc, item) => acc + (parseFloat(String(item.quantity || 0)) || 0), 0);
+        const totalValue = brandStock.reduce((acc, item) => {
+            const q = parseFloat(String(item.quantity || 0)) || 0;
+            const p = parseFloat(String(item.price || 0)) || 0;
+            return acc + (q * p);
+        }, 0);
         return { totalItems, totalValue };
     }, [brandStock]);
 

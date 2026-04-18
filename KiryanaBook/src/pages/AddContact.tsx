@@ -79,8 +79,11 @@ export const AddContact: React.FC = () => {
               <ArrowLeft size={22} />
             </button>
             <p className="text-white/50 text-[10px] font-bold uppercase tracking-widest">Add Contact</p>
-            <button className="w-8 h-8 bg-white/10 rounded-xl flex items-center justify-center">
-              <HelpCircle size={16} className="text-white/50" />
+            <button 
+              onClick={() => toast("Ye page naya customer ya supplier add karne ke liye he. Blue buttons se select karein ke kese balance shuru karna he (Lenay hain ya Denay hain).", { icon: 'ℹ️', duration: 4000 })}
+              className="w-8 h-8 bg-white/10 rounded-xl flex items-center justify-center animate-pulse"
+            >
+              <HelpCircle size={16} className="text-white" />
             </button>
           </div>
 
@@ -188,13 +191,13 @@ export const AddContact: React.FC = () => {
                     onClick={() => setBalanceDir('udhaar')}
                     className={`px-3 py-1.5 rounded-xl text-[9px] font-black uppercase transition-all ${balanceDir === 'udhaar' ? 'bg-[#FF5252] text-white shadow-lg' : 'bg-white/10 text-white/50'}`}
                   >
-                    Udhaar (Debit)
+                    {type === 'customer' ? 'Lenay Hain' : 'Dena Hai'} (Udhaar)
                   </button>
                   <button
                     onClick={() => setBalanceDir('advance')}
                     className={`px-3 py-1.5 rounded-xl text-[9px] font-black uppercase transition-all ${balanceDir === 'advance' ? 'bg-[#4BFF94] text-[#0A3D24] shadow-lg' : 'bg-white/10 text-white/50'}`}
                   >
-                    Advance (Credit)
+                    {type === 'customer' ? 'Milay Hain' : 'Diye Hain'} (Advance)
                   </button>
                 </div>
               </div>

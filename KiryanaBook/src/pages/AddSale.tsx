@@ -377,9 +377,12 @@ export const AddSale: React.FC = () => {
                             </div>
 
                             <div className="flex items-center justify-between px-2 mb-2">
-                                <div>
+                                <div className="min-w-[120px]">
                                     <p className="text-[10px] font-black text-text-muted uppercase tracking-widest leading-none mb-1">Net Payable</p>
-                                    <h2 className="text-[34px] font-black text-text-primary tracking-tight">Rs. {total.toLocaleString()}</h2>
+                                    <div className="flex items-baseline gap-1">
+                                        <span className="text-[14px] font-black text-text-primary/40 uppercase tracking-tighter">Rs.</span>
+                                        <h2 className="text-[32px] font-black text-text-primary tracking-tighter leading-none">{total.toLocaleString()}</h2>
+                                    </div>
                                 </div>
                                 <button 
                                     onClick={() => basket.length > 0 && setView('review')}
