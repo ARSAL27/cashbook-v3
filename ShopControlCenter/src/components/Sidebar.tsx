@@ -31,6 +31,9 @@ export const Sidebar: React.FC<Props> = ({ page, setPage }) => {
         <a className={`nav-item ${page === 'notifications' ? 'active' : ''}`} onClick={() => setPage('notifications')}>
           <Bell size={16} /> Broadcasts
         </a>
+        <a className={`nav-item ${page === 'barcodes' ? 'active' : ''}`} onClick={() => setPage('barcodes')}>
+          <LayoutDashboard size={16} /> Global Barcodes
+        </a>
       </div>
 
       <div className="nav-section">

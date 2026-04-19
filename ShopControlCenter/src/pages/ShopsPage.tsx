@@ -76,11 +76,19 @@ const ShopDetail: React.FC<{ shopId: string; onBack: () => void }> = ({ shopId, 
 
   const deleteShop = async () => {
     if (!window.confirm('⚠️ WARNING: Delete this shop and ALL its data? This cannot be undone.')) return;
+    
+    // Authorization Check
+    const pwd = window.prompt('Action requires authorization. Enter master password to permanently delete this shop:');
+    if (pwd !== '123456') {
+      toast.error('Incorrect password. Deletion cancelled.');
+      return;
+    }
+
     setIsDeleting(true);
     const tid = toast.loading('Deleting shop data...');
     try {
       // Step 1: Delete all sub-collection documents
-      const subCollections = ['sales', 'stock', 'expenses', 'udhaar', 'customers', 'invoices', 'cashbook', 'notifications'];
+      const subCollections = ['sales', 'stock', 'expenses', 'udhaar', 'contacts', 'invoices', 'staff', 'activities', 'notifications', 'daily_balances', 'audit_logs', 'customers', 'cashbook'];
       for (const col of subCollections) {
         const snap = await getDocs(collection(db, 'shops', shopId, col));
         await Promise.all(snap.docs.map(d => deleteDoc(d.ref)));

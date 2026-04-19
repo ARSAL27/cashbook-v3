@@ -7,6 +7,7 @@ import { Dashboard } from './pages/Dashboard';
 import { ShopsPage, ShopDetail } from './pages/ShopsPage';
 import { NotificationsPage } from './pages/NotificationsPage';
 import { BarcodeScannerPage } from './pages/BarcodeScannerPage';
+import { GlobalBarcodesPage } from './pages/GlobalBarcodesPage';
 import { Sidebar } from './components/Sidebar';
 import { Toaster } from 'react-hot-toast';
 import toast from 'react-hot-toast';
@@ -76,6 +77,7 @@ const AppInner: React.FC = () => {
         {page === 'shops' && !selectedShop && <ShopsPage onShopSelect={handleShopSelect} />}
         {page === 'shop-detail' && selectedShop && <ShopDetail shopId={selectedShop} onBack={handleBack} />}
         {page === 'notifications' && <NotificationsPage />}
+        {page === 'barcodes' && <GlobalBarcodesPage />}
       </div>
 
       {/* Floating Camera/Scan Button */}

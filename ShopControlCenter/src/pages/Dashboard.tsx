@@ -117,63 +117,7 @@ export const Dashboard: React.FC<{ onShopSelect?: (id: string) => void }> = ({ o
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginTop: '20px' }}>
-        <div className="card">
-          <div className="card-header">
-            <span className="card-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <AlertTriangle size={18} color="#ef4444" /> Live System Crashes
-            </span>
-          </div>
-          {errors.length === 0 ? (
-            <div className="empty-state">No crashes reported. System is healthy! ✨</div>
-          ) : (
-            <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
-              {errors.map((err, i) => {
-                const shopInfo = shops.find(s => s.id === err.userId);
-                const canInspect = onShopSelect && err.userId && err.userId !== 'anonymous';
-
-                const resolveError = async (e: React.MouseEvent) => {
-                  e.stopPropagation();
-                  // Delete all errors for this shop from Firestore
-                  const allShopErrors = (await getDocs(collection(db, 'system_errors'))).docs
-                    .filter(d => d.data().userId === err.userId);
-                  await Promise.all(allShopErrors.map(d => deleteDoc(doc(db, 'system_errors', d.id))));
-                };
-
-                return (
-                <div key={err.id} 
-                  onClick={() => canInspect && onShopSelect(err.userId)}
-                  style={{ 
-                  padding: '14px 16px', 
-                  borderBottom: i === errors.length - 1 ? 'none' : '1px solid var(--border)',
-                  backgroundColor: 'rgba(239,68,68,0.03)',
-                  cursor: canInspect ? 'pointer' : 'default',
-                  transition: 'background 0.2s'
-                }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                    <span style={{ fontWeight: '600', color: '#ef4444', fontSize: '13px' }}>{err.error?.substring(0, 80) || 'Unknown Crash'}...</span>
-                    <span style={{ fontSize: '11px', color: 'var(--muted2)' }}>{err.timestamp?.toDate ? new Date(err.timestamp.toDate()).toLocaleString() : 'Just now'}</span>
-                  </div>
-                  <div style={{ fontSize: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ color: 'var(--text)' }}>🏪 <strong>{shopInfo ? shopInfo.name : 'Unknown Shop'}</strong></span>
-                    <code style={{ background: 'rgba(255,255,255,0.05)', color: 'var(--muted2)', padding: '2px 6px', borderRadius: '4px', fontSize: '10px' }}>{err.userId}</code>
-                    <span style={{ marginLeft: 'auto', display: 'flex', gap: '8px' }}>
-                      {canInspect && <span style={{ fontSize: '11px', color: '#a855f7', fontWeight: 600 }}>Inspect →</span>}
-                      <button
-                        onClick={resolveError}
-                        style={{
-                          fontSize: '11px', fontWeight: 700, padding: '2px 10px',
-                          borderRadius: '6px', border: '1px solid rgba(16,185,129,0.3)',
-                          background: 'rgba(16,185,129,0.1)', color: '#10b981',
-                          cursor: 'pointer'
-                        }}
-                      >✓ Resolve</button>
-                    </span>
-                  </div>
-                </div>);
-              })}            </div>
-          )}
-        </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '20px', marginTop: '20px' }}>
 
         <div className="card">
           <div className="card-header">
