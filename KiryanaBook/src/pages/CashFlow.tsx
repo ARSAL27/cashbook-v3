@@ -6,6 +6,7 @@ import { ArrowLeft, ArrowDownLeft, ArrowUpRight, Calendar, Filter, Plus } from '
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../context/ThemeContext';
 import { EmptyState } from '../components/EmptyState';
+import { MarqueeText } from '../components/MarqueeText';
 
 type RangeType = 'daily' | 'weekly' | 'monthly' | 'custom';
 
@@ -142,7 +143,7 @@ export const CashFlow: React.FC = () => {
             <div className="w-full font-outfit max-w-md mx-auto min-h-screen flex flex-col relative pb-40" style={{ backgroundColor: bg }}>
 
                 {/* HEADER */}
-                <div style={{ backgroundColor: headerBg }} className="px-5 pt-10 pb-8 sticky top-0 z-40 shadow-lg">
+                <div style={{ backgroundColor: headerBg }} className="px-5 pt-10 pb-10 sticky top-0 z-30 shadow-lg">
                     <div className="flex items-center justify-between mb-6">
                         <button onClick={() => navigate(-1)} className="text-white active:scale-90 transition-transform">
                             <ArrowLeft size={22} />
@@ -169,23 +170,12 @@ export const CashFlow: React.FC = () => {
                             </div>
                         </div>
 
-                        {/* Quick Record Button */}
-                        <motion.button 
-                            whileTap={{ scale: 0.9 }}
-                            onClick={() => navigate(isIn ? '/add-udhaar' : '/add-expense')}
-                            className="bg-white/10 p-4 rounded-2xl border border-white/10 flex flex-col items-center gap-1 active:bg-white/20 transition-all"
-                        >
-                            <Plus size={20} className="text-white" strokeWidth={3} />
-                            <span className="text-[8px] font-black text-white/70 uppercase tracking-tighter">
-                                {isIn ? 'Add Wasooli' : 'Add Expense'}
-                            </span>
-                        </motion.button>
                     </div>
                 </div>
 
                 {/* RANGE FILTER */}
-                <div className="px-4 -mt-5 mb-4">
-                    <div className="bg-white dark:bg-[#141414] rounded-3xl p-2 shadow-md border" style={{ borderColor: border }}>
+                <div className="px-4 -mt-6 mb-4 relative z-40">
+                    <div className="bg-white dark:bg-[#141414] rounded-[1.8rem] p-1.5 shadow-xl border" style={{ borderColor: border }}>
                         <div className="grid grid-cols-4 gap-1">
                             {ranges.map(r => (
                                 <button
@@ -277,7 +267,10 @@ export const CashFlow: React.FC = () => {
 
                                 {/* Info */}
                                 <div className="flex-1 min-w-0">
-                                    <p className="text-[13px] font-bold truncate" style={{ color: text }}>{item.label}</p>
+                                    <MarqueeText 
+                                        text={item.label} 
+                                        className="text-[13px] font-bold" 
+                                    />
                                     <div className="flex items-center gap-2 mt-0.5">
                                         <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full"
                                             style={{ backgroundColor: bgAccent, color: accentColor }}>

@@ -9,7 +9,8 @@ import toast from 'react-hot-toast';
 import { KIRYANA_DATABASE, KIRYANA_CATEGORIES } from '../data/kiryanaDatabase';
 import { guessCategory, guessUnit, validateProductEntry, standardizeBrand } from '../utils/productValidation';
 import { resizeBase64Image } from '../utils/image';
-
+import { db } from '../lib/firebase';
+import { doc, getDoc } from 'firebase/firestore';
 export const AddItem: React.FC = () => {
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
@@ -86,8 +87,39 @@ export const AddItem: React.FC = () => {
         }
 
         initialCheckDone.current = true;
-        const master = KIRYANA_DATABASE.find(item => item.name.toLowerCase().includes(barcode.toLowerCase()));
-        if (master) handleSelectSuggestion(master);
+        
+        const checkGlobalDatabase = async () => {
+            const tid = toast.loading('Searching global barcode database...', { id: 'barcode-search' });
+            try {
+                // Check offline database first
+                const master = KIRYANA_DATABASE.find(item => item.name.toLowerCase().includes(barcode.toLowerCase()));
+                if (master) {
+                    toast.success('Found in offline database', { id: 'barcode-search' });
+                    handleSelectSuggestion(master);
+                    return;
+                }
+                
+                // If not found offline, check Firebase global_barcodes
+                const snap = await getDoc(doc(db, 'global_barcodes', barcode));
+                if (snap.exists()) {
+                    toast.success('Found in KiryanaBook Global Database!', { id: 'barcode-search' });
+                    const gData = snap.data();
+                    // Maps global data to local state
+                    setName(gData.name || '');
+                    setCompany(gData.company || '');
+                    setCategory(gData.category || 'Others');
+                    setPackSize(gData.packSize || '');
+                    if (gData.imageUrl) setImageUrl(gData.imageUrl);
+                    if (gData.unit) setUnit(gData.unit);
+                } else {
+                    toast.dismiss('barcode-search');
+                }
+            } catch (err) {
+                toast.dismiss('barcode-search');
+            }
+        };
+        
+        checkGlobalDatabase();
     }, [searchParams, stock]);
 
     const handleSave = async () => {
@@ -116,7 +148,7 @@ export const AddItem: React.FC = () => {
             
             if (packSize.trim()) newItem.packSize = packSize.trim();
 
-            await addStockItem(newItem);
+            addStockItem(newItem);
             toast.success('Product add ho gaya! 🎉');
             navigate(-1);
         } catch (e: any) {

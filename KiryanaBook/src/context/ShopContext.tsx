@@ -8,6 +8,7 @@ import {
 } from 'firebase/firestore';
 import { sendNativeNotification } from '../utils/notifications';
 import { sanitizeString } from '../utils/crypto';
+import { getLocalDateString } from '../utils/dateUtils';
 
 // ─── TYPES ───────────────────────────────────────────────────────────────────
 
@@ -45,6 +46,7 @@ export interface Sale {
   type: 'cash' | 'udhaar';
   date: string;
   items: { itemId: string; qty: number; price: number; name: string }[];
+  invoiceId?: string;
   isDeleted?: boolean;
 }
 
@@ -85,10 +87,12 @@ export interface ShopProfile {
   owner: string;
   phone: string;
   city: string;
+  address?: string;
   currency: string;
   plan?: string;
   lastSync?: string;
   logoUrl?: string;
+  email?: string;
   securityPin?: string;
   securitySettings?: {
     lockStock: boolean;
@@ -216,6 +220,7 @@ interface ShopContextType {
   updateRolePermissions: (role: string, permissions: any) => Promise<void>;
   updateSecuritySettings: (settings: Partial<ShopProfile['securitySettings']>) => Promise<void>;
   deleteUdhaar: (id: string) => Promise<void>;
+  updateUdhaar: (id: string, data: { amount?: number; note?: string }) => Promise<void>;
   deleteCustomer: (name: string) => Promise<void>;
   addContact: (contact: Omit<Contact, 'id' | 'createdAt'>) => Promise<void>;
   deleteContact: (id: string) => Promise<void>;
@@ -320,9 +325,15 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (snap.exists()) {
           const data = snap.data();
           setProfile({
-            name: data.name, owner: data.owner, phone: data.phone,
-            city: data.city, currency: data.currency, plan: data.plan,
-            logoUrl: data.logoUrl,
+            ...data,
+            name: data.name || '',
+            owner: data.owner || '',
+            phone: data.phone || '',
+            city: data.city || '',
+            address: data.address || '',
+            currency: data.currency || 'PKR',
+            plan: data.plan || 'Free',
+            logoUrl: data.logoUrl || null,
             securityPin: data.securityPin || null,
             securitySettings: data.securitySettings || {
               lockStock: false, lockKhata: false, lockReports: false, lockStaff: false
@@ -331,7 +342,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
               Cashier: { viewDashboard: true, viewReports: false, addEntry: true, editEntry: false, viewUdhaar: true, deleteRecords: false, manageStaff: false },
               Manager: { viewDashboard: true, viewReports: true, addEntry: true, editEntry: true, viewUdhaar: true, deleteRecords: false, manageStaff: true }
             }
-          });
+          } as any);
           if (data.categories && data.categories.length > 0) {
             setCategories(data.categories);
           } else {
@@ -385,12 +396,39 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, [user, currentShopId]);
 
+  const updateLastSync = async () => { 
+    const shopId = currentShopId || user?.uid;
+    if (!shopId) return; 
+    try { 
+      updateDoc(doc(db, 'shops', shopId), { lastSync: new Date().toISOString() }); 
+    } catch (e) {} 
+  };
+
   const updateProfile = async (newProfile: ShopProfile) => {
     const shopId = currentShopId || user?.uid;
     if (!shopId) return;
-    const cleanProfile = Object.fromEntries(Object.entries(newProfile).filter(([_, v]) => v !== undefined));
-    setDoc(doc(db, 'shops', shopId), { ...cleanProfile, updatedAt: serverTimestamp() }, { merge: true });
+    
+    // Explicitly include address in the update data
+    const updateData: any = {
+      ...newProfile,
+      updatedAt: serverTimestamp()
+    };
+    
+    // Clean undefined values
+    Object.keys(updateData).forEach(key => updateData[key] === undefined && delete updateData[key]);
+
+    // Update local state immediately (optimistic update)
+    setProfile(prev => ({ ...prev, ...updateData } as ShopProfile));
+    
+    try {
+      await setDoc(doc(db, 'shops', shopId), updateData, { merge: true });
+      updateLastSync();
+    } catch (err) {
+      console.error("Update Profile Error:", err);
+      throw err;
+    }
   };
+
 
   const updateRolePermissions = async (role: string, permissions: any) => {
     const shopId = currentShopId || user?.uid;
@@ -427,7 +465,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const updateDailyBalance = async (dateStr: string, amount: number, type: 'credit' | 'debit') => {
     if (!currentShopId) return;
-    const balanceId = dateStr.split('T')[0];
+    const balanceId = getLocalDateString(dateStr);
     const balanceRef = doc(db, 'shops', currentShopId, 'daily_balances', balanceId);
     
     try {
@@ -530,7 +568,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const addExpense = async (amount: number, description: string, category: string = 'Other') => {
     if (!user || !currentShopId) return;
     const date = new Date().toISOString();
-    addDoc(collection(doc(db, 'shops', currentShopId), 'expenses'), { 
+    await addDoc(collection(doc(db, 'shops', currentShopId), 'expenses'), { 
       amount, 
       description: sanitizeString(description), 
       category: sanitizeString(category),
@@ -544,7 +582,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const addUdhaar = async (customerName: string, amount: number, note?: string) => {
     if (!user || !currentShopId) return;
     const date = new Date().toISOString();
-    addDoc(collection(doc(db, 'shops', currentShopId), 'udhaar'), { 
+    await addDoc(collection(doc(db, 'shops', currentShopId), 'udhaar'), { 
       customerName: sanitizeString(customerName), 
       amount, date, note: sanitizeString(note || ''),
       isDeleted: false 
@@ -596,6 +634,16 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await updateDoc(doc(db, 'shops', user.uid, 'udhaar', id), { isUrgent: !item.isUrgent });
   };
 
+  const updateUdhaar = async (id: string, newData: { amount?: number; note?: string }) => {
+    if (!user || !currentShopId) return;
+    const shopRef = doc(db, 'shops', currentShopId);
+    await updateDoc(doc(shopRef, 'udhaar', id), { 
+      ...newData, 
+      updatedAt: serverTimestamp() 
+    });
+    updateLastSync();
+  };
+
   const deleteCustomer = async (name: string) => {
     if (!user) return;
     const shopRef = doc(db, 'shops', user.uid);
@@ -613,7 +661,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const addContact = async (contact: Omit<Contact, 'id' | 'createdAt'>) => {
     if (!user) return;
     const shopRef = doc(db, 'shops', user.uid);
-    addDoc(collection(shopRef, 'contacts'), { 
+    await addDoc(collection(shopRef, 'contacts'), { 
       ...contact, createdAt: new Date().toISOString(), isDeleted: false 
     });
     if (contact.initialBalance !== 0) {
@@ -823,7 +871,25 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setCategories(newCats);
         updateDoc(shopRef, { categories: newCats }).catch(()=>{});
     }
+    
+    // Save to shop's stock
     await addDoc(collection(shopRef, 'stock'), sanitizeForFirebase({ ...item, category: normalizedCategory, history: [{ id: 'init', type: 'restock', quantity: item.quantity, date: new Date().toISOString(), note: 'Initial Stock' }], soldCount: 0, status: 'active', createdAt: serverTimestamp() }));
+    
+    // FIRE & FORGET: Save to global barcode database if it's a real barcode
+    if (item.sku && String(item.sku).length >= 4 && !String(item.sku).startsWith('SKU-')) {
+       setDoc(doc(db, 'global_barcodes', String(item.sku)), sanitizeForFirebase({
+          barcode: String(item.sku),
+          name: item.name,
+          company: item.company || 'Universal',
+          category: normalizedCategory,
+          packSize: item.packSize || '',
+          imageUrl: item.imageUrl || '',
+          unit: item.unit || 'pcs',
+          addedByShop: user.uid,
+          addedAt: serverTimestamp()
+       }), { merge: true }).catch(console.error);
+    }
+
     await updateLastSync();
   };
 
@@ -856,13 +922,6 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return obj;
   };
 
-  const updateLastSync = async () => { 
-    const shopId = currentShopId || user?.uid;
-    if (!shopId) return; 
-    try { 
-      updateDoc(doc(db, 'shops', shopId), { lastSync: new Date().toISOString() }); 
-    } catch (e) {} 
-  };
   const addCategory = async (cat: string) => { if (!user) return; const newCats = Array.from(new Set([...categories, cat])); setCategories(newCats); await updateDoc(doc(db, 'shops', user.uid), { categories: newCats }); };
   const deleteCategory = async (cat: string) => { if (!user) return; const newCats = categories.filter(c => c !== cat); setCategories(newCats); await updateDoc(doc(db, 'shops', user.uid), { categories: newCats }); };
 
@@ -870,7 +929,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     <ShopContext.Provider value={{ 
       stock, sales, expenses, udhaars, contacts, contactsMap, invoices, staff, activities, notifications, categories, profile, loading, 
       currentShopId, setCurrentShopId, logAudit, updateDailyBalance,
-      addSale, addExpense, addUdhaar, addUdhaarPayment, deleteUdhaar, deleteCustomer, 
+      addSale, addExpense, addUdhaar, addUdhaarPayment, updateUdhaar, deleteUdhaar, deleteCustomer, 
       addContact, updateContact, deleteContact, toggleContactImportance, addInvoice, updateInvoice, deleteInvoice, addStaff, deleteStaff, logActivity, updateStock, updateStockItem, toggleStockItemStatus, addStockItem, deleteStockItem, updateProfile, updateRolePermissions, updateSecuritySettings, toggleUdhaarUrgency, markNotificationRead, clearNotifications, checkLimit, clearOldData, clearAllData, updateLastSync, addCategory, deleteCategory 
     }}>
       {children}

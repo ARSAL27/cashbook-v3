@@ -10,7 +10,7 @@ import { useTheme } from '../context/ThemeContext';
 export const CustomerDetail: React.FC = () => {
     const { name } = useParams<{ name: string }>();
     const navigate = useNavigate();
-    const { udhaars, contacts, invoices, addUdhaar, deleteCustomer, toggleContactImportance, updateContact } = useShop();
+    const { udhaars, contacts, invoices, addUdhaar, updateUdhaar, deleteUdhaar, deleteCustomer, toggleContactImportance, updateContact } = useShop();
     const { isDarkMode } = useTheme();
 
     const [showAddModal, setShowAddModal] = useState(false);
@@ -21,9 +21,28 @@ export const CustomerDetail: React.FC = () => {
     const [amount, setAmount] = useState('');
     const [note, setNote] = useState('');
     const [loading, setLoading] = useState(false);
+    
+    // Transaction Editing State
+    const [showEditTransactionModal, setShowEditTransactionModal] = useState(false);
+    const [selectedTransaction, setSelectedTransaction] = useState<any>(null);
+    const [editAmount, setEditAmount] = useState('');
+    const [editNote, setEditNote] = useState('');
 
     const contact = contacts.find(c => c.name === name);
     const isSupplier = contact?.type === 'supplier';
+
+    // Auto-fill note based on transaction type
+    React.useEffect(() => {
+        if (showAddModal) {
+            if (isSupplier) {
+                setNote(modalType === 'debit' ? 'Liye' : 'Diye');
+            } else {
+                setNote(modalType === 'debit' ? 'Diye' : 'Miley');
+            }
+        } else {
+            setNote('');
+        }
+    }, [showAddModal, modalType, isSupplier]);
 
     const transactions = useMemo(() => {
         const lowerName = name?.toLowerCase().trim();
@@ -70,16 +89,20 @@ export const CustomerDetail: React.FC = () => {
         if (!val || val <= 0) return toast.error('Valid amount darj karein', { icon: '⚠️' });
         setLoading(true);
         try {
-            if (modalType === 'debit') {
-                const finalAmount = isSupplier ? -val : val;
-                await addUdhaar(name || '', finalAmount, note || undefined);
-                toast.success(isSupplier ? 'Udhaar (Dena) darj ho gaya' : 'Udhaar (Lena) darj ho gaya', { icon: '💸' });
-            } else {
-                const finalAmount = isSupplier ? val : -val;
-                await addUdhaar(name || '', finalAmount, note || undefined);
-                toast.success(isSupplier ? 'Payment (Diya) darj ho gaya' : 'Payment (Mila) darj ho gaya', { icon: '💰' });
-            }
-            setAmount(''); setNote(''); setShowAddModal(false);
+            const finalAmount = modalType === 'debit' ? (isSupplier ? -val : val) : (isSupplier ? val : -val);
+            
+            // Fire and forget
+            addUdhaar(name || '', finalAmount, note || undefined);
+            
+            toast.success(
+                modalType === 'debit' 
+                ? (isSupplier ? 'Udhaar (Dena) darj ho gaya' : 'Udhaar (Lena) darj ho gaya')
+                : (isSupplier ? 'Payment (Diya) darj ho gaya' : 'Payment (Mila) darj ho gaya'), 
+                { icon: modalType === 'debit' ? '💸' : '💰' }
+            );
+            
+            setAmount(''); 
+            setShowAddModal(false);
         } catch (e) {
             toast.error('Kuch masla hua');
         }
@@ -121,6 +144,49 @@ export const CustomerDetail: React.FC = () => {
         }
     };
 
+    const handleEditTransaction = (t: any) => {
+        setSelectedTransaction(t);
+        setEditAmount(Math.abs(t.amount).toString());
+        setEditNote(t.note || '');
+        setShowEditTransactionModal(true);
+    };
+
+    const handleUpdateTransaction = async () => {
+        if (!selectedTransaction) return;
+        const val = parseFloat(editAmount);
+        if (!val || val <= 0) return toast.error('Valid amount lazmi hai');
+        
+        setLoading(true);
+        try {
+            // Keep the original sign (negative for payments/credits, positive for debits)
+            const finalAmount = selectedTransaction.amount < 0 ? -val : val;
+            await updateUdhaar(selectedTransaction.id, {
+                amount: finalAmount,
+                note: editNote.trim()
+            });
+            setShowEditTransactionModal(false);
+            toast.success('Transaction update ho gayi!', { icon: '📝' });
+        } catch (e) {
+            toast.error('Update fail ho gaya');
+        }
+        setLoading(false);
+    };
+
+    const handleDeleteTransaction = async () => {
+        if (!selectedTransaction) return;
+        if (!window.confirm('Kya aap waqai ye transaction delete karna chahte hain?')) return;
+        
+        setLoading(true);
+        try {
+            await deleteUdhaar(selectedTransaction.id);
+            setShowEditTransactionModal(false);
+            toast.success('Transaction delete ho gayi', { icon: '🗑️' });
+        } catch (e) {
+            toast.error('Delete fail ho gaya');
+        }
+        setLoading(false);
+    };
+
     const generateStatement = () => {
         const lines = [
             `===== STATEMENT =====`,
@@ -130,7 +196,7 @@ export const CustomerDetail: React.FC = () => {
             ``,
             `--- Transactions ---`,
             ...transactions.map(t => {
-                const label = t.note || (isSupplier ? (t.amount < 0 ? 'Udhaar Liya' : 'Payment Di') : (t.amount > 0 ? 'Udhaar Diya' : 'Payment Mili'));
+                const label = t.note || (isSupplier ? (t.amount < 0 ? 'Liye' : 'Diye') : (t.amount > 0 ? 'Diye' : 'Miley'));
                 const sign = t.amount > 0 ? '+' : '-';
                 return `${new Date(t.date).toLocaleDateString('en-PK')} | ${label} | ${sign}Rs. ${Math.abs(t.amount).toLocaleString()}`;
             }),
@@ -164,6 +230,13 @@ export const CustomerDetail: React.FC = () => {
         const d = new Date(dateStr);
         return d.toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' });
     };
+    const handleBack = () => {
+        if (isSupplier) {
+            navigate('/customers?type=supplier');
+        } else {
+            navigate('/customers');
+        }
+    };
 
     return (
         <PageTransition> 
@@ -174,7 +247,7 @@ export const CustomerDetail: React.FC = () => {
                     <div className="absolute top-10 right-0 w-64 h-64 bg-emerald-500/10 blur-[80px] rounded-full" />
                     
                     <div className="relative flex items-center justify-between mb-6 z-10">
-                        <button onClick={() => navigate(-1)} className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center text-white active:scale-95 transition-transform border border-white/20">
+                        <button onClick={handleBack} className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center text-white active:scale-95 transition-transform border border-white/20">
                             <ArrowLeft size={20} />
                         </button>
                         <p className="text-emerald-300 text-[11px] font-black uppercase tracking-[0.2em]">{isSupplier ? 'Supplier Ledger' : 'Customer Ledger'}</p>
@@ -200,7 +273,7 @@ export const CustomerDetail: React.FC = () => {
                     </div>
 
                     <div className="relative flex items-center gap-4 mb-6 z-10">
-                        <div className="w-16 h-16 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-2xl flex items-center justify-center text-white text-[22px] font-black shadow-lg border border-emerald-300 drop-shadow-xl relative overflow-hidden">
+                        <div className={`w-16 h-16 rounded-2xl flex items-center justify-center text-white text-[22px] font-black shadow-lg border relative overflow-hidden transition-all duration-300 ${stats.netBalance === 0 ? 'bg-gradient-to-br from-blue-400 to-blue-600 border-blue-300' : 'bg-gradient-to-br from-emerald-400 to-emerald-600 border-emerald-300'}`}>
                             <div className="absolute inset-0 bg-white/20 skew-x-[-20deg] translate-x-[-150%]" />
                             {initials}
                         </div>
@@ -254,17 +327,19 @@ export const CustomerDetail: React.FC = () => {
                         <div className="flex items-center justify-between mb-5 relative z-10">
                             <div>
                                 <p className="text-[11px] font-black uppercase tracking-[0.2em] text-gray-500 dark:text-gray-400 mb-1">Final Balance</p>
-                                <p className={`text-[32px] font-black leading-none tracking-tighter drop-shadow-sm ${
+                                <p className={`text-[32px] font-black leading-none tracking-tighter drop-shadow-sm transition-all duration-300 ${
+                                    stats.netBalance === 0 ? 'text-blue-500' : 
                                     isSupplier 
-                                    ? (stats.netBalance < 0 ? 'text-rose-500' : stats.netBalance > 0 ? 'text-emerald-500' : 'text-gray-400')
-                                    : (stats.netBalance > 0 ? 'text-rose-500' : stats.netBalance < 0 ? 'text-emerald-500' : 'text-gray-400')
+                                    ? (stats.netBalance < 0 ? 'text-rose-500' : 'text-emerald-500')
+                                    : (stats.netBalance > 0 ? 'text-rose-500' : 'text-emerald-500')
                                 }`}>
                                     Rs. {Math.abs(stats.netBalance).toLocaleString()}
                                 </p>
-                                <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full mt-3 shadow-inner ${
+                                <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full mt-3 shadow-inner transition-all duration-300 ${
+                                    stats.netBalance === 0 ? 'bg-blue-50/50 dark:bg-blue-500/10 border border-blue-100 dark:border-blue-500/20 text-blue-600 dark:text-blue-400' :
                                     isSupplier
-                                    ? (stats.netBalance < 0 ? 'bg-rose-50/50 dark:bg-rose-500/10 border border-rose-100 dark:border-rose-500/20 text-rose-600 dark:text-rose-400' : stats.netBalance > 0 ? 'bg-emerald-50/50 dark:bg-emerald-500/10 border border-emerald-100 dark:border-emerald-500/20 text-emerald-700 dark:text-emerald-400' : 'bg-gray-100 text-gray-500')
-                                    : (stats.netBalance > 0 ? 'bg-rose-50/50 dark:bg-rose-500/10 border border-rose-100 dark:border-rose-500/20 text-rose-600 dark:text-rose-400' : stats.netBalance < 0 ? 'bg-emerald-50/50 dark:bg-emerald-500/10 border border-emerald-100 dark:border-emerald-500/20 text-emerald-700 dark:text-emerald-400' : 'bg-gray-100 text-gray-500')
+                                    ? (stats.netBalance < 0 ? 'bg-rose-50/50 dark:bg-rose-500/10 border border-rose-100 dark:border-rose-500/20 text-rose-600 dark:text-rose-400' : 'bg-emerald-50/50 dark:bg-emerald-500/10 border border-emerald-100 dark:border-emerald-500/20 text-emerald-700 dark:text-emerald-400')
+                                    : (stats.netBalance > 0 ? 'bg-rose-50/50 dark:bg-rose-500/10 border border-rose-100 dark:border-rose-500/20 text-rose-600 dark:text-rose-400' : 'bg-emerald-50/50 dark:bg-emerald-500/10 border border-emerald-100 dark:border-emerald-500/20 text-emerald-700 dark:text-emerald-400')
                                 }`}>
                                     <div className={`w-1.5 h-1.5 rounded-full animate-pulse ${stats.netBalance !== 0 ? 'bg-current' : 'bg-transparent'}`} />
                                     <span className="text-[10px] font-black uppercase tracking-wider">
@@ -320,10 +395,8 @@ export const CustomerDetail: React.FC = () => {
                                 <motion.div 
                                   initial={{ opacity: 0, scale: 0.95 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true }}
                                   key={t.id} 
-                                  onClick={() => {
-                                      if (invoiceIdFromNote) navigate(`/invoice/${invoiceIdFromNote}`);
-                                  }}
-                                  className={`bg-white dark:bg-[#141414] p-4 rounded-[1.5rem] border border-gray-100 dark:border-white/5 flex items-center justify-between shadow-sm hover:shadow-md transition-all active:scale-[0.98] ${invoiceIdFromNote ? 'cursor-pointer' : ''}`}
+                                  onClick={() => handleEditTransaction(t)}
+                                  className={`bg-white dark:bg-[#141414] p-4 rounded-[1.5rem] border border-gray-100 dark:border-white/5 flex items-center justify-between shadow-sm hover:shadow-md transition-all active:scale-[0.98] cursor-pointer`}
                                 >
                                     <div className="flex items-center gap-4 flex-1 min-w-0">
                                         <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-inner border shrink-0 ${t.amount < 0 ? 'bg-rose-50 dark:bg-rose-500/10 text-rose-500 border-rose-100 dark:border-rose-500/20' : 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-500 border-emerald-100 dark:border-emerald-500/20'}`}>
@@ -336,7 +409,7 @@ export const CustomerDetail: React.FC = () => {
                                                   transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
                                                   className="text-[15px] font-black text-gray-900 dark:text-white whitespace-nowrap"
                                                 >
-                                                   {t.note || (isSupplier ? (t.amount < 0 ? 'Udhaar Liya' : 'Payment Di') : (t.amount > 0 ? 'Udhaar Diya' : 'Payment Mili'))}
+                                                   {t.note || (isSupplier ? (t.amount < 0 ? 'Liye' : 'Diye') : (t.amount > 0 ? 'Diye' : 'Miley'))}
                                                 </motion.p>
                                             </div>
                                             <div className="flex items-center gap-2">
@@ -371,14 +444,14 @@ export const CustomerDetail: React.FC = () => {
                             className="flex-1 bg-gradient-to-br from-rose-500 to-red-600 text-white py-4 rounded-[1.5rem] shadow-lg shadow-rose-500/30 active:scale-95 transition-all duration-300 font-black text-[13px] uppercase tracking-widest flex items-center justify-center gap-2 group overflow-hidden relative"
                         >
                             <div className="absolute inset-0 bg-white/20 skew-x-[-20deg] translate-x-[-150%] group-hover:animate-[shimmer_1.5s_infinite]" />
-                            <Minus size={18} strokeWidth={3.5} className="group-active:-translate-y-0.5 transition-transform" /> {isSupplier ? 'Liye (Debt)' : 'Diye (Udhaar)'}
+                            <Minus size={18} strokeWidth={3.5} className="group-active:-translate-y-0.5 transition-transform" /> {isSupplier ? 'Liye' : 'Diye'}
                         </button>
                         <button 
                             onClick={() => { setModalType('credit'); setShowAddModal(true); }}
                             className="flex-1 bg-gradient-to-br from-emerald-500 to-teal-600 text-white py-4 rounded-[1.5rem] shadow-lg shadow-emerald-500/30 active:scale-95 transition-all duration-300 font-black text-[13px] uppercase tracking-widest flex items-center justify-center gap-2 group overflow-hidden relative"
                         >
                             <div className="absolute inset-0 bg-white/20 skew-x-[-20deg] translate-x-[-150%] group-hover:animate-[shimmer_1.5s_infinite]" />
-                            <Plus size={18} strokeWidth={3.5} className="group-active:-translate-y-0.5 transition-transform" /> {isSupplier ? 'Diye (Pay)' : 'Miley (Cash)'}
+                            <Plus size={18} strokeWidth={3.5} className="group-active:-translate-y-0.5 transition-transform" /> {isSupplier ? 'Diye' : 'Miley'}
                         </button>
                     </div>
                 </div>
@@ -404,7 +477,7 @@ export const CustomerDetail: React.FC = () => {
                                             {modalType === 'debit' ? <Minus size={20} strokeWidth={3} /> : <Plus size={20} strokeWidth={3} />}
                                         </div>
                                         <h3 className="text-[20px] font-black text-gray-900 dark:text-white leading-none">
-                                            {isSupplier ? (modalType === 'debit' ? 'Udhaar Liya' : 'Payment Di') : (modalType === 'debit' ? 'Udhaar Diya' : 'Wapsi (Miley)')}
+                                            {isSupplier ? (modalType === 'debit' ? 'Liye' : 'Diye') : (modalType === 'debit' ? 'Diye' : 'Miley')}
                                         </h3>
                                     </div>
                                     <button onClick={() => setShowAddModal(false)} className="w-8 h-8 rounded-full bg-gray-100 dark:bg-[#222] flex items-center justify-center hover:bg-gray-200 dark:hover:bg-[#333] transition-colors"><XIcon size={16} className="text-gray-500" /></button>
@@ -523,7 +596,7 @@ export const CustomerDetail: React.FC = () => {
                                     {transactions.map(t => (
                                         <div key={t.id} className="flex items-center justify-between py-3 border-b border-gray-100 dark:border-white/5">
                                             <div>
-                                                <p className="text-[14px] font-bold text-gray-900 dark:text-white">{t.note || (t.amount > 0 ? 'Udhaar (Debt)' : 'Payment (Wasooli)')}</p>
+                                                <p className="text-[14px] font-bold text-gray-900 dark:text-white">{t.note || (t.amount > 0 ? 'Diye' : 'Miley')}</p>
                                                 <p className="text-[11px] font-bold text-gray-400">{formatDate(t.date)}</p>
                                             </div>
                                             <p className={`text-[15px] font-black ${t.amount > 0 ? 'text-rose-500' : 'text-emerald-500'}`}>
@@ -553,6 +626,70 @@ export const CustomerDetail: React.FC = () => {
                                 >
                                     <MessageSquare size={18} /> WARN ON WHATSAPP
                                 </button>
+                            </motion.div>
+                        </div>
+                    )}
+                </AnimatePresence>
+                {/* EDIT TRANSACTION MODAL */}
+                <AnimatePresence>
+                    {showEditTransactionModal && (
+                        <div className="fixed inset-0 z-[140] flex items-end justify-center">
+                            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowEditTransactionModal(false)} className="absolute inset-0 bg-black/70 backdrop-blur-md" />
+                            <motion.div 
+                               initial={{ y: '100%', scale: 0.95 }} 
+                               animate={{ y: 0, scale: 1 }} 
+                               exit={{ y: '100%', scale: 0.95 }} 
+                               className="relative w-full max-w-md bg-white dark:bg-[#141414] rounded-t-[2.5rem] p-8 pb-12 shadow-2xl"
+                            >
+                                <div className="w-12 h-1.5 bg-gray-200 dark:bg-gray-800 rounded-full mx-auto mb-6" />
+                                <div className="flex items-center justify-between mb-8">
+                                    <h3 className="text-[20px] font-black text-gray-900 dark:text-white">Edit Entry</h3>
+                                    <button onClick={handleDeleteTransaction} className="w-10 h-10 rounded-xl bg-red-50 to-red-600 text-red-500 dark:bg-red-500/10 flex items-center justify-center active:scale-90 transition-all">
+                                        <Trash2 size={20} />
+                                    </button>
+                                </div>
+                                
+                                <div className="space-y-6">
+                                    <div className="bg-gray-50 dark:bg-[#1A1A1A] p-6 rounded-[2rem] border border-gray-100 dark:border-white/5 shadow-inner flex flex-col items-center">
+                                        <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">Change Amount</p>
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-[24px] font-black text-blue-500">Rs.</span>
+                                            <input 
+                                                type="number" 
+                                                value={editAmount} 
+                                                onChange={e => setEditAmount(e.target.value)} 
+                                                className="bg-transparent font-black text-[42px] tracking-tighter outline-none text-center text-gray-900 dark:text-white w-full max-w-[180px]" 
+                                            />
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="relative">
+                                        <div className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400"><FileText size={18} /></div>
+                                        <input 
+                                            type="text" 
+                                            value={editNote} 
+                                            onChange={e => setEditNote(e.target.value)} 
+                                            placeholder="Update Note..." 
+                                            className="w-full bg-white dark:bg-[#1E1E1E] border border-gray-200 dark:border-white/10 rounded-[1.25rem] py-4.5 pl-12 pr-5 font-bold text-[14px] outline-none text-gray-900 dark:text-white" 
+                                        />
+                                    </div>
+
+                                    <div className="flex gap-3">
+                                        <button 
+                                            onClick={() => setShowEditTransactionModal(false)}
+                                            className="flex-1 py-4.5 rounded-[1.5rem] font-black text-[14px] uppercase tracking-widest bg-gray-100 dark:bg-[#222] text-gray-500 active:scale-95 transition-all"
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button 
+                                            onClick={handleUpdateTransaction} 
+                                            disabled={loading || !editAmount} 
+                                            className="flex-[2] bg-gradient-to-r from-blue-500 to-indigo-600 text-white py-4.5 rounded-[1.5rem] font-black text-[14px] uppercase tracking-widest shadow-lg shadow-blue-500/20 active:scale-95 transition-all disabled:opacity-50"
+                                        >
+                                            {loading ? 'UDATE HO RHA HAI...' : 'UPDATE KAREIN'}
+                                        </button>
+                                    </div>
+                                </div>
                             </motion.div>
                         </div>
                     )}

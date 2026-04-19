@@ -5,6 +5,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Clock, Filter, FileText, User, TrendingUp, DollarSign, Edit3, UserPlus } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useTheme } from '../context/ThemeContext';
+import { isToday } from '../utils/dateUtils';
 
 export const StaffActivity: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -16,8 +17,7 @@ export const StaffActivity: React.FC = () => {
   const memberActivities = useMemo(() => activities.filter(a => a.staffId === id), [activities, id]);
 
   const stats = useMemo(() => {
-    const today = new Date().toISOString().split('T')[0];
-    const todayActions = memberActivities.filter(a => a.date.startsWith(today)).length;
+    const todayActions = memberActivities.filter(a => isToday(a.date)).length;
     const weeklyActions = memberActivities.length; // Simplified
     return { todayActions, weeklyActions };
   }, [memberActivities]);

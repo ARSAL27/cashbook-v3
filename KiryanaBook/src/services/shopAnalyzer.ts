@@ -97,9 +97,14 @@ export const getSpecificStats = (_query: string, data: any) => {
   const { sales, expenses, udhaars, stock } = data;
   
   const today = new Date().toISOString().split('T')[0];
+  
   const yesterdayDate = new Date();
   yesterdayDate.setDate(yesterdayDate.getDate() - 1);
   const yesterday = yesterdayDate.toISOString().split('T')[0];
+  
+  const parsonDate = new Date();
+  parsonDate.setDate(parsonDate.getDate() - 2);
+  const parson = parsonDate.toISOString().split('T')[0];
   
   const last7Days = new Date();
   last7Days.setDate(last7Days.getDate() - 7);
@@ -107,10 +112,17 @@ export const getSpecificStats = (_query: string, data: any) => {
   // Today
   const todayS = sales.filter((x: any) => x.date.startsWith(today)).reduce((a: any, b: any) => a + b.total, 0);
   const todayE = expenses.filter((x: any) => x.date.startsWith(today)).reduce((a: any, b: any) => a + b.amount, 0);
+  const todayU = udhaars.filter((x: any) => x.date.startsWith(today)).reduce((a: any, b: any) => a + b.amount, 0);
   
   // Yesterday
   const yesterdayS = sales.filter((x: any) => x.date.startsWith(yesterday)).reduce((a: any, b: any) => a + b.total, 0);
   const yesterdayE = expenses.filter((x: any) => x.date.startsWith(yesterday)).reduce((a: any, b: any) => a + b.amount, 0);
+  const yesterdayU = udhaars.filter((x: any) => x.date.startsWith(yesterday)).reduce((a: any, b: any) => a + b.amount, 0);
+
+  // Parson (Day Before Yesterday)
+  const parsonS = sales.filter((x: any) => x.date.startsWith(parson)).reduce((a: any, b: any) => a + b.total, 0);
+  const parsonE = expenses.filter((x: any) => x.date.startsWith(parson)).reduce((a: any, b: any) => a + b.amount, 0);
+  const parsonU = udhaars.filter((x: any) => x.date.startsWith(parson)).reduce((a: any, b: any) => a + b.amount, 0);
   
   // Weekly (Last 7 Days)
   const weeklyS = sales.filter((x: any) => new Date(x.date) >= last7Days).reduce((a: any, b: any) => a + b.total, 0);
@@ -123,12 +135,13 @@ export const getSpecificStats = (_query: string, data: any) => {
 
   return `
     PERIOD SUMMARY:
-    - TODAY: Sales Rs. ${todayS}, Expenses Rs. ${todayE}, Net Rs. ${todayS - todayE}
-    - YESTERDAY: Sales Rs. ${yesterdayS}, Expenses Rs. ${yesterdayE}, Net Rs. ${yesterdayS - yesterdayE}
-    - LAST 7 DAYS: Total Sales Rs. ${weeklyS}, Total Expenses Rs. ${weeklyE}, Net Rs. ${weeklyS - weeklyE}
+    - TODAY: Sales Rs. ${todayS}, Expenses Rs. ${todayE}, Udhaar Added Rs. ${todayU}
+    - YESTERDAY: Sales Rs. ${yesterdayS}, Expenses Rs. ${yesterdayE}, Udhaar Added Rs. ${yesterdayU}
+    - DAY BEFORE YESTERDAY (PARSON): Sales Rs. ${parsonS}, Expenses Rs. ${parsonE}, Udhaar Added Rs. ${parsonU}
+    - LAST 7 DAYS: Total Sales Rs. ${weeklyS}, Total Expenses Rs. ${weeklyE}
     
     OVERALL STATUS:
-    - Total Udhaar (Receivable): Rs. ${totalReceivable}
+    - Total Udhaar (Current Shop State): Rs. ${totalReceivable}
     - Low Stock Count: ${lowStock}
     - Top Performing Item: ${topItem}
     - Inventory Value: Rs. ${stock.reduce((s: any, b: any) => s + (b.buyingPrice*b.quantity || 0), 0)}

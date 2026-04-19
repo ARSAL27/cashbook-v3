@@ -18,33 +18,34 @@ export const ProfileSettings: React.FC = () => {
     owner: profile?.owner || '',
     phone: profile?.phone || '',
     city: profile?.city || '',
+    address: profile?.address || '',
     currency: profile?.currency || 'PKR',
     logoUrl: profile?.logoUrl || ''
   });
 
   const [isSaving, setIsSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<number | null>(null);
+  const [isDirty, setIsDirty] = useState(false); // Track if user has unsaved changes
 
   const triggerHaptic = (style: ImpactStyle = ImpactStyle.Light) => {
     Haptics.impact({ style }).catch(() => {});
   };
 
+  // Only sync from Firestore if user has NOT made local edits
   useEffect(() => {
-    // Only update from profile if we haven't saved in the last 2 seconds
-    // to avoid race conditions with Firestore snapshots
-    const recentlySaved = lastSaved && (Date.now() - lastSaved < 2000);
-    
-    if (profile && !isSaving && !recentlySaved) {
+    if (profile && !isDirty && !isSaving) {
       setFormData({
         name: profile.name || '',
         owner: profile.owner || '',
         phone: profile.phone || '',
         city: profile.city || '',
+        address: profile.address || '',
         currency: profile.currency || 'PKR',
         logoUrl: profile.logoUrl || ''
       });
     }
-  }, [profile, isSaving, lastSaved]);
+  }, [profile]);
+
 
   const handleSave = async () => {
     if (!formData.name.trim()) return toast.error('Shop ka naam zaruri hai');
@@ -57,6 +58,7 @@ export const ProfileSettings: React.FC = () => {
         ...formData
       } as any);
       setLastSaved(Date.now());
+      setIsDirty(false); // Reset dirty flag after successful save
       toast.success('Profile Mehfooz Kar Liya Gaya!');
     } catch (e) {
       toast.error('Save fail ho gaya. Internet check karein.');
@@ -169,7 +171,7 @@ export const ProfileSettings: React.FC = () => {
                   <div className="relative">
                     <Store size={18} className="absolute left-5 top-1/2 -translate-y-1/2 text-primary opacity-20" strokeWidth={3} />
                     <input 
-                      value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})}
+                      value={formData.name} onChange={e => { setIsDirty(true); setFormData({...formData, name: e.target.value}); }}
                       placeholder="Store Name"
                       className="w-full bg-background/50 border border-border/60 focus:border-primary/50 text-text-primary text-[14px] rounded-2xl py-5 pl-14 pr-6 outline-none font-bold transition-all" 
                     />
@@ -180,8 +182,19 @@ export const ProfileSettings: React.FC = () => {
                   <div className="relative">
                     <MapPin size={18} className="absolute left-5 top-1/2 -translate-y-1/2 text-primary opacity-20" strokeWidth={3} />
                     <input 
-                      value={formData.city} onChange={e => setFormData({...formData, city: e.target.value})}
+                      value={formData.city} onChange={e => { setIsDirty(true); setFormData({...formData, city: e.target.value}); }}
                       placeholder="City"
+                      className="w-full bg-background/50 border border-border/60 focus:border-primary/50 text-text-primary text-[14px] rounded-2xl py-5 pl-14 pr-6 outline-none font-bold transition-all" 
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="relative">
+                    <MapPin size={18} className="absolute left-5 top-1/2 -translate-y-1/2 text-primary opacity-20" strokeWidth={3} />
+                    <input 
+                      value={formData.address} onChange={e => { setIsDirty(true); setFormData({...formData, address: e.target.value}); }}
+                      placeholder="Shop Address"
                       className="w-full bg-background/50 border border-border/60 focus:border-primary/50 text-text-primary text-[14px] rounded-2xl py-5 pl-14 pr-6 outline-none font-bold transition-all" 
                     />
                   </div>
@@ -198,7 +211,7 @@ export const ProfileSettings: React.FC = () => {
                   <div className="relative">
                     <User size={18} className="absolute left-5 top-1/2 -translate-y-1/2 text-primary opacity-20" strokeWidth={3} />
                     <input 
-                      value={formData.owner} onChange={e => setFormData({...formData, owner: e.target.value})}
+                      value={formData.owner} onChange={e => { setIsDirty(true); setFormData({...formData, owner: e.target.value}); }}
                       placeholder="Owner Name"
                       className="w-full bg-background/50 border border-border/60 focus:border-primary/50 text-text-primary text-[14px] rounded-2xl py-5 pl-14 pr-6 outline-none font-bold transition-all" 
                     />

@@ -33,8 +33,8 @@ export const AddExpense: React.FC = () => {
         const finalCategory = category === 'Other' ? (otherText.trim() || 'Other') : category;
         setLoading(true);
         try {
-            await Haptics.impact({ style: ImpactStyle.Heavy });
-            await addExpense(val, note || finalCategory, finalCategory);
+            Haptics.impact({ style: ImpactStyle.Heavy });
+            addExpense(val, note || finalCategory, finalCategory);
             toast.success('Kharcha darj ho gaya');
             navigate(-1);
         } catch (e) {
@@ -155,3 +155,4 @@ export const AddExpense: React.FC = () => {
         </PageTransition>
     );
 };
+// Triggering HMR

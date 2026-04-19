@@ -163,13 +163,18 @@ export const AddSale: React.FC = () => {
                 return;
             }
             
-            toast.loading("Saving sale...", { id: 'saving-sale' });
-            const invId = await addSale(saleItems, 'cash', parsedDiscount);
-            toast.dismiss('saving-sale');
             toast.success("Hisaab Save Hogaya! ✅");
             localStorage.removeItem('current_sale_basket'); // Clear persistence
-            if (invId) navigate(`/invoice/${invId}`);
-            else navigate('/');
+            
+            // Fire and forget, or handle in background
+            addSale(saleItems, 'cash', parsedDiscount).then(invId => {
+                 if (invId) {
+                     // If we are still on the same path or need to show invoice, we could do it here
+                     // but for instant feel, we navigate away immediately below.
+                 }
+            });
+
+            navigate('/');
         } catch (err: any) {
             console.error('Sale save error:', err);
             toast.error(err?.message || "Sale save nahi ho saki. Dobara try karein.");

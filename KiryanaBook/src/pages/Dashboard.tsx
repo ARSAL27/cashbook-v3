@@ -8,8 +8,10 @@ import { useNavigate } from 'react-router-dom';
 import { AreaChart, Area, XAxis, CartesianGrid } from 'recharts';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
+import { MarqueeText } from '../components/MarqueeText';
+import { isToday, getLocalDateString } from '../utils/dateUtils';
 
-export const Dashboard: React.FC = () => {
+const Dashboard: React.FC = () => {
   const { 
     sales, expenses, udhaars, profile, notifications, contacts, stock
   } = useShop();
@@ -29,8 +31,6 @@ export const Dashboard: React.FC = () => {
   }, []);
 
   const stats = useMemo(() => {
-    const today = new Date().toISOString().split('T')[0];
-    
     // Convert contacts to Map for O(1) lookups
     const contactsMap = new Map();
     (contacts || []).forEach(c => {
@@ -39,12 +39,12 @@ export const Dashboard: React.FC = () => {
 
     let totalToday = 0;
     (sales || []).forEach(s => {
-      if (s?.date?.startsWith(today)) totalToday += (s?.total || 0);
+      if (s?.date && isToday(s.date)) totalToday += (s?.total || 0);
     });
 
     let totalExpenses = 0;
     (expenses || []).forEach(e => {
-      if (e?.date?.startsWith(today)) totalExpenses += (e?.amount || 0);
+      if (e?.date && isToday(e.date)) totalExpenses += (e?.amount || 0);
     });
     
     const customerBalances: Record<string, number> = {};
@@ -57,19 +57,20 @@ export const Dashboard: React.FC = () => {
     
     let receivable = 0;
     let payable = 0;
-    let advance = 0;
+    let customerAdvance = 0;
+    let supplierAdvance = 0;
 
     Object.entries(customerBalances).forEach(([name, bal]) => {
       const contact = contactsMap.get(name.toLowerCase());
       const type = contact?.type || 'customer';
       
       if (type === 'customer') {
-        if (bal > 0) receivable += bal;
-        else if (bal < 0) advance += Math.abs(bal); // Customer advance
+        if (bal > 0) receivable += bal;       // Customer owes shop → Account Receivable
+        else if (bal < 0) customerAdvance += Math.abs(bal); // Customer pre-paid to shop → Customer Advance
       } else {
         // Supplier
-        if (bal < 0) payable += Math.abs(bal); // Payable to supplier
-        else if (bal > 0) advance += bal; // Advance to supplier
+        if (bal < 0) payable += Math.abs(bal); // Shop owes supplier → Account Payable
+        else if (bal > 0) supplierAdvance += bal;      // Shop pre-paid to supplier → Supplier Advance
       }
     });
 
@@ -80,7 +81,7 @@ export const Dashboard: React.FC = () => {
     const lowStockItems = (stock || []).filter(item => (item?.quantity || 0) <= (item?.minThreshold || 5));
     
     return { 
-      totalToday, totalExpenses, receivable, payable, advance,
+      totalToday, totalExpenses, receivable, payable, customerAdvance, supplierAdvance,
       dueCustomersCount, uniqueCustomers, lowStockItems 
     };
   }, [sales, expenses, udhaars, contacts, stock]);
@@ -89,10 +90,11 @@ export const Dashboard: React.FC = () => {
     const days = [0,1,2,3,4,5,6];
     const now = new Date();
     const last7Days = days.map(d => {
-      const date = new Date(now); 
-      date.setDate(now.getDate() - (6 - d));
+      const date = new Date(); 
+      date.setDate(date.getDate() - (6 - d));
+      const ds = getLocalDateString(date);
       return {
-        ds: date.toISOString().split('T')[0],
+        ds: ds,
         dayName: date.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase(),
         value: 0
       };
@@ -101,7 +103,7 @@ export const Dashboard: React.FC = () => {
     // Single pass over sales instead of nested filter
     (sales || []).forEach(s => {
       if (!s?.date) return;
-      const saleDate = s.date.split('T')[0];
+      const saleDate = getLocalDateString(s.date);
       const dayData = last7Days.find(d => d.ds === saleDate);
       if (dayData) {
         dayData.value += (s.total || 0);
@@ -237,7 +239,11 @@ export const Dashboard: React.FC = () => {
 
         {/* ── PREMIUM BALANCE CARD ── */}
         <div className="px-4 mt-3 relative z-10">
-          <div className="rounded-[1.8rem] px-5 py-4 transition-all duration-500 shadow-[0_12px_25px_rgba(26,92,56,0.12)] relative overflow-hidden" style={{ background: isDarkMode ? 'linear-gradient(145deg, #10251A, #0A0A0A)' : 'linear-gradient(145deg, #1A5C38, #0A3D24)' }}>
+          <div 
+            onClick={() => navigate('/balance-history')}
+            className="rounded-[1.8rem] px-5 py-4 transition-all duration-500 shadow-[0_12px_25px_rgba(26,92,56,0.12)] relative overflow-hidden cursor-pointer active:scale-[0.98]" 
+            style={{ background: isDarkMode ? 'linear-gradient(145deg, #10251A, #0A0A0A)' : 'linear-gradient(145deg, #1A5C38, #0A3D24)' }}
+          >
             <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-2xl -mr-12 -mt-12" />
             
             <div className="relative z-10">
@@ -257,7 +263,10 @@ export const Dashboard: React.FC = () => {
               {/* Action Buttons Row */}
               <div className="flex items-center gap-2.5 mt-4">
                 <button
-                  onClick={() => navigate('/cashflow?type=in')}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigate('/cashflow?type=in');
+                  }}
                   className="flex-1 bg-white/10 hover:bg-white/15 active:scale-95 transition-all rounded-xl p-3 border border-white/5 flex items-center gap-2.5"
                 >
                   <div className="w-8 h-8 bg-green-400/20 rounded-lg flex items-center justify-center shadow-lg">
@@ -269,7 +278,10 @@ export const Dashboard: React.FC = () => {
                   </div>
                 </button>
                 <button
-                  onClick={() => navigate('/cashflow?type=out')}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigate('/cashflow?type=out');
+                  }}
                   className="flex-1 bg-white/10 hover:bg-white/15 active:scale-95 transition-all rounded-xl p-3 border border-white/5 flex items-center gap-2.5"
                 >
                   <div className="w-8 h-8 bg-red-400/20 rounded-lg flex items-center justify-center shadow-lg">
@@ -350,18 +362,27 @@ export const Dashboard: React.FC = () => {
             
             <div className="flex items-center gap-2 pt-3 border-t border-gray-50 dark:border-white/5">
                 <div className="flex-1">
-                    <p className="text-[7.5px] font-black text-gray-400 uppercase tracking-widest mb-0.5">Lena Hai</p>
-                    <p className="text-[12px] font-black text-green-600 truncate">Rs. {stats.receivable.toLocaleString()}</p>
+                    <p className="text-[7.5px] font-black text-gray-400 uppercase tracking-widest mb-1 leading-none">Account Receivable</p>
+                    <p className="text-[12px] font-black text-green-600 truncate leading-none">Rs. {stats.receivable.toLocaleString()}</p>
                 </div>
                 <div className="w-px h-6 bg-gray-100 dark:bg-white/5" />
                 <div className="flex-1 px-1">
-                    <p className="text-[7.5px] font-black text-gray-400 uppercase tracking-widest mb-0.5">Dena Hai</p>
-                    <p className="text-[12px] font-black text-red-500 truncate">{stats.payable.toLocaleString()}</p>
+                    <p className="text-[7.5px] font-black text-gray-400 uppercase tracking-widest mb-1 leading-none">Account Payable</p>
+                    <p className="text-[12px] font-black text-red-500 truncate leading-none">Rs. {stats.payable.toLocaleString()}</p>
                 </div>
                 <div className="w-px h-6 bg-gray-100 dark:bg-white/5" />
                 <div className="flex-1">
-                    <p className="text-[7.5px] font-black text-gray-400 uppercase tracking-widest mb-0.5">Advance</p>
-                    <p className="text-[12px] font-black text-blue-500 truncate">{stats.advance.toLocaleString()}</p>
+                    <p className="text-[7.5px] font-black text-gray-400 uppercase tracking-widest mb-1 leading-none">Advance</p>
+                    <div className="flex flex-col gap-1">
+                        <div className="flex items-center gap-1">
+                            <span className="text-[6.5px] font-black px-1 rounded-sm bg-red-500 text-white leading-none py-0.5">CUST</span>
+                            <p className="text-[11px] font-black text-red-500">Rs. {stats.customerAdvance.toLocaleString()}</p>
+                        </div>
+                        <div className="flex items-center gap-1">
+                            <span className="text-[6.5px] font-black px-1 rounded-sm bg-green-600 text-white leading-none py-0.5">SUPP</span>
+                            <p className="text-[11px] font-black text-green-600">Rs. {stats.supplierAdvance.toLocaleString()}</p>
+                        </div>
+                    </div>
                 </div>
             </div>
           </button>
@@ -370,12 +391,11 @@ export const Dashboard: React.FC = () => {
 
 
         {/* ── QUICK ACTIONS GRID ── */}
-        <div className="px-4 mt-4 grid grid-cols-4 gap-4">
+        <div className="px-8 mt-5 grid grid-cols-3 gap-6">
           {[
-            { icon: <Plus size={24} strokeWidth={3} className="text-[#1A5C38] dark:text-[#4BFF94]" />, label: 'SALE', path: '/add-sale', bg: '#E8F5EE', darkBg: '#1A3A25' },
-            { icon: <Minus size={24} strokeWidth={3} className="text-red-500" />, label: 'EXPENSE', path: '/add-expense', bg: '#FEF2F2', darkBg: '#3A1A1A' },
-            { icon: <HandCoins size={22} strokeWidth={2.5} className="text-amber-600 dark:text-[#FFB300]" />, label: 'UDHAAR', path: '/add-udhaar', bg: '#FFFBEB', darkBg: '#3A2E1A' },
-            { icon: <BarChart2 size={22} strokeWidth={2.5} className="text-blue-600" />, label: 'KHATA', path: '/reports', bg: '#EFF6FF', darkBg: '#1A2A3A' },
+            { icon: <Plus size={22} strokeWidth={3} className="text-[#1A5C38] dark:text-[#4BFF94]" />, label: 'SALE', path: '/add-sale', bg: '#E8F5EE', darkBg: '#1A3A25' },
+            { icon: <Minus size={22} strokeWidth={3} className="text-red-500" />, label: 'EXPENSE', path: '/add-expense', bg: '#FEF2F2', darkBg: '#3A1A1A' },
+            { icon: <BarChart2 size={20} strokeWidth={2.5} className="text-blue-600" />, label: 'REPORTS', path: '/reports', bg: '#EFF6FF', darkBg: '#1A2A3A' },
           ].map((a, i) => (
             <motion.button 
               key={i} 
@@ -384,12 +404,12 @@ export const Dashboard: React.FC = () => {
               className="flex flex-col items-center gap-2.5 group"
             >
               <div 
-                className="w-full aspect-square rounded-[1.4rem] flex items-center justify-center shadow-sm border border-transparent dark:border-white/5 transition-all group-hover:shadow-lg active:shadow-inner" 
+                className="w-full max-w-[70px] aspect-square rounded-[1.2rem] flex items-center justify-center shadow-sm border border-transparent dark:border-white/5 transition-all group-hover:shadow-lg active:shadow-inner" 
                 style={{ backgroundColor: isDarkMode ? (a as any).darkBg : a.bg }}
               >
                 {a.icon}
               </div>
-              <p className="text-[9px] font-black text-gray-500 dark:text-[#B0B0B0] uppercase tracking-[0.1em] text-center leading-none">{a.label}</p>
+              <p className="text-[8.5px] font-black text-gray-500 dark:text-[#B0B0B0] uppercase tracking-[0.1em] text-center leading-none">{a.label}</p>
             </motion.button>
           ))}
         </div>
@@ -500,6 +520,7 @@ export const Dashboard: React.FC = () => {
           <div className="space-y-2.5">
             {(recentActivity || []).length > 0 ? recentActivity.map((item, i) => {
               const isExp = item?._type === 'expense';
+              const isSale = item?._type === 'sale';
               const isCash = !isExp && (item as any)?.type === 'cash';
               const borderColor = isExp ? '#FF5252' : isCash ? '#00E676' : '#FFB300';
               const labelColor = isExp ? (isDarkMode ? '#3A1A1A' : '#FEE2E2') : isCash ? (isDarkMode ? '#1A3A25' : '#DCFCE7') : (isDarkMode ? '#3A2E1A' : '#FEF3C7');
@@ -516,16 +537,29 @@ export const Dashboard: React.FC = () => {
               const time = dateObj && !isNaN(dateObj.getTime()) ? dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '00:00';
               
               return (
-                <motion.div key={item?.id || i} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }} className="bg-white dark:bg-[#141414] rounded-2xl overflow-hidden shadow-sm flex border border-transparent dark:border-[#2A2A2A] active:scale-[0.98] transition-all">
+                <motion.div key={item?.id || i}
+                  initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }} 
+                  onClick={() => {
+                    if (isSale) {
+                        const invId = (item as any)?.invoiceId || item?.id;
+                        if (invId) navigate(`/invoice/${invId}`);
+                    }
+                  }}
+                  className={`bg-white dark:bg-[#141414] rounded-2xl overflow-hidden shadow-sm flex border border-transparent dark:border-[#2A2A2A] active:scale-[0.98] transition-all ${isSale ? 'cursor-pointer hover:border-gray-200 dark:hover:border-gray-700' : ''}`}
+                >
                   <div className="w-1" style={{ backgroundColor: borderColor }} />
-                  <div className="flex-1 px-4 py-3 flex items-center justify-between">
-                    <div className="min-w-0 pr-2">
-                      <p className="text-[13px] font-bold text-gray-800 dark:text-white leading-none mb-1.5 uppercase tracking-tight truncate">{name}</p>
-                      <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md" style={{ backgroundColor: labelColor, color: textColor }}>{label}</span>
+                  <div className="flex-1 px-4 py-3 flex items-center justify-between gap-3 overflow-hidden">
+                    <div className="flex-1 min-w-0 overflow-hidden">
+                      <MarqueeText 
+                        text={name} 
+                        className="text-[13px] font-black text-gray-800 dark:text-white uppercase tracking-tight" 
+                      />
+                      <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md mt-1 inline-block" style={{ backgroundColor: labelColor, color: textColor }}>{label}</span>
                     </div>
-                    <div className="text-right shrink-0">
+                    
+                    <div className="text-right shrink-0 min-w-[80px]">
                       <p className="text-[14px] font-black leading-none mb-1" style={{ color: textColor }}>Rs. {(amount || 0).toLocaleString()}</p>
-                      <p className="text-[9px] text-gray-400 dark:text-[#B0B0B0]/60 font-medium">{time}</p>
+                      <p className="text-[9px] text-gray-400 dark:text-[#B0B0B0]/60 font-black uppercase">{time}</p>
                     </div>
                   </div>
                 </motion.div>
@@ -544,3 +578,4 @@ export const Dashboard: React.FC = () => {
     </PageTransition>
   );
 };
+export { Dashboard };

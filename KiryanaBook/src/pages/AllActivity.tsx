@@ -6,6 +6,7 @@ import { ArrowLeft, ArrowDownLeft, ArrowUpRight, Filter, TrendingUp, TrendingDow
 import { motion } from 'framer-motion';
 import { useTheme } from '../context/ThemeContext';
 import { EmptyState } from '../components/EmptyState';
+import { MarqueeText } from '../components/MarqueeText';
 
 type ActivityType = 'all' | 'sale' | 'expense' | 'udhaar';
 
@@ -19,6 +20,7 @@ export const AllActivity: React.FC = () => {
     const allActivities = useMemo(() => {
         const s = sales.map(item => ({
             id: item.id,
+            invoiceId: item.invoiceId || item.id,
             type: 'sale' as const,
             title: item.items?.map((i: any) => i.name).join(', ') || 'Cash Sale',
             amount: item.total,
@@ -29,6 +31,7 @@ export const AllActivity: React.FC = () => {
 
         const e = expenses.map(item => ({
             id: item.id,
+            invoiceId: undefined,
             type: 'expense' as const,
             title: item.description || item.category || 'Expense',
             amount: item.amount,
@@ -41,6 +44,7 @@ export const AllActivity: React.FC = () => {
             const isPayment = item.amount < 0;
             return {
                 id: item.id,
+                invoiceId: undefined,
                 type: 'udhaar' as const,
                 title: item.customerName,
                 amount: Math.abs(item.amount),
@@ -105,7 +109,7 @@ export const AllActivity: React.FC = () => {
                             onClick={() => setFilter(t)}
                             className={`whitespace-nowrap px-6 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all border ${
                                 filter === t 
-                                ? 'bg-[#4BFF94] text-[#0A3D24] border-[#4BFF94] shadow-lg shadow-[#4BFF94]/10' 
+                                ? 'bg-primary/20 text-primary border-primary shadow-sm' 
                                 : 'bg-card text-text-muted border-border'
                             }`}
                         >
@@ -124,13 +128,18 @@ export const AllActivity: React.FC = () => {
                                 initial={{ opacity: 0, y: 10 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: idx * 0.03 }}
-                                className="group relative overflow-hidden rounded-2xl border bg-card p-4 transition-all active:scale-[0.98] shadow-sm"
+                                onClick={() => {
+                                    if (item.type === 'sale' && item.invoiceId) {
+                                        navigate(`/invoice/${item.invoiceId}`);
+                                    }
+                                }}
+                                className={`group relative overflow-hidden rounded-2xl border bg-card p-4 transition-all active:scale-[0.98] shadow-sm ${item.type === 'sale' ? 'cursor-pointer hover:border-primary/50' : ''}`}
                                 style={{ borderColor: colors.border }}
                             >
                                 <div className="absolute left-0 top-0 bottom-0 w-1.5" style={{ backgroundColor: item.color }} />
                                 
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-3.5 min-w-0">
+                                <div className="flex items-center justify-between gap-3 overflow-hidden">
+                                    <div className="flex items-center gap-3.5 min-w-0 flex-1">
                                         <div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: `${item.color}15` }}>
                                             {isIncome ? (
                                                 <TrendingUp size={20} style={{ color: item.color }} />
@@ -138,8 +147,11 @@ export const AllActivity: React.FC = () => {
                                                 <TrendingDown size={20} style={{ color: item.color }} />
                                             )}
                                         </div>
-                                        <div className="min-w-0">
-                                            <p className="text-[14px] font-black truncate" style={{ color: colors.text }}>{item.title}</p>
+                                        <div className="flex-1 min-w-0">
+                                            <MarqueeText 
+                                                text={item.title} 
+                                                className="text-[14px] font-black uppercase tracking-tight" 
+                                            />
                                             <div className="flex items-center gap-2 mt-1">
                                                 <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md" style={{ backgroundColor: `${item.color}15`, color: item.color }}>
                                                     {item.subLabel}
@@ -154,7 +166,7 @@ export const AllActivity: React.FC = () => {
                                         </div>
                                     </div>
                                     
-                                    <div className="text-right shrink-0">
+                                    <div className="text-right shrink-0 min-w-[85px]">
                                         <p className="text-[16px] font-black leading-none mb-1" style={{ color: item.color }}>
                                             {isIncome ? '+' : '-'} Rs. {item.amount.toLocaleString()}
                                         </p>

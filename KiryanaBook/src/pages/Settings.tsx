@@ -302,21 +302,21 @@ export const Settings: React.FC = () => {
   );
 
   return (
-    <PageTransition> <div className="w-full bg-[#FAFAFA] dark:bg-[#0A0A0A] font-outfit max-w-md mx-auto transition-colors duration-300 min-h-screen ">
+    <PageTransition> <div className="w-full bg-[#FAFAFA] dark:bg-[#0A0A0A] font-outfit max-w-md mx-auto transition-colors duration-300 h-screen overflow-hidden flex flex-col">
         {/* HEADER */}
-        <div className="pt-12 pb-3 sticky top-0 z-50 transition-colors duration-300 px-5 flex items-center gap-4 bg-background/80 backdrop-blur-xl border-b border-border/40 shadow-[0_2px_15px_rgba(0,0,0,0.02)]">
+        <div className="pt-8 pb-3 sticky top-0 z-50 transition-colors duration-300 px-5 flex items-center gap-4 bg-background/80 backdrop-blur-xl border-b border-border/40 shadow-sm shrink-0">
           <button onClick={() => navigate(-1)} className="w-9 h-9 flex items-center justify-center rounded-xl bg-card border border-border shadow-sm active:scale-95 transition-all text-text-primary">
             <ArrowLeft size={18} strokeWidth={2.5} />
           </button>
           <h1 className="text-text-primary font-black text-[18px] tracking-tight">{t('settings')}</h1>
         </div>
 
-        <div className="px-5 py-6 space-y-8">
+        <div className="flex-1 px-5 py-2 space-y-3 overflow-hidden">
             
             {/* SHOP PROFILE CARD */}
             <section>
                 <div 
-                  className="relative overflow-hidden rounded-[1.8rem] p-5 border shadow-xl transition-all active:scale-[0.98]"
+                  className="relative overflow-hidden rounded-[1.5rem] p-4 border shadow-md transition-all active:scale-[0.98]"
                   style={{ 
                     background: isDarkMode 
                       ? 'linear-gradient(135deg, #10251A 0%, #0A0A0A 100%)' 
@@ -325,33 +325,33 @@ export const Settings: React.FC = () => {
                   }}
                   onClick={() => navigate('/profile-settings')}
                 >
-                    <div className="relative z-10 flex items-center gap-4">
-                        <div className="w-[60px] h-[60px] bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl flex items-center justify-center shadow-2xl shrink-0 overflow-hidden">
+                    <div className="relative z-10 flex items-center gap-3">
+                        <div className="w-[50px] h-[50px] bg-white/10 backdrop-blur-md border border-white/20 rounded-xl flex items-center justify-center shadow-lg shrink-0 overflow-hidden">
                             {profile?.logoUrl ? (
                                 <img src={profile.logoUrl} alt="Shop Logo" className="w-full h-full object-cover" />
                             ) : (
-                                <Store size={28} className="text-[#4BFF94]" strokeWidth={2.5} />
+                                <Store size={24} className="text-[#4BFF94]" strokeWidth={2.5} />
                             )}
                         </div>
                         <div className="flex-1 min-w-0">
-                            <h2 className="text-[17px] font-black text-white leading-tight mb-0.5 truncate">
+                            <h2 className="text-[15px] font-black text-white leading-tight mb-0.5 truncate">
                               {profile?.name || 'My Shop'}
                             </h2>
-                            <div className="flex items-center gap-1.5 text-white/60 mb-1">
-                                <User size={10} strokeWidth={3} />
-                                <span className="text-[10px] font-bold uppercase tracking-wider truncate">{profile?.owner || 'Setup Owner'}</span>
+                            <div className="flex items-center gap-1.5 text-white/60 mb-0.5">
+                                <User size={9} strokeWidth={3} />
+                                <span className="text-[9px] font-bold uppercase tracking-wider truncate">{profile?.owner || 'Setup Owner'}</span>
                             </div>
-                            <div className="inline-flex items-center px-1.5 py-0.5 bg-[#4BFF94] text-[#0A3D24] rounded-md">
-                                <span className="text-[8px] font-black uppercase tracking-widest">{profile?.plan || 'Free'}</span>
+                            <div className="inline-flex items-center px-1 py-0.5 bg-[#4BFF94] text-[#0A3D24] rounded-md">
+                                <span className="text-[7px] font-black uppercase tracking-widest">{profile?.plan || 'Free'}</span>
                             </div>
                         </div>
-                        <ChevronRight size={18} className="text-white/40" />
+                        <ChevronRight size={16} className="text-white/40" />
                     </div>
                 </div>
             </section>
 
             {/* QUICK STATS / STORAGE */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-3 shrink-0">
                 <div className="bg-card border border-border/60 rounded-3xl p-4 shadow-sm">
                     <div className="w-8 h-8 bg-blue-500/10 text-blue-500 rounded-xl flex items-center justify-center mb-2.5">
                         <Database size={16} strokeWidth={2.5} />
@@ -395,44 +395,17 @@ export const Settings: React.FC = () => {
                         <Toggle active={isDarkMode} onClick={() => setMode(isDarkMode ? 'light' : 'dark')} />
                     </div>
 
-                    <div className="flex items-center justify-between pt-4 border-t border-border/20">
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-[#00E676]/10 text-[#0A3D24] dark:text-[#00E676] rounded-xl flex items-center justify-center">
-                                <Database size={18} strokeWidth={2.5} />
-                            </div>
-                            <div className="text-left">
-                                <p className="text-[13px] font-black text-text-primary leading-tight">Data Backup</p>
-                                <p className="text-[9px] font-bold text-text-muted opacity-60 uppercase tracking-tight">Offline safe storage</p>
-                            </div>
-                        </div>
-                        <select 
-                            value={backupFreq}
-                            onChange={(e) => {
-                                const val = e.target.value;
-                                setBackupFreq(val);
-                                localStorage.setItem('backup_freq', val);
-                                import('react-hot-toast').then(t => t.default.success(`Backup set to ${e.target.options[e.target.selectedIndex].text}`));
-                            }}
-                            className="bg-card text-text-primary border border-border focus:border-[#00E676]/50 rounded-xl px-3 py-1.5 text-[11px] font-black outline-none cursor-pointer shadow-sm active:scale-95 transition-all"
-                        >
-                            <option value="12h">12 Hours</option>
-                            <option value="24h">24 Hours</option>
-                            <option value="7d">7 Days</option>
-                        </select>
-                    </div>
-
-
                 </div>
             </div>
 
             {/* ── SUPPORT & LEGAL ── */}
-            <div className="pt-4 space-y-2">
-                <button onClick={() => navigate('/help')} className="w-full flex items-center justify-between p-4 bg-card/40 rounded-2xl border border-border/40 active:scale-[0.98] transition-all">
-                    <span className="text-[12px] font-black uppercase tracking-widest text-text-muted">Help & Support</span>
-                    <ChevronRight size={16} className="opacity-20" />
+            <div className="pt-2 space-y-2">
+                <button onClick={() => navigate('/help')} className="w-full flex items-center justify-between p-3 bg-card/40 rounded-xl border border-border/40 active:scale-[0.98] transition-all">
+                    <span className="text-[11px] font-black uppercase tracking-widest text-text-muted">Help & Support</span>
+                    <ChevronRight size={14} className="opacity-20" />
                 </button>
-                <div className="text-center py-4">
-                    <p className="text-[9px] font-black text-text-muted opacity-30 uppercase tracking-[0.3em]">ulooo v3.4 PRO</p>
+                <div className="text-center py-2">
+                    <p className="text-[9px] font-black text-text-muted opacity-30 uppercase tracking-[0.3em]">KiryanaBook v3.4 PRO</p>
                     <p className="text-[8px] font-bold text-text-muted opacity-20 uppercase tracking-widest mt-1">© 2026 Indus Ledger Tech</p>
                 </div>
             </div>

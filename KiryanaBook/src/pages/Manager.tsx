@@ -4,6 +4,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { Send, UserCog, History, X, Trash2, ChevronRight, MessageCircle, Mic, Volume2, VolumeX, Sparkles, ArrowLeft, HelpCircle } from 'lucide-react';
 import { askLocalAgent, detectMicroAnomalies } from '../lib/localAgent';
 import { useShop } from '../context/ShopContext';
+import { useAuth } from '../context/AuthContext';
 import { SpeechRecognition } from '@capacitor-community/speech-recognition';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
 
@@ -43,7 +44,7 @@ function saveSessions(sessions: ChatSession[]) {
 function makeWelcomeMessage(): Message {
   return {
     id: `b-welcome`,
-    text: `🌟 **Assalam-o-Alaikum!**\n\nMain aapka **Business Manager** hoon, ab **Dukaan Mitra** expert knowledge ke saath upgrade ho chuka hoon! 🚀`,
+    text: `🌟 **Assalam-o-Alaikum!**\n\nMain aapka **Business Manager** hoon. Main aapki sales, expenses aur udhaar ka hisaab kitab report karne mein madad kar sakta hoon. 📊`,
     isBot: true,
     time: new Date().toISOString(),
     isWelcome: true // New flag for dynamic rendering
@@ -256,7 +257,8 @@ function HistoryPanel({
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 export const Manager: React.FC = () => {
-  const { sales, expenses, udhaars, stock, contacts, profile } = useShop();
+  const { sales, expenses, udhaars, stock, contacts, profile, invoices } = useShop();
+  const { user } = useAuth();
 
   // 🧪 Memoize shopData to prevent unnecessary re-calculates on every keystroke
   const shopData = useMemo(() => ({
@@ -265,8 +267,9 @@ export const Manager: React.FC = () => {
     udhaars: Array.isArray(udhaars) ? udhaars : [],
     stock: Array.isArray(stock) ? stock : [],
     contacts: Array.isArray(contacts) ? contacts : [],
-    profile: profile || null,
-  }), [sales, expenses, udhaars, stock, contacts, profile]);
+    invoices: Array.isArray(invoices) ? invoices : [],
+    profile: profile ? { ...profile, email: user?.email } : null,
+  }), [sales, expenses, udhaars, stock, contacts, profile, invoices, user?.email]);
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -545,7 +548,7 @@ export const Manager: React.FC = () => {
     // 1. Use Local Agent (Offline Brain) — wrapped in try-catch to prevent crash on navigation
     let finalResponse = 'Kuch masla aa gaya, dobara try karein.';
     try {
-      finalResponse = askLocalAgent(text.trim(), shopData);
+      finalResponse = askLocalAgent(text.trim(), shopData, messages);
     } catch (e) {
       console.error('localAgent error:', e);
     }
@@ -558,7 +561,10 @@ export const Manager: React.FC = () => {
       isBot: true, 
       time: new Date().toISOString()
     }]);
-    if (isMounted.current) speak(finalResponse);
+    
+    // Only speak the summary part (before the separator) for long reports
+    const speechText = finalResponse.split('━━━━━━━━━━━━━━━━━━━━')[0].trim();
+    if (isMounted.current) speak(speechText);
   };
 
   const handleSelectSession = (session: ChatSession) => {

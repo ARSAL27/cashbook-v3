@@ -40,26 +40,34 @@ export const Customers: React.FC = () => {
         balance: balanceMap.get(c.name.toLowerCase().trim()) || 0
     }));
 
-    if (activeTab === 'customers') {
-      const allContactNames = new Set(contacts.map(c => c.name?.toLowerCase().trim()));
-      const legacyMap = new Map<string, any>();
-      (udhaars || []).forEach(u => {
-        if (!u.customerName) return;
-        const nameLow = u.customerName.toLowerCase().trim();
-        if (!allContactNames.has(nameLow) && !legacyMap.has(nameLow)) {
-            legacyMap.set(nameLow, {
-              id: 'legacy-' + u.customerName,
-              name: u.customerName,
-              phone: '',
-              type: 'customer',
-              initialBalance: 0,
-              createdAt: u.date,
-              balance: balanceMap.get(nameLow) || 0
-            });
-        }
-      });
-      base.push(...Array.from(legacyMap.values()));
-    }
+    const allContactNames = new Set(contacts.map(c => c.name?.toLowerCase().trim()));
+    const legacyMap = new Map<string, any>();
+    
+    (udhaars || []).forEach(u => {
+      if (!u.customerName) return;
+      const nameLow = u.customerName.toLowerCase().trim();
+      if (!allContactNames.has(nameLow) && !legacyMap.has(nameLow)) {
+          const balance = balanceMap.get(nameLow) || 0;
+          // Determine type based on balance if unknown:
+          // Negative balance means shop owes money -> Likely Supplier or "Dena Hai"
+          // Positive balance means shop is owed money -> Likely Customer
+          const type = balance < 0 ? 'supplier' : 'customer';
+          
+          if (type === (activeTab === 'suppliers' ? 'supplier' : 'customer')) {
+              legacyMap.set(nameLow, {
+                id: 'legacy-' + u.customerName,
+                name: u.customerName,
+                phone: '',
+                type: type,
+                initialBalance: 0,
+                createdAt: u.date,
+                balance: balance
+              });
+          }
+      }
+    });
+    base.push(...Array.from(legacyMap.values()));
+
 
     const min = parseFloat(minAmount) || 0;
     const max = parseFloat(maxAmount) || Infinity;
@@ -202,8 +210,8 @@ export const Customers: React.FC = () => {
           {/* SUMMARY CARDS */}
           <div className="px-4 pb-2 grid grid-cols-3 gap-2.5">
             <div className="bg-white/10 rounded-2xl p-3 text-center transition-all active:scale-95">
-              <p className="text-white/50 text-[8px] font-bold uppercase tracking-wider mb-1">Total Net</p>
-              <p className="text-white font-black text-[13px]">Rs. {stats.netTotal.toLocaleString()}</p>
+              <p className="text-white/50 text-[8px] font-bold uppercase tracking-wider mb-1">itne ka mal dena he</p>
+              <p className="text-white font-black text-[13px]">Rs. {Math.abs(stats.netTotal).toLocaleString()}</p>
             </div>
             <div className="bg-[#00C853]/10 rounded-2xl p-3 text-center border border-[#00C853]/20 transition-all active:scale-95">
               <p className="text-[#00C853]/70 text-[8px] font-bold uppercase tracking-wider mb-1">
@@ -306,7 +314,7 @@ export const Customers: React.FC = () => {
                         <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-[14px] shadow-inner ${
                           contact.balance > 0 ? 'bg-green-500/20 text-green-400' : 
                           contact.balance < 0 ? 'bg-red-500/20 text-red-400' : 
-                          'bg-gray-500/20 text-gray-400'
+                          'bg-blue-500/20 text-blue-500'
                         }`}>
                           {contact.name[0].toUpperCase()}
                         </div>
@@ -325,13 +333,13 @@ export const Customers: React.FC = () => {
                         <p className={`font-black text-[14px] mb-0.5 ${
                           contact.balance > 0 ? 'text-green-400' : 
                           contact.balance < 0 ? 'text-red-400' : 
-                          'text-white/20'
+                          'text-blue-500'
                         }`}>
                           {contact.balance === 0 ? 'Settled' : `Rs. ${Math.abs(contact.balance).toLocaleString()}`}
                         </p>
-                        <p className="text-white/20 text-[9px] font-bold uppercase tracking-widest">
+                        <p className={`text-[9px] font-bold uppercase tracking-widest ${contact.balance === 0 ? 'text-blue-500/60' : 'text-white/20'}`}>
                           {contact.balance > 0 ? (activeTab === 'customers' ? 'Lena Hai' : 'Advance') : 
-                           contact.balance < 0 ? (activeTab === 'customers' ? 'Advance' : 'Dena Hai') : 
+                           contact.balance < 0 ? (activeTab === 'customers' ? 'Dena Hai' : 'Dena Hai') : 
                            'Closed'}
                         </p>
                       </div>
@@ -345,7 +353,7 @@ export const Customers: React.FC = () => {
 
         {/* ADD FAB */}
         <button
-          onClick={() => navigate('/add-udhaar')}
+          onClick={() => navigate('/add-udhaar', { state: { type: activeTab === 'suppliers' ? 'supplier' : 'customer' } })}
           className="fixed bottom-24 right-6 w-16 h-16 bg-[#4BFF94] text-[#0A3D24] rounded-2xl shadow-[0_8px_30px_rgb(75,255,148,0.3)] flex items-center justify-center active:scale-90 transition-all z-50 border-4 border-[#10251A]"
         >
           <Plus size={32} strokeWidth={3} />

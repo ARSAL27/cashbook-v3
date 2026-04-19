@@ -65,8 +65,8 @@ export const LedgerDetail: React.FC = () => {
   const sub = isDarkMode ? '#B0B0B0' : '#888888';
 
   const viewLabels = {
-    receivables: 'Lena Hai (Receivables)',
-    payables: 'Dena Hai (Payables)',
+    receivables: 'Lena Hai',
+    payables: 'Dena Hai',
     advances: 'Advance Entries'
   };
 
@@ -135,11 +135,19 @@ export const LedgerDetail: React.FC = () => {
                             </div>
                         </div>
                         <div className="text-right">
-                            <p className={`text-[15px] font-black ${currentView === 'receivables' ? 'text-[#00C853]' : currentView === 'payables' ? 'text-[#FF5252]' : 'text-blue-500'}`}>
+                            <p className={`text-[15px] font-black ${
+                                currentView === 'receivables' ? 'text-[#00C853]' : 
+                                currentView === 'payables' ? 'text-[#FF5252]' : 
+                                (e.type === 'customer' ? 'text-red-500' : 'text-green-600')
+                            }`}>
                                 Rs. {e.balance.toLocaleString()}
                             </p>
                             <div className="flex items-center justify-end gap-1 mt-1">
-                                <span className={`w-1.5 h-1.5 rounded-full ${currentView === 'receivables' ? 'bg-[#00C853]' : currentView === 'payables' ? 'bg-[#FF5252]' : 'bg-blue-500'}`} />
+                                <span className={`w-1.5 h-1.5 rounded-full ${
+                                    currentView === 'receivables' ? 'bg-[#00C853]' : 
+                                    currentView === 'payables' ? 'bg-[#FF5252]' : 
+                                    (e.type === 'customer' ? 'bg-red-500' : 'bg-green-600')
+                                }`} />
                                 <p className="text-[8px] font-black uppercase tracking-wider" style={{ color: sub }}>
                                     {currentView === 'receivables' ? 'Outstanding' : currentView === 'payables' ? 'Debt' : 'Advance Payment'}
                                 </p>
@@ -153,7 +161,7 @@ export const LedgerDetail: React.FC = () => {
                 <EmptyState 
                     icon={Users}
                     title="Koi Entry Nahi Hai"
-                    description={`Abhi tak aapne koi ${currentView === 'receivables' ? 'Lena (Receivable)' : 'Dena (Payable)'} entry nahi ki hai.`}
+                    description={`Abhi tak aapne koi ${currentView === 'receivables' ? 'Lena (Receivable)' : currentView === 'payables' ? 'Dena (Payable)' : 'Advance'} entry nahi ki hai.`}
                     action={{
                         label: "+ Nayi Entry",
                         onClick: () => navigate('/add-sale')
@@ -165,3 +173,5 @@ export const LedgerDetail: React.FC = () => {
     </PageTransition>
   );
 };
+
+export default LedgerDetail;

@@ -1,17 +1,20 @@
 import React, { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { PageTransition } from '../components/PageTransition';
 import { useShop } from '../context/ShopContext';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid } from 'recharts';
-import { Calendar, Bell, FileText, AlertTriangle, TrendingUp, TrendingDown, ArrowUpRight } from 'lucide-react';
+import { BarChart, Bar, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { Calendar, Bell, FileText, AlertTriangle, TrendingUp, TrendingDown, ArrowUpRight, ArrowLeft } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { useTheme } from '../context/ThemeContext';
 import toast from 'react-hot-toast';
+import { isToday, isThisWeek, isThisMonth, getLocalDateString } from '../utils/dateUtils';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 import { Share } from '@capacitor/share';
 import { Capacitor } from '@capacitor/core';
 
 export const Reports: React.FC = () => {
+    const navigate = useNavigate();
     const { isDarkMode } = useTheme();
     const { sales, expenses, udhaars, stock, profile } = useShop();
     const [activeTab, setActiveTab] = useState('Today');
@@ -39,27 +42,31 @@ export const Reports: React.FC = () => {
     let e = [...expenses];
     let u = [...udhaars];
 
-    const now = new Date();
-    const today = now.toISOString().split('T')[0];
-
     if (activeTab === 'Today') {
-      s = s.filter(item => item.date.startsWith(today));
-      e = e.filter(item => item.date.startsWith(today));
-      u = u.filter(item => item.date.startsWith(today));
+      s = s.filter(item => isToday(item.date));
+      e = e.filter(item => isToday(item.date));
+      u = u.filter(item => isToday(item.date));
     } else if (activeTab === 'This Week') {
-      const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
-      s = s.filter(item => item.date >= weekAgo);
-      e = e.filter(item => item.date >= weekAgo);
-      u = u.filter(item => item.date >= weekAgo);
+      s = s.filter(item => isThisWeek(item.date));
+      e = e.filter(item => isThisWeek(item.date));
+      u = u.filter(item => isThisWeek(item.date));
     } else if (activeTab === 'This Month') {
-      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-      s = s.filter(item => item.date >= monthStart);
-      e = e.filter(item => item.date >= monthStart);
-      u = u.filter(item => item.date >= monthStart);
+      s = s.filter(item => isThisMonth(item.date));
+      e = e.filter(item => isThisMonth(item.date));
+      u = u.filter(item => isThisMonth(item.date));
     } else if (activeTab === 'Custom' && customRange.start && customRange.end) {
-      s = s.filter(item => item.date >= customRange.start && item.date <= customRange.end + 'T23:59:59');
-      e = e.filter(item => item.date >= customRange.start && item.date <= customRange.end + 'T23:59:59');
-      u = u.filter(item => item.date >= customRange.start && item.date <= customRange.end + 'T23:59:59');
+      s = s.filter(item => {
+        const d = getLocalDateString(item.date);
+        return d >= customRange.start && d <= customRange.end;
+      });
+      e = e.filter(item => {
+        const d = getLocalDateString(item.date);
+        return d >= customRange.start && d <= customRange.end;
+      });
+      u = u.filter(item => {
+        const d = getLocalDateString(item.date);
+        return d >= customRange.start && d <= customRange.end;
+      });
     }
 
     return { s, e, u };
@@ -87,32 +94,47 @@ export const Reports: React.FC = () => {
   const udhaarPending = useMemo(() => filteredData.u.reduce((sum: number, u) => sum + u.amount, 0), [filteredData.u]);
   const debtorsCount = new Set(filteredData.u.map(u => u.customerName)).size;
 
-  const flowData = useMemo(() => {
-    const days = [];
-    const now = new Date();
-    for (let i = 6; i >= 0; i--) {
-        const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
-        const y = d.getFullYear();
-        const m = String(d.getMonth() + 1).padStart(2, '0');
-        const dt = String(d.getDate()).padStart(2, '0');
-        const localDs = `${y}-${m}-${dt}`;
+    const flowData = useMemo(() => {
+        const data: Record<string, any> = {};
         
-        const dayName = d.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
-        
-        const dayIncome = sales.filter(s => {
-          const sd = new Date(s.date);
-          return `${sd.getFullYear()}-${String(sd.getMonth()+1).padStart(2,'0')}-${String(sd.getDate()).padStart(2,'0')}` === localDs;
-        }).reduce((sum: number, s) => sum + s.total, 0);
+        // Helper to get day name safely
+        const getDayName = (dateStr: string) => {
+            try {
+                const date = new Date(dateStr);
+                return isNaN(date.getTime()) ? '' : date.toLocaleDateString('en-US', { weekday: 'short' });
+            } catch (e) { return ''; }
+        };
 
-        const dayExpense = expenses.filter(e => {
-          const ed = new Date(e.date);
-          return `${ed.getFullYear()}-${String(ed.getMonth()+1).padStart(2,'0')}-${String(ed.getDate()).padStart(2,'0')}` === localDs;
-        }).reduce((sum: number, e) => sum + e.amount, 0);
+        sales.forEach(s => {
+            const day = getDayName(s.date);
+            if (!day) return;
+            if (!data[day]) data[day] = { name: day, income: 0, expense: 0, udhaar: 0, profit: 0 };
+            data[day].income += (Number(s.total) || 0);
+        });
 
-        days.push({ name: dayName, income: dayIncome, expense: dayExpense });
-    }
-    return days;
-  }, [sales, expenses]);
+        expenses.forEach(e => {
+            const day = getDayName(e.date);
+            if (!day) return;
+            if (!data[day]) data[day] = { name: day, income: 0, expense: 0, udhaar: 0, profit: 0 };
+            data[day].expense += (Number(e.amount) || 0);
+        });
+
+        udhaars.forEach(u => {
+            const day = getDayName(u.date);
+            if (!day) return;
+            if (!data[day]) data[day] = { name: day, income: 0, expense: 0, udhaar: 0, profit: 0 };
+            data[day].udhaar += (Number(u.amount) || 0);
+        });
+
+        const daysOrder = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+        return daysOrder.map(d => {
+            const dayData = data[d] || { name: d, income: 0, expense: 0, udhaar: 0, profit: 0 };
+            return {
+                ...dayData,
+                profit: dayData.income - dayData.expense
+            };
+        });
+    }, [sales, expenses, udhaars]);
 
   const itemSalesCount: Record<string, { name: string, qty: number, rev: number }> = {};
   sales.forEach(s => {
@@ -246,8 +268,13 @@ export const Reports: React.FC = () => {
       <div className="w-full transition-colors duration-300 font-outfit max-w-md mx-auto bg-background text-text-primary min-h-screen pb-40">
         
         {/* HEADER */}
-        <div className="pt-20 pb-4 px-5 flex items-center justify-between sticky top-0 bg-background/90 backdrop-blur-xl z-20 border-b border-border/10">
-            <h1 className="text-[20px] font-black tracking-tight uppercase">Reports Overview</h1>
+        <div className="pt-16 pb-4 px-5 flex items-center justify-between sticky top-0 bg-background/90 backdrop-blur-xl z-20 border-b border-border/10">
+            <div className="flex items-center gap-3">
+                <button onClick={() => navigate(-1)} className="p-2 -ml-2 text-text-primary active:scale-90 transition-transform">
+                    <ArrowLeft size={22} />
+                </button>
+                <h1 className="text-[20px] font-black tracking-tight uppercase">Reports Overview</h1>
+            </div>
             <button 
                 onClick={() => { setActiveTab('Custom'); setShowCustom(!showCustom); }}
                 className={`flex items-center gap-2 border px-4 py-2 rounded-xl shadow-lg active:scale-95 transition-all ${activeTab === 'Custom' ? 'border-primary bg-primary/10' : 'bg-card border-border'}`}
@@ -307,21 +334,46 @@ export const Reports: React.FC = () => {
             ))}
         </div>
 
-        {/* ── CASH FLOW ── */}
+        {/* ── CASH FLOW (Grouped Bars for Clarity) ── */}
         <div className="px-5 mt-8">
             <h2 className="text-[14px] font-black tracking-widest uppercase mb-4 opacity-40">Cash Flow History</h2>
-            <div className="h-40 w-full flex justify-center bg-card/30 rounded-3xl p-4 border border-border/5">
-                <LineChart width={chartWidth} height={160} data={flowData} margin={{ top: 5, right: 0, left: -20, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDarkMode ? '#222' : '#f0f0f0'} />
-                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 8, fill: colors.sub, fontWeight: '900' }} />
-                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 8, fill: colors.sub, fontWeight: '900' }} />
-                    <Line type="linear" dataKey="income" stroke="#4BFF94" strokeWidth={3} dot={false} />
-                    <Line type="linear" dataKey="expense" stroke="#ef4444" strokeWidth={2} dot={false} strokeDasharray="4 4" />
-                </LineChart>
+            <div className="h-72 w-full flex justify-center bg-card/30 rounded-3xl p-4 border border-border/5">
+                <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={flowData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }} barGap={2}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDarkMode ? '#222' : '#f0f0f0'} />
+                        <XAxis 
+                            dataKey="name" 
+                            axisLine={false} 
+                            tickLine={false} 
+                            tick={{ fontSize: 9, fill: colors.sub, fontWeight: '900' }} 
+                        />
+                        <YAxis 
+                            axisLine={false} 
+                            tickLine={false} 
+                            tick={{ fontSize: 9, fill: colors.sub, fontWeight: '900' }}
+                            tickFormatter={(text) => text >= 1000 ? `${(text/1000).toFixed(0)}K` : text}
+                        />
+                        <Tooltip 
+                            cursor={{ fill: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.02)' }}
+                            contentStyle={{ 
+                                backgroundColor: isDarkMode ? '#1A1A1A' : '#FFFFFF', 
+                                border: 'none', 
+                                borderRadius: '16px', 
+                                boxShadow: '0 10px 30px rgba(0,0,0,0.2)' 
+                            }}
+                            itemStyle={{ fontSize: '11px', fontWeight: 'bold', padding: '2px 0' }}
+                        />
+                        <Legend verticalAlign="top" align="right" iconType="circle" wrapperStyle={{ fontSize: '9px', fontWeight: 'bold', paddingBottom: '15px' }} />
+                        <Bar dataKey="income" name="Revenue" fill="#4BFF94" radius={[4, 4, 0, 0]} />
+                        <Bar dataKey="expense" name="Expenses" fill="#ef4444" radius={[4, 4, 0, 0]} />
+                        <Bar dataKey="udhaar" name="Udhaar" fill="#FB923C" radius={[4, 4, 0, 0]} />
+                        <Bar dataKey="profit" name="Profit" fill="#3B82F6" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                </ResponsiveContainer>
             </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-8 mt-10 pb-40">
+        <div className="grid grid-cols-1 gap-8 mt-10 pb-60">
             {/* BEST SELLING */}
             <div className="px-5">
                 <h2 className="text-[12px] font-black tracking-widest uppercase mb-4 opacity-40">Top Selling Products</h2>
@@ -356,13 +408,13 @@ export const Reports: React.FC = () => {
             </div>
         </div>
 
-        {/* COMPACT FLOATING DOWNLOAD */}
-        <div className="fixed bottom-28 left-0 right-0 px-6 z-[90] pointer-events-none">
+        {/* COMPACT FLOATING DOWNLOAD - FIXED AT BOTTOM */}
+        <div className="fixed bottom-6 left-0 right-0 px-6 z-[100] pointer-events-none">
             <button 
                 onClick={exportToPDF}
-                className="w-full max-w-[220px] mx-auto bg-primary text-black shadow-[0_10px_40px_rgba(75,255,148,0.2)] rounded-2xl py-4 flex items-center gap-3 justify-center pointer-events-auto active:scale-95 transition-all font-black text-[13px] uppercase tracking-widest border-4 border-white dark:border-[#0A0A0A]"
+                className="w-full max-w-[240px] mx-auto bg-primary text-black shadow-[0_20px_50px_rgba(75,255,148,0.3)] rounded-[2rem] py-5 flex items-center gap-3 justify-center pointer-events-auto active:scale-95 transition-all font-black text-[14px] uppercase tracking-widest border-4 border-white dark:border-[#0A0A0A]"
             >
-                <FileText size={20} />
+                <FileText size={22} />
                 <span>DOWNLOAD REPORT</span>
             </button>
         </div>

@@ -10,11 +10,12 @@ import toast from 'react-hot-toast';
 
 export const AddUdhaar: React.FC = () => {
   const { isDarkMode } = useTheme();
-  const { udhaars, contacts, addUdhaar, addSale } = useShop();
+  const { udhaars, contacts, addUdhaar, addSale, addContact } = useShop();
   const navigate = useNavigate();
   const location = useLocation();
 
   const [amount, setAmount] = useState(String((location.state as any)?.amount || '0'));
+  const passedType = (location.state as any)?.type as 'customer' | 'supplier' | undefined;
   const [customerName, setCustomerName] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [type, setType] = useState<'diye' | 'liye'>('liye'); // Default to 'liye' (Green)
@@ -58,7 +59,7 @@ export const AddUdhaar: React.FC = () => {
     setAmount(prev => prev.length > 1 ? prev.slice(0, -1) : '0');
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     let val = parseFloat(amount);
     if (val <= 0) {
       toast.error('Amount sahi likhein', { icon: '⚠️' });
@@ -71,29 +72,46 @@ export const AddUdhaar: React.FC = () => {
       return;
     }
 
+    const trimmedName = customerName.trim();
+    // Auto-create contact if it doesn't exist
+    const existingContact = contacts.find(c => c.name.toLowerCase() === trimmedName.toLowerCase());
+    if (!existingContact && passedType) {
+        await addContact({
+            name: trimmedName,
+            type: passedType,
+            phone: '',
+            address: '',
+            initialBalance: 0
+        });
+    }
+
     let finalAmount = type === 'diye' ? val : -val;
 
     triggerHaptic(ImpactStyle.Heavy);
-    addUdhaar(customerName.trim(), finalAmount, note || undefined);
+    const toastId = toast.loading('Hisaab mehfooz ho raha hai...');
     
-    if (location.state?.cart) {
-      addSale(location.state.cart, 'udhaar');
+    try {
+      await addUdhaar(trimmedName, finalAmount, note || undefined);
+      
+      if (location.state?.cart) {
+        await addSale(location.state.cart, 'udhaar');
+      }
+      
+      toast.success('Hisaab Shandaar Tareeqay se Save Hogaya!', {
+         id: toastId,
+         icon: '🎉',
+      });
+      navigate('/customers');
+    } catch (error) {
+      toast.error('Galti hui: Save nahi ho saka', { id: toastId });
+      console.error(error);
     }
-    
-    toast.success('Hisaab Shandaar Tareeqay se Save Hogaya!', {
-       icon: '🎉',
-       style: {
-         borderRadius: '10px',
-         background: isDarkMode ? '#1a1a1a' : '#fff',
-         color: isDarkMode ? '#fff' : '#333',
-       },
-    });
-    navigate('/customers');
   };
 
   const currentBalance = customerStats[customerName] || 0;
   const val = parseFloat(amount) || 0;
-  const isSupplier = contacts.find(c => c.name?.toLowerCase() === customerName.toLowerCase())?.type === 'supplier';
+  const existingContact = contacts.find(c => c.name?.toLowerCase() === customerName.toLowerCase());
+  const isSupplier = existingContact ? existingContact.type === 'supplier' : passedType === 'supplier';
   const finalAdd = type === 'diye' ? val : -val;
   const newBalance = currentBalance + finalAdd;
 
@@ -231,7 +249,7 @@ export const AddUdhaar: React.FC = () => {
                               <div className="flex flex-col">
                                 <span className="text-[10px] font-black uppercase tracking-widest text-blue-600/70 dark:text-blue-400/70">Naya Balance</span>
                                 <span className="text-[14px] font-black text-blue-800 dark:text-blue-300">
-                                    {newBalance >= 0 ? (isSupplier ? 'Unka advance hai' : 'Unse lene hain') : (isSupplier ? 'Mujhe un ko dene hain' : 'Unka advance hai')}
+                                    {newBalance >= 0 ? (isSupplier ? 'Mera Advance hai' : 'Unse lene hain') : (isSupplier ? 'Baki dena hai' : 'Unko dene hain')}
                                 </span>
                               </div>
                           </div>
