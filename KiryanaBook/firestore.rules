@@ -50,14 +50,10 @@ service cloud.firestore {
     }
     
     // Public/Global Barcode Database
-    match /pakistan_barcodes/{entryId} {
+    match /global_barcodes/{entryId} {
       allow read: if request.auth != null;
       allow create: if request.auth != null;
-      allow update: if request.auth != null && (
-        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['confirmCount', 'flagCount']) && 
-         request.resource.data.confirmCount is int && request.resource.data.flagCount is int) ||
-        (request.resource.data.diff(resource.data).affectedKeys().hasAny(['status']) && isAdmin())
-      );
+      allow update: if request.auth != null;
     }
     
     // Default deny for other collections
