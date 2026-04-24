@@ -11,6 +11,7 @@ import { guessCategory, guessUnit, validateProductEntry, standardizeBrand } from
 import { resizeBase64Image } from '../utils/image';
 import { db } from '../lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
+import { masterBarcodeLookup } from '../services/barcodeService';
 export const AddItem: React.FC = () => {
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
@@ -99,18 +100,17 @@ export const AddItem: React.FC = () => {
                     return;
                 }
                 
-                // If not found offline, check Firebase global_barcodes
-                const snap = await getDoc(doc(db, 'global_barcodes', barcode));
-                if (snap.exists()) {
-                    toast.success('Found in KiryanaBook Global Database!', { id: 'barcode-search' });
-                    const gData = snap.data();
+                // If not found offline, check Firebase and external APIs via masterBarcodeLookup
+                const result = await masterBarcodeLookup(barcode);
+                if (result.product) {
+                    toast.success(`Found in ${result.source === 'pakistan' ? 'Global' : result.source} Database!`, { id: 'barcode-search' });
                     // Maps global data to local state
-                    setName(gData.name || '');
-                    setCompany(gData.company || '');
-                    setCategory(gData.category || 'Others');
-                    setPackSize(gData.packSize || '');
-                    if (gData.imageUrl) setImageUrl(gData.imageUrl);
-                    if (gData.unit) setUnit(gData.unit);
+                    setName(result.product.name || '');
+                    setCompany(result.product.company || '');
+                    setCategory(result.product.category || 'Others');
+                    setPackSize(result.product.packSize || '');
+                    if (result.product.imageUrl) setImageUrl(result.product.imageUrl);
+                    if (result.product.unit) setUnit(result.product.unit as any);
                 } else {
                     toast.dismiss('barcode-search');
                 }
@@ -123,6 +123,7 @@ export const AddItem: React.FC = () => {
     }, [searchParams, stock]);
 
     const handleSave = async () => {
+        if (loading) return;
         if (!name.trim()) return toast.error('Product name zaroori hai');
         
         setLoading(true);

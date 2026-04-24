@@ -20,6 +20,7 @@ export const AddUdhaar: React.FC = () => {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [type, setType] = useState<'diye' | 'liye'>('liye'); // Default to 'liye' (Green)
   const [note, setNote] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
 
   const triggerHaptic = (style: ImpactStyle = ImpactStyle.Light) => {
     Haptics.impact({ style }).catch(() => {});
@@ -60,15 +61,19 @@ export const AddUdhaar: React.FC = () => {
   };
 
   const handleSave = async () => {
+    if (isSaving) return;
+    setIsSaving(true);
     let val = parseFloat(amount);
     if (val <= 0) {
       toast.error('Amount sahi likhein', { icon: '⚠️' });
       triggerHaptic(ImpactStyle.Heavy);
+      setIsSaving(false);
       return;
     }
     if (!customerName.trim()) {
       toast.error('Naam darj karna zaruri hai', { icon: '👤' });
       triggerHaptic(ImpactStyle.Heavy);
+      setIsSaving(false);
       return;
     }
 
@@ -105,6 +110,7 @@ export const AddUdhaar: React.FC = () => {
     } catch (error) {
       toast.error('Galti hui: Save nahi ho saka', { id: toastId });
       console.error(error);
+      setIsSaving(false);
     }
   };
 
@@ -283,11 +289,12 @@ export const AddUdhaar: React.FC = () => {
             </div>
 
             <button
+                disabled={isSaving}
                 onClick={handleSave}
-                className={`w-full py-5 rounded-[1.8rem] text-[18px] font-black uppercase tracking-[0.1em] transition-all duration-300 shadow-2xl active:scale-[0.98] flex items-center justify-center gap-3 ${type === 'liye' ? 'bg-[#00E676] text-black shadow-emerald-500/20' : 'bg-rose-500 text-white shadow-rose-500/20'}`}
+                className={`w-full py-5 rounded-[1.8rem] text-[18px] font-black uppercase tracking-[0.1em] transition-all duration-300 shadow-2xl flex items-center justify-center gap-3 ${isSaving ? 'opacity-70 cursor-not-allowed' : 'active:scale-[0.98]'} ${type === 'liye' ? 'bg-[#00E676] text-black shadow-emerald-500/20' : 'bg-rose-500 text-white shadow-rose-500/20'}`}
             >
-                <CheckCircle2 size={24} strokeWidth={3} />
-                Hisaab Save Karein
+                <CheckCircle2 size={24} strokeWidth={3} className={isSaving ? 'animate-pulse' : ''} />
+                {isSaving ? 'Saving...' : 'Hisaab Save Karein'}
             </button>
         </div>
       </div>

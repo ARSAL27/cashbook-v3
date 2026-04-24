@@ -44,6 +44,7 @@ export const AddContact: React.FC = () => {
   const sub = isDarkMode ? '#B0B0B0' : '#888888';
 
   const handleSave = async () => {
+    if (loading) return;
     if (!name.trim()) return toast.error('Name zaroori hai');
     setLoading(true);
     try {

@@ -81,10 +81,20 @@ export const NewInvoice: React.FC = () => {
   };
 
   const handleSave = async () => {
-    if (!customerName.trim()) return toast.error('Customer ka naam zaruri hai!');
-    if (items.length === 0) return toast.error('Kam az kam aik cheez add karein');
-    
+    if (loading) return;
     setLoading(true);
+
+    if (!customerName.trim()) {
+      toast.error('Customer ka naam zaruri hai!');
+      setLoading(false);
+      return;
+    }
+    if (items.length === 0) {
+      toast.error('Kam az kam aik cheez add karein');
+      setLoading(false);
+      return;
+    }
+    
     try {
       const newInvoice = await addInvoice({
         customerName: customerName.trim(),

@@ -28,6 +28,7 @@ export const AddExpense: React.FC = () => {
     ];
 
     const handleSave = async () => {
+        if (loading) return;
         const val = parseFloat(amount);
         if (!val || val <= 0) return toast.error('Amount sahi likhein');
         const finalCategory = category === 'Other' ? (otherText.trim() || 'Other') : category;

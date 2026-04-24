@@ -1,6 +1,6 @@
 import { db } from '../lib/firebase';
 import {
-  collection, doc, getDocs, addDoc, updateDoc,
+  collection, doc, getDocs, addDoc, updateDoc, setDoc,
   query, where, serverTimestamp, increment
 } from 'firebase/firestore';
 
@@ -212,7 +212,7 @@ function mapOffCategory(raw: string): string {
 
 // ─── PAKISTAN DATABASE ────────────────────────────────────────────────────────
 
-const PK_COLLECTION = 'pakistan_barcodes';
+const PK_COLLECTION = 'global_barcodes';
 
 const HARDCODED_PAKISTAN_DB: Record<string, any> = {
   // Shan variations
@@ -279,8 +279,8 @@ export async function saveToPakistanDB(
   }
 
   try {
-    const docRef = await addDoc(collection(db, PK_COLLECTION), entry);
-    const saved = { id: docRef.id, ...entry };
+    await setDoc(doc(db, PK_COLLECTION, barcode), entry, { merge: true });
+    const saved = { id: barcode, ...entry };
     cacheBarcode(barcode, saved);
     return saved;
   } catch {
@@ -322,11 +322,11 @@ export async function syncOfflineQueue(): Promise<void> {
       const snap = await getDocs(q);
       if (!snap.empty) continue; // Already synced
 
-      const docRef = await addDoc(collection(db, PK_COLLECTION), {
+      await setDoc(doc(db, PK_COLLECTION, item.barcode), {
         ...item.data,
         addedAt: serverTimestamp()
-      });
-      const saved = { id: docRef.id, ...item.data };
+      }, { merge: true });
+      const saved = { id: item.barcode, ...item.data };
       cacheBarcode(item.barcode, saved as PakistanBarcodeEntry);
     } catch {
       remaining.push(item);

@@ -23,6 +23,7 @@ export const Reports: React.FC = () => {
     const [chartWidth, setChartWidth] = useState(window.innerWidth - 40);
 
     React.useEffect(() => {
+        window.scrollTo(0, 0);
         const handleResize = () => setChartWidth(Math.min(window.innerWidth - 40, 400));
         handleResize();
         window.addEventListener('resize', handleResize);

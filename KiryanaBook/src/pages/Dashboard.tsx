@@ -391,25 +391,24 @@ const Dashboard: React.FC = () => {
 
 
         {/* ── QUICK ACTIONS GRID ── */}
-        <div className="px-8 mt-5 grid grid-cols-3 gap-6">
+        <div className="px-8 mt-5 grid grid-cols-2 gap-6">
           {[
-            { icon: <Plus size={22} strokeWidth={3} className="text-[#1A5C38] dark:text-[#4BFF94]" />, label: 'SALE', path: '/add-sale', bg: '#E8F5EE', darkBg: '#1A3A25' },
-            { icon: <Minus size={22} strokeWidth={3} className="text-red-500" />, label: 'EXPENSE', path: '/add-expense', bg: '#FEF2F2', darkBg: '#3A1A1A' },
-            { icon: <BarChart2 size={20} strokeWidth={2.5} className="text-blue-600" />, label: 'REPORTS', path: '/reports', bg: '#EFF6FF', darkBg: '#1A2A3A' },
+            { icon: <Plus size={32} strokeWidth={3} className="text-[#1A5C38] dark:text-[#4BFF94]" />, label: 'SALE', path: '/add-sale', bg: '#E8F5EE', darkBg: '#1A3A25' },
+            { icon: <Minus size={32} strokeWidth={3} className="text-red-500" />, label: 'EXPENSE', path: '/add-expense', bg: '#FEF2F2', darkBg: '#3A1A1A' },
           ].map((a, i) => (
             <motion.button 
               key={i} 
               whileTap={{ scale: 0.9 }} 
               onClick={() => navigate(a.path)} 
-              className="flex flex-col items-center gap-2.5 group"
+              className="flex flex-col items-center gap-3 group"
             >
               <div 
-                className="w-full max-w-[70px] aspect-square rounded-[1.2rem] flex items-center justify-center shadow-sm border border-transparent dark:border-white/5 transition-all group-hover:shadow-lg active:shadow-inner" 
+                className="w-full max-w-[110px] aspect-square rounded-[1.8rem] flex items-center justify-center shadow-sm border border-transparent dark:border-white/5 transition-all group-hover:shadow-md active:shadow-inner" 
                 style={{ backgroundColor: isDarkMode ? (a as any).darkBg : a.bg }}
               >
                 {a.icon}
               </div>
-              <p className="text-[8.5px] font-black text-gray-500 dark:text-[#B0B0B0] uppercase tracking-[0.1em] text-center leading-none">{a.label}</p>
+              <p className="text-[11px] font-black text-gray-600 dark:text-[#B0B0B0] uppercase tracking-[0.15em] text-center leading-none">{a.label}</p>
             </motion.button>
           ))}
         </div>
@@ -570,6 +569,25 @@ const Dashboard: React.FC = () => {
               </div>
             )}
           </div>
+        </div>
+
+        {/* ── REPORTS SECTION ── */}
+        <div className="px-4 mt-5">
+          <button 
+            onClick={() => navigate('/reports')} 
+            className="w-full bg-[#EFF6FF] dark:bg-[#1A2A3A] rounded-[1.5rem] p-4 shadow-sm border border-transparent dark:border-[#2A2A2A] active:scale-[0.98] transition-all flex items-center justify-between"
+          >
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center">
+                <BarChart2 className="text-blue-600 dark:text-blue-400" size={24} strokeWidth={2.5} />
+              </div>
+              <div className="text-left">
+                <h2 className="text-[17px] font-black text-blue-800 dark:text-blue-300 leading-tight">Business Reports</h2>
+                <p className="text-[11px] font-black uppercase tracking-[0.1em] text-blue-600/60 dark:text-blue-400/60 mt-0.5">View all detailed insights</p>
+              </div>
+            </div>
+            <ArrowUpRight className="text-blue-600/40 dark:text-blue-400/40" size={22} strokeWidth={2.5} />
+          </button>
         </div>
 
       </div>
