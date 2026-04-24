@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { db } from '../lib/firebase';
-import { collection, onSnapshot, query, orderBy, getDocs, setDoc, doc } from 'firebase/firestore';
+import { collection, onSnapshot, query, orderBy, getDocs, setDoc, doc, deleteDoc } from 'firebase/firestore';
 import { Search, Package, Image as ImageIcon } from 'lucide-react';
 
 export const GlobalBarcodesPage: React.FC = () => {
@@ -78,6 +78,18 @@ export const GlobalBarcodesPage: React.FC = () => {
     }
   };
 
+  const handleDeleteBarcode = async () => {
+    if (!window.confirm(`Are you sure you want to delete this barcode (${selectedBarcode.barcode})? This action cannot be undone.`)) return;
+    
+    try {
+      await deleteDoc(doc(db, 'global_barcodes', selectedBarcode.id));
+      setSelectedBarcode(null);
+      setIsEditing(false);
+    } catch (e: any) {
+      alert('Failed to delete: ' + e.message);
+    }
+  };
+
   const filtered = barcodes.filter(b => 
     (b.name || '').toLowerCase().includes(search.toLowerCase()) || 
     (b.barcode || '').toLowerCase().includes(search.toLowerCase()) ||
@@ -104,9 +116,19 @@ export const GlobalBarcodesPage: React.FC = () => {
               <button onClick={handleSaveDetails} style={{ background: '#4BFF94', border: 'none', color: '#0A3D24', padding: '8px 16px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>Save Changes</button>
             </div>
           ) : (
-            <button onClick={handleEditClick} style={{ background: 'var(--primary)', border: 'none', color: 'white', padding: '8px 16px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>
-              Edit Details
-            </button>
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button 
+                onClick={handleDeleteBarcode} 
+                style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid #ef4444', color: '#ef4444', padding: '8px 16px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = '#ef4444', e.currentTarget.style.color = 'white')}
+                onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)', e.currentTarget.style.color = '#ef4444')}
+              >
+                Delete Barcode
+              </button>
+              <button onClick={handleEditClick} style={{ background: 'var(--primary)', border: 'none', color: 'white', padding: '8px 16px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>
+                Edit Details
+              </button>
+            </div>
           )}
         </div>
         <div className="card" style={{ padding: '32px' }}>
