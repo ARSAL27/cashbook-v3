@@ -268,7 +268,7 @@ export const Manager: React.FC = () => {
     stock: Array.isArray(stock) ? stock : [],
     contacts: Array.isArray(contacts) ? contacts : [],
     invoices: Array.isArray(invoices) ? invoices : [],
-    profile: profile ? { ...profile, email: user?.email } : null,
+    profile: profile ? { ...profile, email: user?.email || undefined } : null,
   }), [sales, expenses, udhaars, stock, contacts, profile, invoices, user?.email]);
 
   const location = useLocation();
