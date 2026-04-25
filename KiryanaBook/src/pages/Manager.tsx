@@ -5,6 +5,7 @@ import { Send, UserCog, History, X, Trash2, ChevronRight, MessageCircle, Mic, Vo
 import { askLocalAgent, detectMicroAnomalies } from '../lib/localAgent';
 import { useShop } from '../context/ShopContext';
 import { useAuth } from '../context/AuthContext';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import { SpeechRecognition } from '@capacitor-community/speech-recognition';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
 
@@ -538,19 +539,89 @@ export const Manager: React.FC = () => {
   };
 
   const handleSend = async (text: string = input) => {
-    if (!text.trim() || !isMounted.current) return;
     const userMsg: Message = { id: `u-${Date.now()}`, text: text.trim(), isBot: false, time: new Date().toISOString() };
     if (!isMounted.current) return;
     setMessages(prev => [...prev, userMsg]);
     setInput('');
     setIsTyping(true);
 
-    // 1. Use Local Agent (Offline Brain) — wrapped in try-catch to prevent crash on navigation
-    let finalResponse = 'Kuch masla aa gaya, dobara try karein.';
+    // 1. Prepare Comprehensive Shop Summary for Gemma 3
+    const { today, yesterday, monthStart } = (function() {
+      const d = new Date();
+      const fmt = (dt: Date) => dt.toISOString().split('T')[0];
+      const y = new Date(d); y.setDate(d.getDate() - 1);
+      const ms = new Date(d.getFullYear(), d.getMonth(), 1).toISOString().split('T')[0];
+      return { today: fmt(d), yesterday: fmt(y), monthStart: ms };
+    })();
+
+    // Helper to calculate profit for a period
+    const calcPeriodData = (filter: (d: string) => boolean) => {
+      const periodSales = shopData.sales.filter(s => filter(s.date));
+      const revenue = periodSales.reduce((a, x) => a + x.total, 0);
+      const expenses = shopData.expenses.filter(e => filter(e.date)).reduce((a, x) => a + x.amount, 0);
+      
+      // Basic COGS estimate if not fully tracked (using 85% average as fallback or real data)
+      let cogs = 0;
+      periodSales.forEach(sale => (sale.items || []).forEach((i: any) => {
+        const item = shopData.stock.find(st => st.id === i.itemId || st.name === i.name);
+        cogs += (item?.buyingPrice || (i.price * 0.85)) * (i.qty || 0);
+      }));
+
+      return { revenue, expenses, profit: revenue - cogs - expenses };
+    };
+
+    const tData = calcPeriodData(d => d.startsWith(today));
+    const yData = calcPeriodData(d => d.startsWith(yesterday));
+    const mData = calcPeriodData(d => d >= monthStart);
+
+    const totalUdhaar = shopData.udhaars.reduce((a, x) => a + x.amount, 0);
+    const lowStockItems = shopData.stock.filter(s => s.quantity <= s.minThreshold).map(s => s.name).slice(0, 5).join(', ');
+    const topDebtors = [...shopData.udhaars]
+      .sort((a, b) => b.amount - a.amount)
+      .slice(0, 5)
+      .map(u => `${u.customerName}: Rs.${u.amount}`)
+      .join(', ');
+
+    const shopContext = `
+      FINANCIAL SUMMARY:
+      - TODAY (${today}): Sales: Rs.${tData.revenue}, Expense: Rs.${tData.expenses}, Est. Profit: Rs.${tData.profit}
+      - YESTERDAY (${yesterday}): Sales: Rs.${yData.revenue}, Expense: Rs.${yData.expenses}, Est. Profit: Rs.${yData.profit}
+      - THIS MONTH (Since ${monthStart}): Sales: Rs.${mData.revenue}, Expense: Rs.${mData.expenses}, Est. Profit: Rs.${mData.profit}
+      
+      INVENTORY & CREDIT:
+      - Total Outstanding Udhaar: Rs.${totalUdhaar}
+      - Top Debtors: ${topDebtors}
+      - Low Stock Items: ${lowStockItems}
+      - Total Product Count: ${shopData.stock.length}
+    `;
+
+    // 2. AI Call with Gemma 3 27B
+    let finalResponse = '';
     try {
-      finalResponse = askLocalAgent(text.trim(), shopData, messages);
+      const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY);
+      // Correct identifier for Gemma 3 12B instruction-tuned model
+      const model = genAI.getGenerativeModel({ model: "gemma-3-12b-it" });
+      
+      const prompt = `
+        You are "Munshi AI", a professional business manager for a Kiryana (Grocery) store in Pakistan.
+        User Shop Context: ${shopContext}
+        Current Conversation History: ${messages.slice(-5).map(m => (m.isBot ? "Bot: " : "User: ") + m.text).join('\n')}
+        User Question: "${text.trim()}"
+        
+        Instructions:
+        1. Answer in Roman Urdu (friendly but professional, like a real Munshi).
+        2. Use the "FINANCIAL SUMMARY" provided above to answer questions about Today, Yesterday, or the Month accurately.
+        3. If the user asks for profit, mention Sales and Expenses too for clarity.
+        4. If data is 0 or missing, be honest: "Abhi tak koi entry nahi hui".
+        5. Use emojis like 📊, 💰, 📦, ⚖️.
+        6. Keep it concise but helpful.
+      `;
+
+      const result = await model.generateContent(prompt);
+      finalResponse = result.response.text();
     } catch (e) {
-      console.error('localAgent error:', e);
+      console.error('Gemma 3 failed, falling back to local agent:', e);
+      finalResponse = askLocalAgent(text.trim(), shopData, messages);
     }
 
     if (!isMounted.current) return;
