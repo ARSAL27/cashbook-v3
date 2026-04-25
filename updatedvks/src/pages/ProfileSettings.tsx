@@ -1,0 +1,263 @@
+import React, { useState, useEffect } from 'react';
+import { PageTransition } from '../components/PageTransition';
+import { ArrowLeft, User, Phone, MapPin, Store, Camera, Mail } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
+import { Haptics, ImpactStyle } from '@capacitor/haptics';
+import { resizeBase64Image } from '../utils/image';
+import { useAuth } from '../context/AuthContext';
+import { useShop } from '../context/ShopContext';
+
+export const ProfileSettings: React.FC = () => {
+  const navigate = useNavigate();
+  const { profile, updateProfile } = useShop();
+  const { user } = useAuth();
+  
+  const [formData, setFormData] = useState({
+    name: profile?.name || '',
+    owner: profile?.owner || '',
+    phone: profile?.phone || '',
+    city: profile?.city || '',
+    address: profile?.address || '',
+    currency: profile?.currency || 'PKR',
+    logoUrl: profile?.logoUrl || ''
+  });
+
+  const [isSaving, setIsSaving] = useState(false);
+  const [lastSaved, setLastSaved] = useState<number | null>(null);
+  const [isDirty, setIsDirty] = useState(false); // Track if user has unsaved changes
+
+  const triggerHaptic = (style: ImpactStyle = ImpactStyle.Light) => {
+    Haptics.impact({ style }).catch(() => {});
+  };
+
+  // Only sync from Firestore if user has NOT made local edits
+  useEffect(() => {
+    if (profile && !isDirty && !isSaving) {
+      setFormData({
+        name: profile.name || '',
+        owner: profile.owner || '',
+        phone: profile.phone || '',
+        city: profile.city || '',
+        address: profile.address || '',
+        currency: profile.currency || 'PKR',
+        logoUrl: profile.logoUrl || ''
+      });
+    }
+  }, [profile]);
+
+
+  const handleSave = async () => {
+    if (!formData.name.trim()) return toast.error('Shop ka naam zaruri hai');
+    
+    triggerHaptic(ImpactStyle.Heavy);
+    setIsSaving(true);
+    try {
+      await updateProfile({
+        ...profile,
+        ...formData
+      } as any);
+      setLastSaved(Date.now());
+      setIsDirty(false); // Reset dirty flag after successful save
+      toast.success('Profile Mehfooz Kar Liya Gaya!');
+    } catch (e) {
+      toast.error('Save fail ho gaya. Internet check karein.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select an image file');
+      return;
+    }
+
+    const toastId = toast.loading('Tasweer process ho rahi hai...');
+    try {
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+        const base64 = event.target?.result as string;
+        // Resize to 200px for the logo
+        const resized = await resizeBase64Image(base64, 200, 0.8);
+        setFormData(prev => ({ ...prev, logoUrl: resized }));
+        toast.success('Tasweer ready hai!', { id: toastId });
+      };
+      reader.readAsDataURL(file);
+    } catch (err) {
+      toast.error('Galti hui tasweer process karne mein', { id: toastId });
+    }
+  };
+
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let val = e.target.value;
+    if (!val.startsWith('+92')) {
+        val = '+92' + val.replace(/\D/g, '');
+    } else {
+        let suffix = val.slice(3).replace(/\D/g, '');
+        if (suffix.startsWith('0')) {
+            suffix = suffix.slice(1);
+        }
+        val = '+92' + suffix;
+    }
+    if (val.length <= 13) {
+      setFormData(prev => ({ ...prev, phone: val }));
+    }
+  };
+
+  return (
+    <PageTransition> 
+      <div className="w-full bg-[#FAFAFA] dark:bg-[#0A0A0A] font-outfit max-w-md mx-auto overflow-x-hidden min-h-screen pb-32">
+        {/* HEADER */}
+        <header className="pt-12 pb-3 px-6 flex items-center justify-between sticky top-0 bg-background/80 backdrop-blur-xl z-50 border-b border-border/10">
+          <div className="flex items-center space-x-4">
+            <button 
+              onClick={() => { triggerHaptic(); navigate(-1); }} 
+              className="w-10 h-10 flex items-center justify-center text-text-primary bg-card border border-border shadow-sm rounded-2xl active:scale-95 transition-all"
+            >
+              <ArrowLeft size={18} strokeWidth={3} />
+            </button>
+            <h1 className="text-20 font-black text-text-primary tracking-tight">Profile</h1>
+          </div>
+          
+          <div className="flex items-center gap-2">
+            {isSaving ? (
+               <div className="flex items-center gap-2 px-3 py-1.5 bg-primary/10 rounded-full border border-primary/20">
+                  <div className="w-1.5 h-1.5 bg-primary rounded-full animate-pulse" />
+                  <span className="text-[10px] font-black text-primary uppercase tracking-widest">Saving</span>
+               </div>
+            ) : lastSaved ? (
+               <div className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 dark:bg-white/5 rounded-full">
+                  <span className="text-[9px] font-black text-text-muted uppercase tracking-widest opacity-40">Synced</span>
+               </div>
+            ) : null}
+          </div>
+        </header>
+
+        <div className="p-6 space-y-8">
+          {/* PROFILE IMAGE HERO */}
+          <div className="relative flex flex-col items-center">
+            <div className="relative group">
+               <div className="w-32 h-32 rounded-[3.5rem] border-4 border-card shadow-2xl overflow-hidden bg-card-secondary relative transition-all duration-500 group-hover:scale-[1.02]">
+                  {formData.logoUrl ? (
+                    <img src={formData.logoUrl} alt="Shop Logo" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/10 to-primary/5">
+                      <Store size={40} className="text-primary/20" strokeWidth={2.5} />
+                    </div>
+                  )}
+               </div>
+               <label className="absolute -bottom-2 -right-2 w-11 h-11 bg-primary text-black rounded-2xl flex items-center justify-center shadow-2xl cursor-pointer active:scale-90 transition-transform border-4 border-card z-10">
+                  <Camera size={20} strokeWidth={3} />
+                  <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
+               </label>
+            </div>
+            <div className="mt-4 text-center">
+                <h2 className="text-[18px] font-black text-text-primary uppercase tracking-tight">{formData.name || 'Store Name'}</h2>
+                <p className="text-[10px] font-black text-text-muted uppercase tracking-[0.2em] mt-1 opacity-40">Shop Identity</p>
+            </div>
+          </div>
+
+          <div className="space-y-6">
+            {/* SHOP DETAILS SECTION */}
+            <div className="bg-card border border-border/60 rounded-[2.5rem] p-6 shadow-sm space-y-5">
+              <h3 className="text-[10px] font-black text-text-muted uppercase tracking-widest opacity-40 mb-2">Business Information</h3>
+              
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <div className="relative">
+                    <Store size={18} className="absolute left-5 top-1/2 -translate-y-1/2 text-primary opacity-20" strokeWidth={3} />
+                    <input 
+                      value={formData.name} onChange={e => { setIsDirty(true); setFormData({...formData, name: e.target.value}); }}
+                      placeholder="Store Name"
+                      className="w-full bg-background/50 border border-border/60 focus:border-primary/50 text-text-primary text-[14px] rounded-2xl py-5 pl-14 pr-6 outline-none font-bold transition-all" 
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="relative">
+                    <MapPin size={18} className="absolute left-5 top-1/2 -translate-y-1/2 text-primary opacity-20" strokeWidth={3} />
+                    <input 
+                      value={formData.city} onChange={e => { setIsDirty(true); setFormData({...formData, city: e.target.value}); }}
+                      placeholder="City"
+                      className="w-full bg-background/50 border border-border/60 focus:border-primary/50 text-text-primary text-[14px] rounded-2xl py-5 pl-14 pr-6 outline-none font-bold transition-all" 
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="relative">
+                    <MapPin size={18} className="absolute left-5 top-1/2 -translate-y-1/2 text-primary opacity-20" strokeWidth={3} />
+                    <input 
+                      value={formData.address} onChange={e => { setIsDirty(true); setFormData({...formData, address: e.target.value}); }}
+                      placeholder="Shop Address"
+                      className="w-full bg-background/50 border border-border/60 focus:border-primary/50 text-text-primary text-[14px] rounded-2xl py-5 pl-14 pr-6 outline-none font-bold transition-all" 
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* PERSONAL DETAILS SECTION */}
+            <div className="bg-card border border-border/60 rounded-[2.5rem] p-6 shadow-sm space-y-5">
+              <h3 className="text-[10px] font-black text-text-muted uppercase tracking-widest opacity-40 mb-2">Owner Contact</h3>
+              
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <div className="relative">
+                    <User size={18} className="absolute left-5 top-1/2 -translate-y-1/2 text-primary opacity-20" strokeWidth={3} />
+                    <input 
+                      value={formData.owner} onChange={e => { setIsDirty(true); setFormData({...formData, owner: e.target.value}); }}
+                      placeholder="Owner Name"
+                      className="w-full bg-background/50 border border-border/60 focus:border-primary/50 text-text-primary text-[14px] rounded-2xl py-5 pl-14 pr-6 outline-none font-bold transition-all" 
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="relative">
+                    <Phone size={18} className="absolute left-5 top-1/2 -translate-y-1/2 text-primary opacity-20" strokeWidth={3} />
+                    <input 
+                      value={formData.phone} type="tel"
+                      onChange={handlePhoneChange}
+                      placeholder="+92 3XX XXXXXXX"
+                      className="w-full bg-background/50 border border-border/60 focus:border-primary/50 text-text-primary text-[14px] rounded-2xl py-5 pl-14 pr-6 outline-none font-bold transition-all" 
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="relative">
+                    <Mail size={18} className="absolute left-5 top-1/2 -translate-y-1/2 text-text-muted opacity-20" strokeWidth={3} />
+                    <div className="w-full bg-gray-50 dark:bg-white/5 border border-border/60 text-text-muted text-[14px] rounded-2xl py-5 pl-14 pr-6 font-bold truncate opacity-60">
+                      {user?.email || 'No email linked'}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="text-center pt-6 opacity-30">
+            <p className="text-[9px] font-black text-text-muted uppercase tracking-[0.4em]">Hardware Encryption Active</p>
+          </div>
+        </div>
+        
+        {/* FIXED SAVE BUTTON */}
+        <div className="fixed bottom-8 left-6 right-6 z-[60]">
+             <button 
+               onClick={handleSave}
+               disabled={isSaving}
+               className="w-full py-5 rounded-[2rem] bg-[#0A3D24] dark:bg-[#4BFF94] text-white dark:text-[#0A3D24] font-black text-[15px] uppercase tracking-widest shadow-2xl active:scale-95 transition-all disabled:opacity-50"
+             >
+                {isSaving ? 'Saving...' : 'Save Changes'}
+             </button>
+        </div>
+      </div>
+    </PageTransition>
+  );
+};
