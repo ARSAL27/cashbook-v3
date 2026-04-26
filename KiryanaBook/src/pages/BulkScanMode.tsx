@@ -278,9 +278,17 @@ export const BulkScanMode: React.FC = () => {
     let saved = 0;
     for (const item of bulkItems) {
       try {
-        const existing = stock.find(s =>
-          s.name.toLowerCase() === item.name.toLowerCase() && s.category === item.category
+        // 1. CHECK BY BARCODE (SKU) FIRST - This is the most reliable unique ID
+        let existing = stock.find(s => 
+          item.barcode && s.sku && String(s.sku).trim() === String(item.barcode).trim()
         );
+
+        // 2. FALLBACK TO NAME/CATEGORY IF NO BARCODE OR NO SKU MATCH
+        if (!existing) {
+          existing = stock.find(s =>
+            s.name.toLowerCase() === item.name.toLowerCase() && s.category === item.category
+          );
+        }
         const brand = getBrandStyle(item.company || '');
 
         if (existing) {
@@ -503,6 +511,9 @@ export const BulkScanMode: React.FC = () => {
                   <div>
                     <h3 className="font-black text-[16px] leading-tight" style={{ color: text }}>{pendingProduct.name}</h3>
                     <p className="font-bold text-[11px]" style={{ color: sub }}>{pendingProduct.company} • {pendingProduct.category}</p>
+                    <div className="mt-1 bg-gray-100 dark:bg-white/5 px-2 py-0.5 rounded text-[9px] font-mono w-fit border border-black/5 dark:border-white/5">
+                      {pendingProduct.barcode}
+                    </div>
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-3">

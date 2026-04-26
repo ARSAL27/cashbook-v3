@@ -946,19 +946,54 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!user) return;
     const normalizedCategory = normalizeCategory(item.category);
     const shopRef = doc(db, 'shops', user.uid);
+    
+    // 1. CHECK IF PRODUCT ALREADY EXISTS IN LOCAL STOCK BY SKU (BARCODE)
+    const normalizedSku = String(item.sku || '').trim();
+    const existing = stock.find(s => 
+      normalizedSku && s.sku && String(s.sku).trim() === normalizedSku
+    );
+
+    if (existing) {
+      // If item exists, update its quantity instead of adding a duplicate
+      const newQty = Number(existing.quantity || 0) + Number(item.quantity || 1);
+      const historyEntry = { 
+        id: Math.random().toString(36).substring(7), 
+        type: 'restock' as const, 
+        quantity: Number(item.quantity || 1), 
+        date: new Date().toISOString(), 
+        note: 'Scanned / Auto-Added' 
+      };
+      
+      await updateDoc(doc(shopRef, 'stock', existing.id), {
+        quantity: newQty,
+        history: arrayUnion(historyEntry),
+        updatedAt: serverTimestamp()
+      });
+      toast.success(`${existing.name} stock updated! (+${item.quantity || 1})`);
+      return;
+    }
+
     if (!categories.includes(normalizedCategory)) {
         const newCats = Array.from(new Set([...categories, normalizedCategory]));
         setCategories(newCats);
         updateDoc(shopRef, { categories: newCats }).catch(()=>{});
     }
     
-    // Save to shop's stock
-    await addDoc(collection(shopRef, 'stock'), sanitizeForFirebase({ ...item, category: normalizedCategory, history: [{ id: 'init', type: 'restock', quantity: item.quantity, date: new Date().toISOString(), note: 'Initial Stock' }], soldCount: 0, status: 'active', createdAt: serverTimestamp() }));
+    // 2. SAVE NEW PRODUCT if not found
+    await addDoc(collection(shopRef, 'stock'), sanitizeForFirebase({ 
+      ...item, 
+      sku: normalizedSku,
+      category: normalizedCategory, 
+      history: [{ id: 'init', type: 'restock', quantity: item.quantity, date: new Date().toISOString(), note: 'Initial Stock' }], 
+      soldCount: 0, 
+      status: 'active', 
+      createdAt: serverTimestamp() 
+    }));
     
     // FIRE & FORGET: Save to global barcode database if it's a real barcode
-    if (item.sku && String(item.sku).length >= 4 && !String(item.sku).startsWith('SKU-')) {
-       setDoc(doc(db, 'global_barcodes', String(item.sku)), sanitizeForFirebase({
-          barcode: String(item.sku),
+    if (normalizedSku && normalizedSku.length >= 4 && !normalizedSku.startsWith('SKU-')) {
+       setDoc(doc(db, 'global_barcodes', normalizedSku), sanitizeForFirebase({
+          barcode: normalizedSku,
           name: item.name,
           company: item.company || 'Universal',
           category: normalizedCategory,

@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dir)",
+      "Bash(git clone *)",
+      "Bash(rm -rf .git)",
+      "Bash(mv temp_clone/.git .)",
+      "Bash(mv temp_clone/* .)",
+      "Bash(mv temp_clone/.[!.]* .)",
+      "PowerShell(Move-Item -Destination . -Force)",
+      "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\123\\\\OneDrive\\\\Desktop\\\\KS\\\\KiryanaBook\\\\src\" -Depth 2 | Select-Object FullName | ForEach-Object {$_.FullName.Replace\\(\"C:\\\\Users\\\\123\\\\OneDrive\\\\Desktop\\\\KS\\\\KiryanaBook\\\\\", \"\"\\)} | head -80)",
+      "Bash(dir 'C:\\\\Users\\\\123\\\\OneDrive\\\\Desktop\\\\KS\\\\KiryanaBook\\\\src')",
+      "PowerShell(npm install --no-audit --no-fund --loglevel=error --fetch-retries=5 --fetch-retry-mintimeout=20000 2>&1)",
+      "Bash(git -C \"C:/Users/123/OneDrive/Desktop/KS\" status --short)",
+      "Bash(git -C \"C:/Users/123/OneDrive/Desktop/KS\" remote -v)",
+      "PowerShell($dst = \"C:\\\\Users\\\\123\\\\OneDrive\\\\Desktop\\\\KS\\\\updatedvks\"; $size = \\(Get-ChildItem $dst -Recurse -File | Measure-Object -Property Length -Sum\\).Sum / 1MB; Write-Output \\(\"Total: {0:N1} MB\" -f $size\\); Get-ChildItem $dst -Recurse -Directory -Filter \"build\" | Select-Object FullName; Get-ChildItem $dst -Recurse -Directory -Filter \"node_modules\" | Select-Object FullName)"
+    ]
+  }
+}

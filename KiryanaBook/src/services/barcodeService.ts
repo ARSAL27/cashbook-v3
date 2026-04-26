@@ -1,6 +1,6 @@
 import { db } from '../lib/firebase';
 import {
-  collection, doc, getDocs, addDoc, updateDoc, setDoc,
+  collection, doc, getDocs, addDoc, updateDoc, setDoc, getDoc,
   query, where, serverTimestamp, increment
 } from 'firebase/firestore';
 
@@ -215,24 +215,25 @@ function mapOffCategory(raw: string): string {
 const PK_COLLECTION = 'global_barcodes';
 
 const HARDCODED_PAKISTAN_DB: Record<string, any> = {
-  // Shan variations
-  '788821122124': { name: 'Shan Biryani Masala (50g)', company: 'Shan Foods', category: 'Spices & Masala' },
-  '0788821122124': { name: 'Shan Biryani Masala (50g)', company: 'Shan Foods', category: 'Spices & Masala' },
-  '788821001146': { name: 'Shan Special Bombay Biryani Masala', company: 'Shan Foods', category: 'Spices & Masala' },
-  '0788821001146': { name: 'Shan Special Bombay Biryani Masala', company: 'Shan Foods', category: 'Spices & Masala' },
-  // National variations
-  '620514016160': { name: 'National Ketchup (950g)', company: 'National Foods', category: 'Sauces, Pickles & Chutneys' },
-  '0620514016160': { name: 'National Ketchup (950g)', company: 'National Foods', category: 'Sauces, Pickles & Chutneys' },
-  // Tapal variations
-  '0815096000274': { name: 'Tapal Danedar Black Tea (2lb)', company: 'Tapal', category: 'Tea & Beverages' },
-  '815096000274': { name: 'Tapal Danedar Black Tea (2lb)', company: 'Tapal', category: 'Tea & Beverages' },
-  '0815096000281': { name: 'Tapal Danedar Black Tea (Jar 450g)', company: 'Tapal', category: 'Tea & Beverages' },
-  '815096000281': { name: 'Tapal Danedar Black Tea (Jar 450g)', company: 'Tapal', category: 'Tea & Beverages' },
-  // Dalda/Mezan generic
-  '8964000300180': { name: 'Dalda Cooking Oil (Pouch)', company: 'Dalda Foods', category: 'Cooking Oil & Ghee' },
-  '8964000100000': { name: 'Mezan Canola Oil (Pouch)', company: 'Mezan', category: 'Cooking Oil & Ghee' },
-  // Choco Bliss
-  '8964000800000': { name: 'Youngs Choco Bliss', company: 'Youngs', category: 'Biscuits & Snacks' }
+  '8961014131102': { name: 'Shan Bombay Biryani (60g)', company: 'Shan Foods', category: 'Spices & Masala' },
+  '8961014131119': { name: 'Shan Sindhi Biryani (60g)', company: 'Shan Foods', category: 'Spices & Masala' },
+  '8961014131010': { name: 'Shan Korma Masala (50g)', company: 'Shan Foods', category: 'Spices & Masala' },
+  '8961014131027': { name: 'Shan Karahi Masala (50g)', company: 'Shan Foods', category: 'Spices & Masala' },
+  '8961014131058': { name: 'Shan Achar Gosht (50g)', company: 'Shan Foods', category: 'Spices & Masala' },
+  '8961014131096': { name: 'Shan Nihari Masala (60g)', company: 'Shan Foods', category: 'Spices & Masala' },
+  // Lays / Pepsi
+  '8961011010011': { name: 'Lays Masala (Large)', company: 'Lays', category: 'Biscuits & Snacks' },
+  '8961011010028': { name: 'Lays French Cheese (Large)', company: 'Lays', category: 'Biscuits & Snacks' },
+  '8961012010010': { name: 'Kurkure Toofani Masala', company: 'Kurkure', category: 'Biscuits & Snacks' },
+  '8961014104014': { name: 'Pepsi 1.5L', company: 'Pepsi', category: 'Tea & Beverages' },
+  '8961014104021': { name: '7UP 1.5L', company: '7UP', category: 'Tea & Beverages' },
+  // LU / EBM
+  '8961013110016': { name: 'LU Gala (Family Pack)', company: 'LU', category: 'Biscuits & Snacks' },
+  '8961013110023': { name: 'LU Prince (Family Pack)', company: 'LU', category: 'Biscuits & Snacks' },
+  '8961013110030': { name: 'LU Bakeri (Family Pack)', company: 'LU', category: 'Biscuits & Snacks' },
+  // Tapal
+  '8961012110017': { name: 'Tapal Danedar (190g)', company: 'Tapal', category: 'Tea & Beverages' },
+  '8961012110024': { name: 'Tapal Danedar (430g)', company: 'Tapal', category: 'Tea & Beverages' },
 };
 
 export async function lookupPakistanDB(barcode: string): Promise<PakistanBarcodeEntry | null> {
@@ -241,14 +242,26 @@ export async function lookupPakistanDB(barcode: string): Promise<PakistanBarcode
   if (cached) return cached;
 
   try {
+    // Direct lookup by document ID (barcode) is better than query
+    const docRef = doc(db, PK_COLLECTION, barcode);
+    const snap = await getDoc(docRef);
+    
+    if (snap.exists()) {
+      const entry = { id: snap.id, ...snap.data() } as PakistanBarcodeEntry;
+      cacheBarcode(barcode, entry);
+      return entry;
+    }
+    
+    // Fallback to query just in case some entries don't have barcode as ID
     const q = query(collection(db, PK_COLLECTION), where('barcode', '==', barcode));
-    const snap = await getDocs(q);
-    if (snap.empty) return null;
-    const d = snap.docs[0];
+    const querySnap = await getDocs(q);
+    if (querySnap.empty) return null;
+    const d = querySnap.docs[0];
     const entry = { id: d.id, ...d.data() } as PakistanBarcodeEntry;
     cacheBarcode(barcode, entry);
     return entry;
-  } catch {
+  } catch (err) {
+    console.error('Pakistan DB Lookup Error:', err);
     return null;
   }
 }

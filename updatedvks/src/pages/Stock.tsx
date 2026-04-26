@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { PageTransition } from '../components/PageTransition';
 import { useShop } from '../context/ShopContext';
 import { useNavigate } from 'react-router-dom';
-import { Search, Plus, Filter, Package, AlertTriangle, DollarSign, Menu, ScanLine, Zap, Tag } from 'lucide-react';
+import { Search, Plus, Filter, Package, AlertTriangle, DollarSign, Menu, ScanLine, Zap, Tag, Wand2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sidebar } from '../components/Sidebar';
 import { useTheme } from '../context/ThemeContext';
@@ -42,6 +42,18 @@ export const Stock: React.FC = () => {
       if (s.company) brands.add(s.company);
     });
     return Array.from(brands) as string[];
+  }, [stock]);
+
+  // ─── DUPLICATE DETECTOR ───
+  const duplicateSkus = useMemo(() => {
+    const counts: Record<string, number> = {};
+    (stock || []).forEach(item => {
+      if (item.sku && !item.sku.startsWith('SKU-')) {
+        const s = String(item.sku).trim();
+        counts[s] = (counts[s] || 0) + 1;
+      }
+    });
+    return Object.keys(counts).filter(sku => counts[sku] > 1);
   }, [stock]);
 
   // Dynamic categories: Only show those that actually have products in stock
@@ -306,7 +318,27 @@ export const Stock: React.FC = () => {
            </button>
         </div>
 
-        <div className="px-5 mt-6 space-y-2.5 pb-24">
+        {duplicateSkus.length > 0 && (
+          <div className="px-5 mt-4">
+             <div className="p-3 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                   <div className="w-8 h-8 rounded-full bg-red-500 flex items-center justify-center text-white font-black text-[12px]">!</div>
+                   <div>
+                      <p className="text-[11px] font-black text-red-500 uppercase">Duplicate Barcodes Detected</p>
+                      <p className="text-[12px] font-bold opacity-60 leading-tight" style={{ color: text }}>{duplicateSkus.length} barcodes are assigned to multiple items.</p>
+                   </div>
+                </div>
+                <button 
+                  onClick={() => setSearch(duplicateSkus[0])}
+                  className="px-3 py-1.5 bg-red-500 text-white rounded-lg text-[10px] font-black"
+                >
+                  SHOW THEM
+                </button>
+             </div>
+          </div>
+        )}
+ 
+         <div className="px-5 mt-6 space-y-2.5 pb-24">
            {filteredStock.map((item, i) => (
              <motion.div
                key={item.id}
@@ -404,20 +436,21 @@ export const Stock: React.FC = () => {
                 </>
               ) : (
                 <>
-                  <button
-                    onClick={() => navigate('/add-item')}
-                    className="flex items-center gap-2 px-6 py-4 rounded-2xl bg-blue-600 text-white shadow-2xl active:scale-95 transition-all text-[13px] font-black border-2 border-white/20"
-                  >
-                    Manual Item Dalo
-                    <Plus size={18} strokeWidth={3} />
-                  </button>
-                  
+
                   <button
                     onClick={() => setIsScanMenu(true)}
                     className="flex items-center gap-2 px-6 py-4 rounded-2xl bg-[#0A3D24] text-[#4BFF94] shadow-2xl active:scale-95 transition-all text-[13px] font-black border-2 border-[#4BFF94]/20"
                   >
                     Barcode Scanners
                     <ScanLine size={18} strokeWidth={3} />
+                  </button>
+
+                  <button
+                    onClick={() => navigate('/add-item?aiScan=true')}
+                    className="flex items-center gap-2 px-6 py-4 rounded-2xl bg-purple-600 text-white shadow-2xl active:scale-95 transition-all text-[13px] font-black border-2 border-white/20"
+                  >
+                    Instant Add (AI)
+                    <Wand2 size={18} strokeWidth={3} />
                   </button>
                 </>
               )}
