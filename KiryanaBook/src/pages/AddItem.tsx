@@ -125,12 +125,22 @@ export const AddItem: React.FC = () => {
     const handleSave = async () => {
         if (loading) return;
         if (!name.trim()) return toast.error('Product name zaroori hai');
-        
+
+        // Coerce and validate numbers — `Number(x) || 0` lets negatives through.
+        const safeNum = (v: any, fallback = 0) => {
+            const n = Number(v);
+            if (!isFinite(n) || n < 0) return fallback;
+            return n;
+        };
+        const finalOpening = safeNum(openingStock, 0);
+        const finalBuying = safeNum(buyingPrice, 0);
+        const finalSelling = safeNum(sellingPrice, 0);
+        const finalThreshold = safeNum(minThreshold, 5);
+
+        if (finalSelling <= 0) return toast.error('Sale price 0 se zyada hona chahiye');
+
         setLoading(true);
         try {
-            const finalOpening = Number(openingStock) || 0;
-            const finalBuying = Number(buyingPrice) || 0;
-            const finalSelling = Number(sellingPrice) || 0;
             const finalCategory = showCategoryInput ? newCategory.trim() : category;
             const finalBrand = standardizeBrand(company);
 
@@ -142,18 +152,19 @@ export const AddItem: React.FC = () => {
                 quantity: finalOpening,
                 buyingPrice: finalBuying,
                 price: finalSelling,
-                minThreshold: Number(minThreshold) || 5,
+                minThreshold: finalThreshold,
                 imageUrl: imageUrl || '',
                 sku: String(sku || `SKU-${Math.floor(1000 + Math.random() * 9000)}`)
             };
-            
+
             if (packSize.trim()) newItem.packSize = packSize.trim();
 
-            addStockItem(newItem);
+            // ✅ Await — was fire-and-forget; "saved" toast lied on offline failures.
+            await addStockItem(newItem);
             toast.success('Product add ho gaya! 🎉');
             navigate(-1);
         } catch (e: any) {
-            toast.error(`Saving fail hui: ${e?.message}`);
+            toast.error(`Saving fail hui: ${e?.message || 'unknown'}`);
         } finally {
             setLoading(false);
         }
@@ -166,10 +177,15 @@ export const AddItem: React.FC = () => {
         try {
             const reader = new FileReader();
             reader.onload = async (ev) => {
-                const resized = await resizeBase64Image(ev.target?.result as string, 300, 0.7);
-                setImageUrl(resized);
-                toast.success('Tasweer ready hai!', { id: toastId });
+                try {
+                    const resized = await resizeBase64Image(ev.target?.result as string, 300, 0.7);
+                    setImageUrl(resized);
+                    toast.success('Tasweer ready hai!', { id: toastId });
+                } catch {
+                    toast.error('Image resize fail hua', { id: toastId });
+                }
             };
+            reader.onerror = () => toast.error('Image read nahi ho saki', { id: toastId });
             reader.readAsDataURL(file);
         } catch (err) {
             toast.error('Galti hui tasweer process karne mein', { id: toastId });

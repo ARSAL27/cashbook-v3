@@ -62,7 +62,7 @@ export const AddExpense: React.FC = () => {
     return (
         <PageTransition> <div className="w-full font-outfit max-w-md mx-auto bg-background text-text-primary ">
                 {/* HEADER */}
-                <div className="pt-16 pb-4 px-5 flex items-center justify-between sticky top-0 z-50 bg-inherit border-b border-border transition-all" style={{ backgroundColor: isDarkMode ? '#0A0A0A' : '#FAFAFA' }}>
+                <div className="pt-page pb-4 px-5 flex items-center justify-between sticky top-0 z-sticky bg-inherit border-b border-border transition-all" style={{ backgroundColor: isDarkMode ? '#0A0A0A' : '#FAFAFA' }}>
                     <button onClick={() => navigate(-1)} className="p-2 rounded-xl bg-card shadow-sm border border-border text-text-primary active:scale-90 transition-transform">
                         <ArrowLeft size={18} />
                     </button>

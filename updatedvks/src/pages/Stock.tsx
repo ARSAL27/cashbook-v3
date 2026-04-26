@@ -92,7 +92,7 @@ export const Stock: React.FC = () => {
         
          <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
          
-         <div className="pt-16 pb-3 px-5 flex items-center justify-between sticky top-0 z-50 transition-all duration-300" style={{ backgroundColor: bg + 'CC', backdropFilter: 'blur(10px)' }}>
+         <div className="pt-page pb-3 px-5 flex items-center justify-between sticky top-0 z-sticky transition-all duration-300" style={{ backgroundColor: bg + 'CC', backdropFilter: 'blur(10px)' }}>
           <div className="flex items-center gap-3">
 
             <h1 className="text-[20px] font-black tracking-tight" style={{ color: text }}>The Stock</h1>

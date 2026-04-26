@@ -122,7 +122,7 @@ export const Customers: React.FC = () => {
         <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
 
         {/* HEADER */}
-        <div className="pt-10 pb-4 sticky top-0 z-40 transition-colors duration-300 shadow-xl" style={{ backgroundColor: isDarkMode ? '#10251A' : '#0A3D24' }}>
+        <div className="pt-page pb-4 sticky top-0 z-sticky transition-colors duration-300 shadow-xl" style={{ backgroundColor: isDarkMode ? '#10251A' : '#0A3D24' }}>
           <div className="px-5 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <button 

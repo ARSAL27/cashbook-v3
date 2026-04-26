@@ -92,7 +92,7 @@ export const Stock: React.FC = () => {
         
          <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
          
-         <div className="pt-16 pb-3 px-5 flex items-center justify-between sticky top-0 z-50 transition-all duration-300" style={{ backgroundColor: bg + 'CC', backdropFilter: 'blur(10px)' }}>
+         <div className="pt-page pb-3 px-5 flex items-center justify-between sticky top-0 z-sticky transition-all duration-300" style={{ backgroundColor: bg + 'CC', backdropFilter: 'blur(10px)' }}>
           <div className="flex items-center gap-3">
 
             <h1 className="text-[20px] font-black tracking-tight" style={{ color: text }}>The Stock</h1>
@@ -264,8 +264,18 @@ export const Stock: React.FC = () => {
                     {c}
                 </button>
                 {activeCategory === c && (
-                    <button 
-                        onClick={(e) => { e.stopPropagation(); if (window.confirm(`Kya aap category "${c}" delete karna chahte hain?`)) { deleteCategory(c); setActiveCategory('All Items'); } }}
+                    <button
+                        onClick={async (e) => {
+                            e.stopPropagation();
+                            if (!window.confirm(`Kya aap category "${c}" delete karna chahte hain?`)) return;
+                            try {
+                                await deleteCategory(c);
+                                setActiveCategory('All Items');
+                                toast.success('Category delete ho gayi');
+                            } catch (err: any) {
+                                toast.error(err?.message || 'Delete fail hua');
+                            }
+                        }}
                         className="ml-[-12px] mr-2 bg-red-500 text-white rounded-full p-0.5 shadow-md z-10 scale-75"
                     >
                         <Plus size={10} className="rotate-45" />
@@ -274,10 +284,21 @@ export const Stock: React.FC = () => {
               </div>
            ))}
 
-           <button 
-               onClick={() => {
+           <button
+               onClick={async () => {
                    const name = window.prompt('Nai category ka naam likhein:');
-                   if (name?.trim()) addCategory(name.trim());
+                   const trimmed = name?.trim();
+                   if (!trimmed) return;
+                   if (categories.includes(trimmed)) {
+                       toast.error('Yeh category pehle se mojood hai');
+                       return;
+                   }
+                   try {
+                       await addCategory(trimmed);
+                       toast.success('Category add ho gayi');
+                   } catch (err: any) {
+                       toast.error(err?.message || 'Category add nahi hui');
+                   }
                }}
                className="w-9 h-9 rounded-full bg-gray-100 dark:bg-white/5 flex items-center justify-center shrink-0 border border-dashed border-gray-300 dark:border-white/10"
            >

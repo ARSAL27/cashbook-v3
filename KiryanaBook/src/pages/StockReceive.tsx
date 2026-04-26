@@ -11,7 +11,7 @@ import toast from 'react-hot-toast';
 type Step = 1 | 2 | 3 | 4; // 1=Category, 2=Company, 3=Product, 4=Search
 
 export const StockReceive: React.FC = () => {
-  const { addStockItem, updateStockItem, stock } = useShop();
+  const { addStockItem, restockItem, stock } = useShop();
   const { isDarkMode } = useTheme();
   const navigate = useNavigate();
 
@@ -103,52 +103,46 @@ export const StockReceive: React.FC = () => {
   const handleAddStock = async () => {
     if (!selectedProduct) return;
     if (!quantity || !buyingPrice || !sellingPrice) return toast.error('Quantity aur Prices zaroori hain');
-    
-    // VALIDATION
-    if (isNaN(Number(quantity)) || Number(quantity) <= 0) return toast.error('Quantity sahi daalein');
-    if (isNaN(Number(buyingPrice)) || Number(buyingPrice) < 0) return toast.error('Khareed qemat sahi daalein');
-    if (isNaN(Number(sellingPrice)) || Number(sellingPrice) < 0) return toast.error('Farokht qemat sahi daalein');
-    
+
+    // Coerce + validate up-front. Reject NaN/negatives/zero where they don't make sense.
+    const qty = Number(quantity);
+    const buyP = Number(buyingPrice);
+    const sellP = Number(sellingPrice);
+    const lowQ = Number(lowStock);
+    if (!isFinite(qty) || qty <= 0) return toast.error('Quantity sahi daalein');
+    if (!isFinite(buyP) || buyP < 0) return toast.error('Khareed qemat sahi daalein');
+    if (!isFinite(sellP) || sellP <= 0) return toast.error('Farokht qemat 0 se zyada honi chahiye');
+    if (!isFinite(lowQ) || lowQ < 0) return toast.error('Low stock alert galat hai');
+
     setLoading(true);
-    console.log('Adding Stock Details:', { product: selectedProduct, quantity, buyingPrice, sellingPrice, size: selectedSize });
     try {
-      // Check if item already exists - Check using the target category
       const targetCategory = overrideCategory || selectedProduct.category;
       const existing = stock.find(s => s.name === selectedProduct.name && s.category === targetCategory);
-      
-      if (existing) {
-        // UPDATE EXISTING ITEM
-        const historyEntry = {
-          id: Math.random().toString(36).substring(7),
-          type: 'restock' as const,
-          quantity: Number(quantity),
-          date: new Date().toISOString(),
-          note: 'Stock Receive (Database)'
-        };
 
-        await updateStockItem(existing.id, {
-          quantity: (existing.quantity || 0) + Number(quantity),
-          buyingPrice: Number(buyingPrice),
-          price: Number(sellingPrice),
-          minThreshold: Number(lowStock),
+      if (existing) {
+        // ✅ Atomic restock — uses Firestore `increment` + `arrayUnion` server-side.
+        // Old code read existing.quantity from React state and wrote back the sum,
+        // which silently lost the second of any two concurrent restocks.
+        await restockItem(existing.id, qty, {
+          buyingPrice: buyP,
+          price: sellP,
+          minThreshold: lowQ,
           packSize: selectedSize || existing.packSize,
           company: selectedProduct.company,
           imageUrl: getBrandStyle(selectedProduct.company).logoUrl || existing.imageUrl,
-          history: [...(existing.history || []), historyEntry],
           isDeleted: false
-        });
+        }, 'Stock Receive (Database)');
       } else {
-        // ADD NEW ITEM
         await addStockItem({
           name: selectedProduct.name,
           company: selectedProduct.company,
-          category: overrideCategory || selectedProduct.category,
+          category: targetCategory,
           unit: selectedProduct.unit as any,
           packSize: selectedSize,
-          quantity: Number(quantity),
-          buyingPrice: Number(buyingPrice),
-          price: Number(sellingPrice),
-          minThreshold: Number(lowStock),
+          quantity: qty,
+          buyingPrice: buyP,
+          price: sellP,
+          minThreshold: lowQ,
           imageUrl: getBrandStyle(selectedProduct.company).logoUrl,
           sku: `SKU-${Math.floor(1000 + Math.random() * 9000)}`
         });
@@ -159,9 +153,10 @@ export const StockReceive: React.FC = () => {
       setSelectedProduct(null);
     } catch (e: any) {
       console.error("Stock Save Error:", e);
-      toast.error('Error saving stock: ' + (e.message || 'Unknown error'));
+      toast.error('Error saving stock: ' + (e?.message || 'Unknown error'));
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const renderProgress = () => {

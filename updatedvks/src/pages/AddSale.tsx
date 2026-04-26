@@ -202,8 +202,8 @@ export const AddSale: React.FC = () => {
 
     return (
         <PageTransition> <div className="w-full transition-colors duration-300 font-outfit max-w-md mx-auto bg-background text-text-primary ">
-                {/* HEADER */}
-                <div className="pt-16 pb-4 px-5 flex items-center justify-between sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b border-border transition-all">
+                {/* HEADER — pt-page accounts for status-bar safe area on real devices. */}
+                <div className="pt-page pb-4 px-5 flex items-center justify-between sticky top-0 z-sticky bg-background/80 backdrop-blur-md border-b border-border transition-all">
                     <button onClick={() => navigate(-1)} className="p-2 rounded-xl bg-card border border-border text-text-primary active:scale-90 transition-transform">
                         <ArrowLeft size={20} />
                     </button>
@@ -222,8 +222,9 @@ export const AddSale: React.FC = () => {
                     </div>
                 </div>
 
-                {/* BASKET DISPLAY */}
-                <div className="flex-1 overflow-y-auto px-5 mt-4 pb-96">
+                {/* BASKET DISPLAY — bottom padding sized for the floating action card below.
+                    Was pb-96 (24rem) which left a huge empty gap; now matches the actual bar height. */}
+                <div className="flex-1 overflow-y-auto px-5 mt-4" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 22rem)' }}>
                     {view === 'add' ? (
                         <div className="space-y-4">
                             {basket.length === 0 ? (
@@ -290,7 +291,10 @@ export const AddSale: React.FC = () => {
                     )}
                 </div>
 
-                <div className="fixed bottom-6 inset-x-0 mx-auto max-w-md p-6 rounded-t-[3.5rem] shadow-[0_-20px_50px_rgba(0,0,0,0.2)] border-t transition-all duration-500 bg-card border-border z-40">
+                <div
+                  className="fixed inset-x-0 mx-auto max-w-md p-6 rounded-t-[3.5rem] shadow-[0_-20px_50px_rgba(0,0,0,0.2)] border-t transition-all duration-500 bg-card border-border z-fab"
+                  style={{ bottom: 'env(safe-area-inset-bottom, 0px)' }}
+                >
                     {view === 'add' ? (
                         <>
                             <div className="relative mb-6">

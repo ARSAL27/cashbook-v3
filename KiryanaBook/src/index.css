@@ -20,6 +20,26 @@
     --safe-bottom: env(safe-area-inset-bottom, 0px);
     --safe-left: env(safe-area-inset-left, 0px);
     --safe-right: env(safe-area-inset-right, 0px);
+
+    /* ─── Z-INDEX HIERARCHY ───
+     * Single source of truth so modals can never sit under the bottom nav,
+     * and toasts always land on top of everything that's not the splash.
+     */
+    --z-base: 0;
+    --z-sticky: 30;       /* sticky page headers */
+    --z-nav: 50;          /* main bottom nav */
+    --z-fab: 80;          /* floating action buttons */
+    --z-modal-backdrop: 200;
+    --z-modal: 210;
+    --z-toast: 300;
+    --z-pin-lock: 400;    /* security PIN screen */
+    --z-splash: 500;      /* startup splash */
+    --z-error-boundary: 600;
+
+    /* Standard mobile header height (visual chrome above content). */
+    --header-h: 64px;
+    /* Bottom nav floating card height incl. its own padding from screen edge. */
+    --nav-h: 88px;
   }
 
   .dark {
@@ -84,6 +104,29 @@
   .pb-safe {
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }
+  /* Use this on every sticky page header. Combines status-bar safe area + 16px breathing room. */
+  .pt-page {
+    padding-top: calc(env(safe-area-inset-top, 0px) + 1rem);
+  }
+  /* Use this on the LAST element of a scrollable page that has the floating nav,
+     so the last list item isn't hidden behind the nav card on phones with home indicators. */
+  .pb-with-nav {
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + var(--nav-h) + 1rem);
+  }
+  /* Use this on pages with their own floating action bar/button at the bottom. */
+  .pb-with-fab {
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 7rem);
+  }
+
+  /* ─── Z-INDEX UTILITIES ─── */
+  .z-nav { z-index: var(--z-nav); }
+  .z-fab { z-index: var(--z-fab); }
+  .z-modal-backdrop { z-index: var(--z-modal-backdrop); }
+  .z-modal { z-index: var(--z-modal); }
+  .z-toast { z-index: var(--z-toast); }
+  .z-pin-lock { z-index: var(--z-pin-lock); }
+  .z-splash { z-index: var(--z-splash); }
+  .z-error-boundary { z-index: var(--z-error-boundary); }
 
   /* ─── PREMIUM CARDS ─── */
   .card-premium {
@@ -105,6 +148,17 @@
   .interactive-none {
     user-select: none;
     -webkit-user-select: none;
+  }
+
+  /* Mobile accessibility: ensure tappable targets meet 44x44 minimum. */
+  .tap-target {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  /* Prevent inputs from zooming on focus on iOS (any input < 16px font triggers it). */
+  input, textarea, select {
+    font-size: max(16px, 1em);
   }
 
   .glass-card {

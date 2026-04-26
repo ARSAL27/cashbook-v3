@@ -6,6 +6,7 @@ import { ArrowLeft, Phone, Trash2, FileText, MessageSquare, Plus, Minus, Star, X
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { useTheme } from '../context/ThemeContext';
+import { parseDiscount } from '../utils/money';
 
 export const CustomerDetail: React.FC = () => {
     const { name } = useParams<{ name: string }>();
@@ -85,35 +86,39 @@ export const CustomerDetail: React.FC = () => {
     };
 
     const handleSave = async () => {
-        const val = parseFloat(amount);
-        if (!val || val <= 0) return toast.error('Valid amount darj karein', { icon: '⚠️' });
+        const val = parseDiscount(amount);
+        if (val <= 0) return toast.error('Valid amount darj karein', { icon: '⚠️' });
         setLoading(true);
         try {
             const finalAmount = modalType === 'debit' ? (isSupplier ? -val : val) : (isSupplier ? val : -val);
-            
-            // Fire and forget
-            addUdhaar(name || '', finalAmount, note || undefined);
-            
+
+            // ✅ Await — was fire-and-forget; offline failures gave a fake success toast.
+            await addUdhaar(name || '', finalAmount, note || undefined);
+
             toast.success(
-                modalType === 'debit' 
+                modalType === 'debit'
                 ? (isSupplier ? 'Udhaar (Dena) darj ho gaya' : 'Udhaar (Lena) darj ho gaya')
-                : (isSupplier ? 'Payment (Diya) darj ho gaya' : 'Payment (Mila) darj ho gaya'), 
+                : (isSupplier ? 'Payment (Diya) darj ho gaya' : 'Payment (Mila) darj ho gaya'),
                 { icon: modalType === 'debit' ? '💸' : '💰' }
             );
-            
-            setAmount(''); 
+
+            setAmount('');
             setShowAddModal(false);
-        } catch (e) {
-            toast.error('Kuch masla hua');
+        } catch (e: any) {
+            toast.error(e?.message || 'Kuch masla hua');
+        } finally {
+            setLoading(false);
         }
-        setLoading(false);
     };
 
-    const handleDelete = () => {
-        if (window.confirm(`${name} ka saara data delete karna chahte hain?`)) {
-            deleteCustomer(name || '');
-            navigate(-1);
+    const handleDelete = async () => {
+        if (!window.confirm(`${name} ka saara data delete karna chahte hain?`)) return;
+        try {
+            await deleteCustomer(name || '');
             toast.success('Record delete ho gaya', { icon: '🗑️' });
+            navigate(-1);
+        } catch (e: any) {
+            toast.error(e?.message || 'Delete fail ho gaya');
         }
     };
 
@@ -153,8 +158,8 @@ export const CustomerDetail: React.FC = () => {
 
     const handleUpdateTransaction = async () => {
         if (!selectedTransaction) return;
-        const val = parseFloat(editAmount);
-        if (!val || val <= 0) return toast.error('Valid amount lazmi hai');
+        const val = parseDiscount(editAmount);
+        if (val <= 0) return toast.error('Valid amount lazmi hai');
         
         setLoading(true);
         try {

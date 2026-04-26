@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
 import { fuzzySearch, highlightMatch } from '../services/searchService';
+import { sumLineItems, applyDiscount, parseDiscount, formatRs } from '../utils/money';
 
 export const AddSale: React.FC = () => {
     const { stock, addSale } = useShop();
@@ -17,10 +18,23 @@ export const AddSale: React.FC = () => {
     const [view, setView] = useState<'add' | 'review'>('add');
     const [searchTerm, setSearchTerm] = useState('');
     const [basket, setBasket] = useState<{ id: string; name: string; price: number; qty: number }[]>(() => {
-        const saved = localStorage.getItem('current_sale_basket');
-        return saved ? JSON.parse(saved) : [];
+        // Guard against corrupted localStorage — JSON.parse on garbage used to crash this whole page.
+        try {
+            const saved = localStorage.getItem('current_sale_basket');
+            if (!saved) return [];
+            const parsed = JSON.parse(saved);
+            if (!Array.isArray(parsed)) return [];
+            // Only keep entries that look like valid basket items.
+            return parsed.filter((i: any) =>
+                i && typeof i.id === 'string' && typeof i.name === 'string' &&
+                isFinite(Number(i.price)) && isFinite(Number(i.qty)) && Number(i.qty) > 0
+            );
+        } catch {
+            try { localStorage.removeItem('current_sale_basket'); } catch {}
+            return [];
+        }
     });
-    const [discount, setDiscount] = useState<string | number>(0);
+    const [discount, setDiscount] = useState<string>('');
     const [selectedCustomerName, setSelectedCustomerName] = useState<string | null>(null);
     const [isSearchFocused, setIsSearchFocused] = useState(false);
 
@@ -136,8 +150,9 @@ export const AddSale: React.FC = () => {
         }).filter(i => i.qty > 0));
     };
 
-    const subtotal = basket.reduce((acc, current) => acc + (current.price * current.qty), 0);
-    const total = Math.max(0, subtotal - parseFloat(String(discount || '0')));
+    const subtotal = sumLineItems(basket);
+    const cleanDiscount = parseDiscount(discount);
+    const total = applyDiscount(subtotal, cleanDiscount);
 
     const handleSave = async () => {
         if (basket.length === 0) {
@@ -147,33 +162,34 @@ export const AddSale: React.FC = () => {
         if (isSaving) return;
         setIsSaving(true);
         triggerHaptic(ImpactStyle.Heavy);
-        try {
-            const saleItems = basket.map(i => ({ 
-                itemId: String(i.id), 
-                name: String(i.name), 
-                price: Number(i.price || 0), 
-                qty: Number(i.qty || 0) 
-            }));
-            const parsedDiscount = parseFloat(String(discount || '0'));
-            
-            // ✅ FIX: Validate items before sending to addSale
-            if (saleItems.some(item => !item.itemId || !item.name || item.qty <= 0)) {
-                toast.error('Kuch items mein masla hai (Name/Price/Qty missing), dobara try karein');
-                setIsSaving(false);
-                return;
-            }
-            
-            toast.success("Hisaab Save Hogaya! ✅");
-            localStorage.removeItem('current_sale_basket'); // Clear persistence
-            
-            // Fire and forget, or handle in background
-            addSale(saleItems, 'cash', parsedDiscount).then(invId => {
-                 if (invId) {
-                     // If we are still on the same path or need to show invoice, we could do it here
-                     // but for instant feel, we navigate away immediately below.
-                 }
-            });
 
+        const saleItems = basket.map(i => ({
+            itemId: String(i.id),
+            name: String(i.name),
+            price: Number(i.price || 0),
+            qty: Number(i.qty || 0)
+        }));
+
+        // Validate BEFORE network call — fail fast.
+        if (saleItems.some(item => !item.itemId || !item.name || !isFinite(item.qty) || item.qty <= 0 || !isFinite(item.price) || item.price < 0)) {
+            toast.error('Kuch items mein masla hai (Name/Price/Qty galat), dobara try karein');
+            setIsSaving(false);
+            return;
+        }
+        const parsedDiscount = parseDiscount(discount);
+        if (parsedDiscount > subtotal) {
+            toast.error('Discount subtotal se zyada nahi ho sakta');
+            setIsSaving(false);
+            return;
+        }
+
+        // ✅ AWAIT the sale. Don't pre-show success — only toast after Firestore confirms.
+        // Don't navigate until we know it actually saved, otherwise silent data loss.
+        try {
+            const invId = await addSale(saleItems, 'cash', parsedDiscount);
+            if (!invId) throw new Error('Sale save nahi hui.');
+            try { localStorage.removeItem('current_sale_basket'); } catch {}
+            toast.success("Hisaab Save Hogaya! ✅");
             navigate('/');
         } catch (err: any) {
             console.error('Sale save error:', err);
@@ -186,8 +202,8 @@ export const AddSale: React.FC = () => {
 
     return (
         <PageTransition> <div className="w-full transition-colors duration-300 font-outfit max-w-md mx-auto bg-background text-text-primary ">
-                {/* HEADER */}
-                <div className="pt-16 pb-4 px-5 flex items-center justify-between sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b border-border transition-all">
+                {/* HEADER — pt-page accounts for status-bar safe area on real devices. */}
+                <div className="pt-page pb-4 px-5 flex items-center justify-between sticky top-0 z-sticky bg-background/80 backdrop-blur-md border-b border-border transition-all">
                     <button onClick={() => navigate(-1)} className="p-2 rounded-xl bg-card border border-border text-text-primary active:scale-90 transition-transform">
                         <ArrowLeft size={20} />
                     </button>
@@ -206,8 +222,9 @@ export const AddSale: React.FC = () => {
                     </div>
                 </div>
 
-                {/* BASKET DISPLAY */}
-                <div className="flex-1 overflow-y-auto px-5 mt-4 pb-96">
+                {/* BASKET DISPLAY — bottom padding sized for the floating action card below.
+                    Was pb-96 (24rem) which left a huge empty gap; now matches the actual bar height. */}
+                <div className="flex-1 overflow-y-auto px-5 mt-4" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 22rem)' }}>
                     {view === 'add' ? (
                         <div className="space-y-4">
                             {basket.length === 0 ? (
@@ -234,7 +251,7 @@ export const AddSale: React.FC = () => {
                                             <button onClick={() => updateQty(item.id, 1)} className="w-8 h-8 rounded-xl flex items-center justify-center border border-primary/30 bg-primary/10 text-primary active:scale-90 transition-all">+</button>
                                         </div>
                                         <div className="text-right ml-3 min-w-[95px] shrink-0">
-                                            <p className="text-[14px] font-black text-text-primary whitespace-nowrap">Rs. {(item.price * item.qty).toLocaleString()}</p>
+                                            <p className="text-[14px] font-black text-text-primary whitespace-nowrap">Rs. {formatRs(item.price * item.qty)}</p>
                                             <button onClick={() => updateQty(item.id, -999)} className="text-[9px] font-black text-red-500/60 uppercase tracking-widest mt-1">Remove</button>
                                         </div>
                                     </motion.div>
@@ -258,15 +275,15 @@ export const AddSale: React.FC = () => {
                                     <div className="h-px bg-border my-4" />
                                     <div className="flex justify-between text-[14px]">
                                         <span className="text-text-muted font-bold">Subtotal</span>
-                                        <span className="font-black text-text-primary">Rs. {subtotal}</span>
+                                        <span className="font-black text-text-primary">Rs. {formatRs(subtotal)}</span>
                                     </div>
                                     <div className="flex justify-between text-[14px]">
                                         <span className="text-text-muted font-bold">Discount</span>
-                                        <span className="font-black text-red-500">- Rs. {discount || 0}</span>
+                                        <span className="font-black text-red-500">- Rs. {formatRs(cleanDiscount)}</span>
                                     </div>
                                     <div className="flex justify-between items-center bg-white dark:bg-black/20 p-4 rounded-2xl mt-4">
                                         <span className="text-[12px] font-black uppercase">Net Total</span>
-                                        <span className="text-[24px] font-black text-primary">Rs. {total.toLocaleString()}</span>
+                                        <span className="text-[24px] font-black text-primary">Rs. {formatRs(total)}</span>
                                     </div>
                                 </div>
                             </div>
@@ -274,7 +291,10 @@ export const AddSale: React.FC = () => {
                     )}
                 </div>
 
-                <div className="fixed bottom-6 inset-x-0 mx-auto max-w-md p-6 rounded-t-[3.5rem] shadow-[0_-20px_50px_rgba(0,0,0,0.2)] border-t transition-all duration-500 bg-card border-border z-40">
+                <div
+                  className="fixed inset-x-0 mx-auto max-w-md p-6 rounded-t-[3.5rem] shadow-[0_-20px_50px_rgba(0,0,0,0.2)] border-t transition-all duration-500 bg-card border-border z-fab"
+                  style={{ bottom: 'env(safe-area-inset-bottom, 0px)' }}
+                >
                     {view === 'add' ? (
                         <>
                             <div className="relative mb-6">
@@ -371,12 +391,18 @@ export const AddSale: React.FC = () => {
                                 </div>
                                 <div className="rounded-[2.2rem] p-5 flex flex-col items-center border border-border bg-background/40">
                                     <p className="text-[10px] font-black text-text-muted uppercase tracking-[0.2em] mb-1">Discount Rs.</p>
-                                    <input 
-                                        type="number" 
-                                        value={discount} 
-                                        onChange={e => setDiscount(e.target.value)}
+                                    <input
+                                        type="number"
+                                        inputMode="decimal"
+                                        min={0}
+                                        value={discount}
+                                        onChange={e => {
+                                            const v = e.target.value;
+                                            // Block negatives and obviously bad input at the source.
+                                            if (v === '' || (Number(v) >= 0 && isFinite(Number(v)))) setDiscount(v);
+                                        }}
                                         placeholder="0"
-                                        className="w-full bg-transparent text-center text-[22px] font-black text-red-500 outline-none" 
+                                        className="w-full bg-transparent text-center text-[22px] font-black text-red-500 outline-none"
                                     />
                                 </div>
                             </div>
@@ -386,7 +412,7 @@ export const AddSale: React.FC = () => {
                                     <p className="text-[10px] font-black text-text-muted uppercase tracking-widest leading-none mb-1">Net Payable</p>
                                     <div className="flex items-baseline gap-1">
                                         <span className="text-[14px] font-black text-text-primary/40 uppercase tracking-tighter">Rs.</span>
-                                        <h2 className="text-[32px] font-black text-text-primary tracking-tighter leading-none">{total.toLocaleString()}</h2>
+                                        <h2 className="text-[32px] font-black text-text-primary tracking-tighter leading-none">{formatRs(total)}</h2>
                                     </div>
                                 </div>
                                 <button 

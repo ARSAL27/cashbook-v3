@@ -70,14 +70,17 @@ export const MainLayout: React.FC = () => {
   return (
     <div className="min-h-screen bg-[#F8F9FB] dark:bg-[#050510] transition-colors duration-500 font-outfit">
       
-      {/* MAIN CONTENT AREA */}
-      <main className={`flex-1 ${isMainTab ? 'pb-[100px]' : 'pb-safe'}`}>
+      {/* MAIN CONTENT AREA — `.pb-with-nav` accounts for floating nav + iPhone home indicator. */}
+      <main className={`flex-1 ${isMainTab ? 'pb-with-nav' : 'pb-safe'}`}>
         <Outlet />
       </main>
 
-      {/* FLOATING PREMIUM BOTTOM NAVIGATION (Only visible on main tabs) */}
+      {/* FLOATING PREMIUM BOTTOM NAVIGATION — z-nav (50) so modals (z-200) stack above it. */}
       {isMainTab && (
-        <div className="fixed bottom-6 inset-x-5 z-[150] max-w-md mx-auto">
+        <div
+          className="fixed inset-x-5 z-nav max-w-md mx-auto"
+          style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 1.5rem)' }}
+        >
           <nav className="glass-card bg-white/80 dark:bg-black/40 backdrop-blur-2xl border border-white/40 dark:border-white/5 rounded-[1.5rem] px-4 py-2 shadow-[0_20px_50px_rgba(0,0,0,0.15)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.4)] flex items-center justify-between">
           
           {navItems.map((item) => {

@@ -154,7 +154,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setLockedUntil(lockout);
             setAutoLockTimer(timer);
 
-            // Sync to shops collection if email is verified
+            // Sync to shops collection if email is verified.
+            // Wrapped: an unhandled reject inside an onSnapshot callback can break
+            // the listener and leave the app stuck on splash.
             if (u.emailVerified) {
               const profileData = {
                 email: u.email,
@@ -164,11 +166,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 updatedAt: serverTimestamp(),
                 emailVerified: true
               };
-              await setDoc(doc(db, 'shops', u.uid), profileData, { merge: true });
-              await setDoc(doc(db, 'users', u.uid), { emailVerified: true }, { merge: true });
+              try {
+                await setDoc(doc(db, 'shops', u.uid), profileData, { merge: true });
+                await setDoc(doc(db, 'users', u.uid), { emailVerified: true }, { merge: true });
+              } catch (syncErr) {
+                console.warn('Shop profile sync failed (will retry on next auth event)', syncErr);
+              }
             }
 
             checkPinRequirement(!!existingPin, isPinEnabled, timer, lockout);
+            setIsSecurityReady(true);
+          }, (snapErr) => {
+            console.warn('User doc listener failed', snapErr);
+            // Don't block the app — let it run with cached/default values.
             setIsSecurityReady(true);
           });
         } catch (err) {
@@ -369,8 +379,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await setDoc(doc(db, 'shops', user.uid), data, { merge: true });
       setFailedAttempts(attempts);
       setLockedUntil(lockoutTime);
-    } catch (e) {
-      console.error('Security update failed');
+    } catch (e: any) {
+      // Don't toast here — this fires on every PIN attempt, would spam offline users.
+      // Still update local state so the lockout/counter works without cloud sync.
+      setFailedAttempts(attempts);
+      setLockedUntil(lockoutTime);
+      console.error('Security update failed', e);
     }
   };
 

@@ -268,7 +268,7 @@ export const Reports: React.FC = () => {
       <div className="w-full transition-colors duration-300 font-outfit max-w-md mx-auto bg-background text-text-primary min-h-screen pb-40">
         
         {/* HEADER */}
-        <div className="pt-16 pb-4 px-5 flex items-center justify-between sticky top-0 bg-background/90 backdrop-blur-xl z-20 border-b border-border/10">
+        <div className="pt-page pb-4 px-5 flex items-center justify-between sticky top-0 bg-background/90 backdrop-blur-xl z-sticky border-b border-border/10">
             <div className="flex items-center gap-3">
                 <button onClick={() => navigate(-1)} className="p-2 -ml-2 text-text-primary active:scale-90 transition-transform">
                     <ArrowLeft size={22} />

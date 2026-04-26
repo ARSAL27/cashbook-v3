@@ -9,6 +9,7 @@ import {
 import { sendNativeNotification } from '../utils/notifications';
 import { sanitizeString } from '../utils/crypto';
 import { getLocalDateString } from '../utils/dateUtils';
+import { sumLineItems, applyDiscount, parseDiscount } from '../utils/money';
 
 // ─── TYPES ───────────────────────────────────────────────────────────────────
 
@@ -210,6 +211,7 @@ interface ShopContextType {
   addUdhaar: (customerName: string, amount: number, note?: string) => Promise<void>;
   updateStock: (id: string, newQuantity: number, type?: 'restock' | 'adjustment', note?: string) => Promise<void>;
   updateStockItem: (id: string, data: Partial<Stock>) => Promise<void>;
+  restockItem: (id: string, addQty: number, fields: Partial<Stock>, note?: string) => Promise<void>;
   toggleStockItemStatus: (id: string) => Promise<void>;
   addStockItem: (item: Omit<Stock, 'id' | 'history' | 'soldCount' | 'status'>) => Promise<void>;
   deleteStockItem: (id: string) => Promise<void>;
@@ -301,10 +303,15 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const appStartTime = new Date();
     let isFirstLoad = true;
 
+    const onListenError = (label: string) => (err: any) => {
+      // Don't toast every offline blip — just log; UI keeps last cached values.
+      console.warn(`[Firestore listener:${label}]`, err?.code || err?.message || err);
+    };
+
     const unsubNotifications = onSnapshot(collection(shopRef, 'notifications'), snap => {
       const docs = snap.docs.map(d => ({ id: d.id, ...d.data() } as any)).filter(i => !i.isDeleted);
       setNotifications(docs.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
-      
+
       if (!isFirstLoad) {
         snap.docChanges().forEach(change => {
           if (change.type === 'added') {
@@ -317,7 +324,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
         });
       }
       isFirstLoad = false;
-    });
+    }, onListenError('notifications'));
 
     const unsubs = [
       onSnapshot(shopRef, snap => {
@@ -365,28 +372,28 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (data.length > 0) {
             autoFixStockCategories(data).catch(() => {});
         }
-      }),
+      }, onListenError('stock')),
       onSnapshot(query(collection(shopRef, 'sales'), orderBy('date', 'desc')), snap => {
         setSales(snap.docs.map(d => ({ id: d.id, ...d.data() } as any)).filter(i => !i.isDeleted));
-      }),
+      }, onListenError('sales')),
       onSnapshot(query(collection(shopRef, 'expenses'), orderBy('date', 'desc')), snap => {
         setExpenses(snap.docs.map(d => ({ id: d.id, ...d.data() } as any)).filter(i => !i.isDeleted));
-      }),
+      }, onListenError('expenses')),
       onSnapshot(query(collection(shopRef, 'udhaar'), orderBy('date', 'desc')), snap => {
         setUdhaars(snap.docs.map(d => ({ id: d.id, ...d.data() } as any)).filter(i => !i.isDeleted));
-      }),
+      }, onListenError('udhaar')),
       onSnapshot(query(collection(shopRef, 'contacts'), orderBy('name')), snap => {
         setContacts(snap.docs.map(d => ({ id: d.id, ...d.data() } as any)).filter(i => !i.isDeleted));
-      }),
+      }, onListenError('contacts')),
       onSnapshot(query(collection(shopRef, 'invoices'), orderBy('date', 'desc')), snap => {
         setInvoices(snap.docs.map(d => ({ id: d.id, ...d.data() } as any)).filter(i => !i.isDeleted));
-      }),
+      }, onListenError('invoices')),
       onSnapshot(query(collection(shopRef, 'staff'), orderBy('name')), snap => {
         setStaff(snap.docs.map(d => ({ id: d.id, ...d.data() } as any)).filter(i => !i.isDeleted));
-      }),
+      }, onListenError('staff')),
       onSnapshot(query(collection(shopRef, 'activities'), orderBy('date', 'desc')), snap => {
         setActivities(snap.docs.map(d => ({ id: d.id, ...d.data() } as any)).filter(i => !i.isDeleted));
-      }),
+      }, onListenError('activities')),
       unsubNotifications
     ];
 
@@ -480,88 +487,133 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  // Collision-resistant invoice number — Date.now ms + 4 random hex chars.
+  // Avoids reuse-on-delete and multi-device collisions that `invoices.length+1` had.
+  const generateInvoiceNumber = (): string => {
+    const year = new Date().getFullYear();
+    const ts = Date.now().toString(36).toUpperCase();
+    const rand = Math.random().toString(36).slice(2, 6).toUpperCase();
+    return `INV-${year}-${ts}-${rand}`;
+  };
+
   const addSale = async (items: any[], type: 'cash' | 'udhaar', discount: number = 0): Promise<string | undefined> => {
     if (!user) return;
     const limit = checkLimit('sales');
     if (!limit.allowed) throw new Error(limit.message);
 
+    // Input validation — fail loud BEFORE touching Firestore.
+    if (!Array.isArray(items) || items.length === 0) {
+      throw new Error('Sale empty hai.');
+    }
     for (const i of items) {
-      const stockItem = stock.find(s => s.id === String(i.itemId));
-      if (stockItem && Number(stockItem.quantity) < Number(i.qty)) {
-        throw new Error(`"${stockItem.name}" ka stock kam hai.`);
-      }
+      const qty = Number(i?.qty);
+      const price = Number(i?.price);
+      if (!i?.itemId || !i?.name) throw new Error('Item ka data adhura hai.');
+      if (!isFinite(qty) || qty <= 0) throw new Error(`"${i.name}" ki qty galat hai.`);
+      if (!isFinite(price) || price < 0) throw new Error(`"${i.name}" ka price galat hai.`);
     }
 
     const shopRef = doc(db, 'shops', user.uid);
-    const subtotal = items.reduce((s, i) => s + i.price * i.qty, 0);
-    const total = Math.max(0, subtotal - discount);
+    // Money math via paisa-integer helpers — no float drift.
+    const subtotal = sumLineItems(items);
+    const cleanDiscount = parseDiscount(discount);
+    const total = applyDiscount(subtotal, cleanDiscount);
     const date = new Date().toISOString();
-    
-    const year = new Date().getFullYear();
-    const uniqueSuffix = Date.now().toString().slice(-4);
-    const num = String(invoices.length + 1).padStart(2, '0') + '-' + uniqueSuffix;
-    const invoiceNumber = `INV-${year}-${num}`;
+    const invoiceNumber = generateInvoiceNumber();
+
+    let invoiceId = '';
 
     try {
-      const batch = writeBatch(db);
-      const invRef = doc(collection(shopRef, 'invoices'));
-      const saleRef = doc(collection(shopRef, 'sales'));
+      // ✅ Transaction: read stock from Firestore (NOT React state) inside the txn,
+      // check qty, then write. This kills the over-sell race where two concurrent
+      // sales both saw the same stale `stock` array and both wrote.
+      await runTransaction(db, async (transaction) => {
+        // ── Phase 1: ALL READS ──
+        const reads: { ref: any; snap: any; item: any }[] = [];
+        for (const i of items) {
+          const itemRef = doc(shopRef, 'stock', String(i.itemId));
+          const snap = await transaction.get(itemRef);
+          reads.push({ ref: itemRef, snap, item: i });
+        }
 
-      batch.set(invRef, {
-        invoiceNumber,
-        customerName: 'Walk-in Customer',
-        items: items.map(i => ({
-          itemId: i.itemId,
-          name: i.name,
-          qty: i.qty,
-          price: i.price,
-          total: i.qty * i.price
-        })),
-        subtotal,
-        discount,
-        total,
-        paymentMethod: type,
-        status: type === 'udhaar' ? 'unpaid' : 'paid',
-        date
-      });
+        // ── Phase 2: VALIDATE against fresh data ──
+        for (const { snap, item } of reads) {
+          if (!snap.exists()) throw new Error(`"${item.name}" stock mein nahi hai.`);
+          const data = snap.data() as any;
+          if (Number(data.quantity) < Number(item.qty)) {
+            throw new Error(`"${data.name || item.name}" ka stock kam hai (available: ${data.quantity}).`);
+          }
+        }
 
-      batch.set(saleRef, { 
-        total, type, items, date, invoiceId: invRef.id, subtotal, discount,
-        isDeleted: false 
-      });
+        // ── Phase 3: ALL WRITES ──
+        const invRef = doc(collection(shopRef, 'invoices'));
+        const saleRef = doc(collection(shopRef, 'sales'));
+        invoiceId = invRef.id;
 
-      for (const i of items) {
-        const stockItem = stock.find(s => s.id === i.itemId);
-        if (stockItem) {
-          const newQuantity = stockItem.quantity - i.qty;
-          const newSoldCount = (stockItem.soldCount || 0) + i.qty;
-          const historyEntry = { id: Math.random().toString(36).substring(7), type: 'sale', quantity: -i.qty, date, note: `Invoice ${invoiceNumber}` };
-          const itemRef = doc(shopRef, 'stock', i.itemId);
-          batch.update(itemRef, { 
-            quantity: newQuantity, 
-            soldCount: newSoldCount,
+        const invoiceItems = items.map(i => ({
+          itemId: String(i.itemId),
+          name: String(i.name),
+          qty: Number(i.qty),
+          price: Number(i.price),
+          total: sumLineItems([i])
+        }));
+
+        transaction.set(invRef, {
+          invoiceNumber,
+          customerName: 'Walk-in Customer',
+          items: invoiceItems,
+          subtotal,
+          discount: cleanDiscount,
+          total,
+          paymentMethod: type,
+          status: type === 'udhaar' ? 'unpaid' : 'paid',
+          date,
+          isDeleted: false,
+          createdAt: serverTimestamp()
+        });
+
+        transaction.set(saleRef, {
+          total, type, items: invoiceItems, date,
+          invoiceId: invRef.id, subtotal, discount: cleanDiscount,
+          isDeleted: false,
+          createdAt: serverTimestamp()
+        });
+
+        for (const { ref, snap, item } of reads) {
+          const data = snap.data() as any;
+          const historyEntry = {
+            id: Math.random().toString(36).substring(2, 9),
+            type: 'sale',
+            quantity: -Number(item.qty),
+            date,
+            note: `Invoice ${invoiceNumber}`
+          };
+          transaction.update(ref, {
+            quantity: Number(data.quantity) - Number(item.qty),
+            soldCount: (Number(data.soldCount) || 0) + Number(item.qty),
             history: arrayUnion(historyEntry)
           });
         }
-      }
 
-      if (type === 'udhaar') {
-        const udhaarRef = doc(collection(shopRef, 'udhaar'));
-        batch.set(udhaarRef, {
-          customerName: 'Walk-in Customer',
-          amount: total,
-          date,
-          note: `Invoice ${invoiceNumber}`,
-          isDeleted: false
-        });
-      }
+        if (type === 'udhaar') {
+          const udhaarRef = doc(collection(shopRef, 'udhaar'));
+          transaction.set(udhaarRef, {
+            customerName: 'Walk-in Customer',
+            amount: total,
+            date,
+            note: `Invoice ${invoiceNumber}`,
+            isDeleted: false,
+            createdAt: serverTimestamp()
+          });
+        }
+      });
 
-      batch.commit().catch(e => console.error("Batch commit failed", e));
-      updateLastSync();
-      return invRef.id;
-    } catch (e) {
-      console.error("Sale Atomic Transaction Failed", e);
-      throw new Error("Sale fail ho gayi: " + (e as any).message);
+      updateLastSync().catch(() => {});
+      return invoiceId;
+    } catch (e: any) {
+      console.error('Sale Atomic Transaction Failed', e);
+      // Re-throw so callers can show a real error — DO NOT swallow.
+      throw new Error(e?.message || 'Sale fail ho gayi.');
     }
   };
 
@@ -717,15 +769,17 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const addInvoice = async (invoice: Omit<Invoice, 'id' | 'invoiceNumber' | 'date'>): Promise<string> => {
     if (!user) throw new Error('Not logged in');
-    if (invoice.total < 0 || invoice.subtotal < 0) throw new Error('Invalid calculation');
+    if (!Array.isArray(invoice.items) || invoice.items.length === 0) throw new Error('Invoice mein koi item nahi hai.');
+    if (!isFinite(invoice.total) || invoice.total < 0) throw new Error('Invoice total invalid hai.');
+    if (!isFinite(invoice.subtotal) || invoice.subtotal < 0) throw new Error('Invoice subtotal invalid hai.');
+    if (!isFinite(invoice.discount) || invoice.discount < 0) throw new Error('Discount invalid hai.');
+    if (invoice.discount > invoice.subtotal) throw new Error('Discount subtotal se zyada nahi ho sakta.');
+    if (!invoice.customerName || !invoice.customerName.trim()) throw new Error('Customer name lazmi hai.');
     const shopRef = doc(db, 'shops', user.uid);
     const limit = checkLimit('sales');
     if (!limit.allowed) throw new Error(limit.message);
 
-    const year = new Date().getFullYear();
-    const uniqueSuffix = Date.now().toString().slice(-4);
-    const num = String(invoices.length + 1).padStart(2, '0') + '-' + uniqueSuffix;
-    const invoiceNumber = `INV-${year}-${num}`;
+    const invoiceNumber = generateInvoiceNumber();
     const date = new Date().toISOString();
     let newInvoiceId = '';
 
@@ -813,8 +867,8 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
     }
 
-    batch.commit();
-    updateLastSync();
+    await batch.commit();
+    await updateLastSync();
   };
 
   const addStaff = async (member: Omit<Staff, 'id' | 'joinedAt'> & { uid?: string }) => {
@@ -845,6 +899,32 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     batch.update(doc(db, 'shops', user.uid, 'stock', id), { quantity: newQuantity, history: arrayUnion(historyEntry), updatedAt: serverTimestamp() });
     await batch.commit();
     updateLastSync().catch(()=>{});
+  };
+
+  // ✅ Atomic restock: uses Firestore `increment` + `arrayUnion` so two concurrent
+  // restocks can't lose each other (the previous read-then-write pattern via
+  // updateStockItem dropped one of the two updates). Use this from any "receive
+  // stock" flow instead of computing the new quantity client-side.
+  const restockItem = async (id: string, addQty: number, fields: Partial<Stock>, note?: string) => {
+    if (!user) return;
+    const qty = Number(addQty);
+    if (!isFinite(qty) || qty <= 0) throw new Error('Restock qty galat hai.');
+    const historyEntry = {
+      id: Math.random().toString(36).substring(2, 9),
+      type: 'restock' as const,
+      quantity: qty,
+      date: new Date().toISOString(),
+      note: note || 'Restock'
+    };
+    // Sanitize updatable fields — strip qty/history (we control those) and undefined.
+    const { quantity: _q, history: _h, soldCount: _s, id: _i, ...patch } = (fields || {}) as any;
+    const sanitized = sanitizeForFirebase({ ...patch, updatedAt: serverTimestamp() });
+    await updateDoc(doc(db, 'shops', user.uid, 'stock', id), {
+      ...sanitized,
+      quantity: increment(qty),
+      history: arrayUnion(historyEntry)
+    });
+    await updateLastSync();
   };
 
   const updateStockItem = async (id: string, data: Partial<Stock>) => {
@@ -930,7 +1010,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
       stock, sales, expenses, udhaars, contacts, contactsMap, invoices, staff, activities, notifications, categories, profile, loading, 
       currentShopId, setCurrentShopId, logAudit, updateDailyBalance,
       addSale, addExpense, addUdhaar, addUdhaarPayment, updateUdhaar, deleteUdhaar, deleteCustomer, 
-      addContact, updateContact, deleteContact, toggleContactImportance, addInvoice, updateInvoice, deleteInvoice, addStaff, deleteStaff, logActivity, updateStock, updateStockItem, toggleStockItemStatus, addStockItem, deleteStockItem, updateProfile, updateRolePermissions, updateSecuritySettings, toggleUdhaarUrgency, markNotificationRead, clearNotifications, checkLimit, clearOldData, clearAllData, updateLastSync, addCategory, deleteCategory 
+      addContact, updateContact, deleteContact, toggleContactImportance, addInvoice, updateInvoice, deleteInvoice, addStaff, deleteStaff, logActivity, updateStock, updateStockItem, restockItem, toggleStockItemStatus, addStockItem, deleteStockItem, updateProfile, updateRolePermissions, updateSecuritySettings, toggleUdhaarUrgency, markNotificationRead, clearNotifications, checkLimit, clearOldData, clearAllData, updateLastSync, addCategory, deleteCategory 
     }}>
       {children}
     </ShopContext.Provider>

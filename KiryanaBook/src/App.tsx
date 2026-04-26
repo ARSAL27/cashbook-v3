@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { Capacitor } from '@capacitor/core';
@@ -10,52 +10,59 @@ import { ThemeProvider } from './context/ThemeContext';
 import { LanguageProvider } from './context/LanguageContext';
 import { MainLayout } from './layouts/MainLayout';
 import { Dashboard } from './pages/Dashboard';
-import { Customers } from './pages/Customers';
-import { Stock } from './pages/Stock';
-import { Reports } from './pages/Reports';
-import { Settings } from './pages/Settings';
 import { Login } from './pages/Login';
-import { Onboarding } from './pages/Onboarding';
-import { StockDetail } from './pages/StockDetail';
-import { CustomerDetail } from './pages/CustomerDetail';
-import { AddSale } from './pages/AddSale';
-import { AddExpense } from './pages/AddExpense';
-import { AddUdhaar } from './pages/AddUdhaar';
-import { ReportsDetail } from './pages/ReportsDetail';
-import { ProfileSettings } from './pages/ProfileSettings';
-import { HelpSupport } from './pages/HelpSupport';
-import { Plans } from './pages/Plans';
-import { AddContact } from './pages/AddContact';
-import { LedgerDetail } from './pages/LedgerDetail';
-import { Invoices } from './pages/Invoices';
-import { StaffDirectory } from './pages/StaffDirectory';
-import { AddStaff } from './pages/AddStaff';
-import { StaffActivity } from './pages/StaffActivity';
-import { RolePermissions } from './pages/RolePermissions';
-import { Notifications } from './pages/Notifications';
-import { CashFlow } from './pages/CashFlow';
-import { AddItem } from './pages/AddItem';
-import { NewInvoice } from './pages/NewInvoice';
-import { InvoiceDetail } from './pages/InvoiceDetail';
-import { Setup } from './pages/Setup';
-import { VerifyEmail } from './pages/VerifyEmail';
 import { SecurityPinScreen } from './components/SecurityPinScreen';
-import { Manager } from './pages/Manager';
-import { NotificationDetail } from './pages/NotificationDetail';
-import { StockReceive } from './pages/StockReceive';
-import { BarcodeScanner } from './pages/BarcodeScanner';
-import { BrandDetail } from './pages/BrandDetail';
-import { BulkScanMode } from './pages/BulkScanMode';
-import { AllActivity } from './pages/AllActivity';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { App as CapApp } from '@capacitor/app';
-import { BalanceHistory } from './pages/BalanceHistory';
 import { motion } from 'framer-motion';
+
+// Lazy-loaded pages — these were ~2.6 MB in one bundle, slowing cold start.
+// Helper handles the named-export → default-export shape `React.lazy` requires.
+const lazyNamed = <K extends string>(loader: () => Promise<Record<K, React.ComponentType<any>>>, key: K) =>
+  lazy(() => loader().then(m => ({ default: m[key] })));
+
+const Customers = lazyNamed(() => import('./pages/Customers'), 'Customers');
+const Stock = lazyNamed(() => import('./pages/Stock'), 'Stock');
+const Reports = lazyNamed(() => import('./pages/Reports'), 'Reports');
+const Settings = lazyNamed(() => import('./pages/Settings'), 'Settings');
+const Onboarding = lazyNamed(() => import('./pages/Onboarding'), 'Onboarding');
+const StockDetail = lazyNamed(() => import('./pages/StockDetail'), 'StockDetail');
+const CustomerDetail = lazyNamed(() => import('./pages/CustomerDetail'), 'CustomerDetail');
+const AddSale = lazyNamed(() => import('./pages/AddSale'), 'AddSale');
+const AddExpense = lazyNamed(() => import('./pages/AddExpense'), 'AddExpense');
+const AddUdhaar = lazyNamed(() => import('./pages/AddUdhaar'), 'AddUdhaar');
+const ReportsDetail = lazyNamed(() => import('./pages/ReportsDetail'), 'ReportsDetail');
+const ProfileSettings = lazyNamed(() => import('./pages/ProfileSettings'), 'ProfileSettings');
+const HelpSupport = lazyNamed(() => import('./pages/HelpSupport'), 'HelpSupport');
+const Plans = lazyNamed(() => import('./pages/Plans'), 'Plans');
+const AddContact = lazyNamed(() => import('./pages/AddContact'), 'AddContact');
+const LedgerDetail = lazyNamed(() => import('./pages/LedgerDetail'), 'LedgerDetail');
+const Invoices = lazyNamed(() => import('./pages/Invoices'), 'Invoices');
+const StaffDirectory = lazyNamed(() => import('./pages/StaffDirectory'), 'StaffDirectory');
+const AddStaff = lazyNamed(() => import('./pages/AddStaff'), 'AddStaff');
+const StaffActivity = lazyNamed(() => import('./pages/StaffActivity'), 'StaffActivity');
+const RolePermissions = lazyNamed(() => import('./pages/RolePermissions'), 'RolePermissions');
+const Notifications = lazyNamed(() => import('./pages/Notifications'), 'Notifications');
+const CashFlow = lazyNamed(() => import('./pages/CashFlow'), 'CashFlow');
+const AddItem = lazyNamed(() => import('./pages/AddItem'), 'AddItem');
+const NewInvoice = lazyNamed(() => import('./pages/NewInvoice'), 'NewInvoice');
+const InvoiceDetail = lazyNamed(() => import('./pages/InvoiceDetail'), 'InvoiceDetail');
+const Setup = lazyNamed(() => import('./pages/Setup'), 'Setup');
+const VerifyEmail = lazyNamed(() => import('./pages/VerifyEmail'), 'VerifyEmail');
+const Manager = lazyNamed(() => import('./pages/Manager'), 'Manager');
+const NotificationDetail = lazyNamed(() => import('./pages/NotificationDetail'), 'NotificationDetail');
+const StockReceive = lazyNamed(() => import('./pages/StockReceive'), 'StockReceive');
+const BarcodeScanner = lazyNamed(() => import('./pages/BarcodeScanner'), 'BarcodeScanner');
+const BrandDetail = lazyNamed(() => import('./pages/BrandDetail'), 'BrandDetail');
+const BulkScanMode = lazyNamed(() => import('./pages/BulkScanMode'), 'BulkScanMode');
+const AllActivity = lazyNamed(() => import('./pages/AllActivity'), 'AllActivity');
+const BalanceHistory = lazyNamed(() => import('./pages/BalanceHistory'), 'BalanceHistory');
 
 // ─── THE EXACT DISNEY+ APP SPLASH REPLICA ('KiryanaBook' Edition) ────────────
 const SplashLoader = () => {
   return (
-    <div 
-      className="fixed inset-0 z-[10000] flex flex-col items-center justify-center overflow-hidden"
+    <div
+      className="fixed inset-0 z-splash flex flex-col items-center justify-center overflow-hidden"
       style={{ background: 'radial-gradient(circle at center, #051A0F 0%, #000000 100%)' }}
     >
       <motion.div 
@@ -264,8 +271,9 @@ function AppRoutes() {
 
   return (
     <>
-      <Toaster position="top-right" />
+      <Toaster position="top-center" containerStyle={{ zIndex: 'var(--z-toast)' as any }} toastOptions={{ duration: 3000, style: { fontFamily: 'Outfit, sans-serif', fontWeight: 700, fontSize: 13 } }} />
       {user && isSecurityReady && location.pathname !== '/help' && location.pathname !== '/verify-email' && <SecurityPinScreen />}
+      <Suspense fallback={<SplashLoader />}>
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/onboarding" element={<NewUserRoute><Onboarding /></NewUserRoute>} />
@@ -309,22 +317,25 @@ function AppRoutes() {
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+      </Suspense>
     </>
   );
 }
 
 export default function App() {
   return (
-    <ThemeProvider>
-      <LanguageProvider>
-        <AuthProvider>
-          <ShopProvider>
-            <Router>
-               <AppRoutes />
-            </Router>
-          </ShopProvider>
-        </AuthProvider>
-      </LanguageProvider>
-    </ThemeProvider>
+    <ErrorBoundary>
+      <ThemeProvider>
+        <LanguageProvider>
+          <AuthProvider>
+            <ShopProvider>
+              <Router>
+                 <AppRoutes />
+              </Router>
+            </ShopProvider>
+          </AuthProvider>
+        </LanguageProvider>
+      </ThemeProvider>
+    </ErrorBoundary>
   );
 }

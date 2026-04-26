@@ -126,7 +126,7 @@ export const AddUdhaar: React.FC = () => {
   const glowColorType = type === 'liye' ? 'shadow-emerald-500/50' : 'shadow-rose-500/50';
 
   return (
-    <PageTransition> <div className={`w-full min-h-screen pb-[350px] transition-colors duration-500 font-outfit max-w-md mx-auto ${isDarkMode ? 'bg-[#050505]' : 'bg-[#FAFAFA]'}`}> {/* PREMIUM DYNAMIC HEADER */} <motion.div layout className={`relative overflow-hidden pt-8 pb-10 px-6 rounded-b-[2.5rem] bg-gradient-to-br ${bgGradientType} text-white shadow-2xl transition-all duration-500 min-h-[220px] z-10 flex flex-col justify-between`} > {/* Glossy Overlay */} <div className="absolute inset-0 bg-white/10 backdrop-blur-[2px] opacity-20 pointer-events-none " />
+    <PageTransition> <div className={`w-full min-h-screen pb-with-fab transition-colors duration-500 font-outfit max-w-md mx-auto ${isDarkMode ? 'bg-[#050505]' : 'bg-[#FAFAFA]'}`}> {/* PREMIUM DYNAMIC HEADER — pt-page respects status-bar safe area. */} <motion.div layout className={`relative overflow-hidden pt-page pb-10 px-6 rounded-b-[2.5rem] bg-gradient-to-br ${bgGradientType} text-white shadow-2xl transition-all duration-500 min-h-[220px] z-10 flex flex-col justify-between`} > {/* Glossy Overlay */} <div className="absolute inset-0 bg-white/10 backdrop-blur-[2px] opacity-20 pointer-events-none " />
             <div className="absolute -top-24 -right-10 w-48 h-48 bg-white/20 blur-3xl rounded-full" />
             <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-black/20 blur-2xl rounded-full" />
 
@@ -270,7 +270,7 @@ export const AddUdhaar: React.FC = () => {
         </div>
 
         {/* BOTTOM FIXED NUMPAD & SAVE */}
-        <div className="fixed bottom-0 inset-x-0 mx-auto max-w-md bg-white dark:bg-[#0A0A0A] rounded-t-[2.5rem] shadow-[0_-10px_40px_rgba(0,0,0,0.08)] dark:shadow-[0_-10px_40px_rgba(0,0,0,0.5)] border-t border-gray-100 dark:border-white/5 pt-6 pb-8 px-6 z-[100] backdrop-blur-2xl">
+        <div className="fixed bottom-0 inset-x-0 mx-auto max-w-md bg-white dark:bg-[#0A0A0A] rounded-t-[2.5rem] shadow-[0_-10px_40px_rgba(0,0,0,0.08)] dark:shadow-[0_-10px_40px_rgba(0,0,0,0.5)] border-t border-gray-100 dark:border-white/5 pt-6 px-6 z-modal-backdrop backdrop-blur-2xl" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 2rem)' }}>
             <div className="grid grid-cols-3 gap-2 mb-6">
                 {[1, 2, 3, 4, 5, 6, 7, 8, 9, '.', 0].map((num) => (
                     <button

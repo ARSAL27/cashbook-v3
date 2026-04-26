@@ -8,6 +8,7 @@ import { useTheme } from '../context/ThemeContext';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
 import toast from 'react-hot-toast';
 import { formatReceipt, shareOnWhatsApp } from '../services/whatsappService';
+import { sumLineItems, applyDiscount, parseDiscount, formatRs } from '../utils/money';
 
 interface Item { itemId: string; name: string; qty: number; price: number; total: number; }
 
@@ -43,16 +44,25 @@ export const NewInvoice: React.FC = () => {
 
   const frequentCustomers = useMemo(() => contacts.slice(0, 5), [contacts]);
 
-  const subtotal = useMemo(() => items.reduce((s, i) => s + i.total, 0), [items]);
-  const discountVal = parseFloat(discount) || 0;
-  const finalTotal = Math.max(0, subtotal - discountVal);
+  const subtotal = useMemo(() => sumLineItems(items), [items]);
+  const discountVal = parseDiscount(discount);
+  const finalTotal = applyDiscount(subtotal, discountVal);
 
   const updateItem = (idx: number, field: keyof Item, val: any) => {
     setItems(prev => {
       const copy = [...prev];
-      const item = { ...copy[idx], [field]: val };
+      // Coerce qty/price to numbers HERE so they're never strings in state.
+      let coerced = val;
+      if (field === 'qty') {
+        const n = parseInt(String(val), 10);
+        coerced = isFinite(n) && n > 0 ? n : 1;
+      } else if (field === 'price') {
+        const n = parseFloat(String(val));
+        coerced = isFinite(n) && n >= 0 ? n : 0;
+      }
+      const item = { ...copy[idx], [field]: coerced } as Item;
       if (field === 'qty' || field === 'price') {
-        item.total = (parseFloat(item.qty as any) || 0) * (parseFloat(item.price as any) || 0);
+        item.total = sumLineItems([{ price: item.price, qty: item.qty }]);
       }
       copy[idx] = item;
       return copy;
@@ -82,19 +92,26 @@ export const NewInvoice: React.FC = () => {
 
   const handleSave = async () => {
     if (loading) return;
-    setLoading(true);
 
     if (!customerName.trim()) {
       toast.error('Customer ka naam zaruri hai!');
-      setLoading(false);
       return;
     }
     if (items.length === 0) {
       toast.error('Kam az kam aik cheez add karein');
-      setLoading(false);
       return;
     }
-    
+    // Validate every line — saves a round trip to Firestore for obvious garbage.
+    if (items.some(i => !i.itemId || !i.name || !isFinite(i.qty) || i.qty <= 0 || !isFinite(i.price) || i.price < 0)) {
+      toast.error('Kuch items mein qty/price galat hai');
+      return;
+    }
+    if (discountVal > subtotal) {
+      toast.error('Discount subtotal se zyada nahi ho sakta');
+      return;
+    }
+
+    setLoading(true);
     try {
       const newInvoice = await addInvoice({
         customerName: customerName.trim(),
@@ -111,9 +128,10 @@ export const NewInvoice: React.FC = () => {
       toast.success('Bill Mehfooz Kar Liya Gaya! ✅');
       setSavedInvoice(newInvoice);
     } catch (e: any) {
-      toast.error(e.message || 'Saving failed');
+      toast.error(e?.message || 'Saving failed');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
 
@@ -265,15 +283,18 @@ export const NewInvoice: React.FC = () => {
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-baseline text-[16px] font-black">
                                             <span className="text-gray-400 mr-1 text-[11px] opacity-40">@</span>
-                                            <input 
-                                                type="number" value={item.price} 
-                                                onChange={e => updateItem(idx, 'price', e.target.value)}
+                                            <input
+                                                type="number" inputMode="decimal" min={0} value={item.price}
+                                                onChange={e => {
+                                                  const v = e.target.value;
+                                                  if (v === '' || (Number(v) >= 0 && isFinite(Number(v)))) updateItem(idx, 'price', v);
+                                                }}
                                                 className="bg-transparent outline-none w-full tabular-nums"
                                             />
                                         </div>
                                     </div>
                                     <div className="text-right shrink-0">
-                                        <p className="text-[17px] font-black text-primary tabular-nums">Rs. {item.total.toLocaleString()}</p>
+                                        <p className="text-[17px] font-black text-primary tabular-nums">Rs. {formatRs(item.total)}</p>
                                     </div>
                                 </div>
                             </motion.div>
@@ -293,15 +314,19 @@ export const NewInvoice: React.FC = () => {
                         <span className="text-[14px] font-bold opacity-60">Applied Discount</span>
                         <div className="flex items-center bg-red-50 dark:bg-red-900/10 px-4 py-2 rounded-2xl border border-red-100 dark:border-red-900/20 w-32 shadow-inner">
                             <span className="text-[12px] font-black text-red-500 mr-2">Rs.</span>
-                            <input 
-                              type="number" value={discount} onChange={e => setDiscount(e.target.value)}
+                            <input
+                              type="number" inputMode="decimal" min={0} value={discount}
+                              onChange={e => {
+                                const v = e.target.value;
+                                if (v === '' || (Number(v) >= 0 && isFinite(Number(v)))) setDiscount(v);
+                              }}
                               placeholder="0" className="bg-transparent outline-none w-full font-black text-red-600 text-right text-[15px] tabular-nums"
                             />
                         </div>
                     </div>
                     <div className="pt-4 border-t border-border flex justify-between items-center">
                         <span className="text-[16px] font-black uppercase tracking-[0.2em] opacity-40">Grand Total</span>
-                        <span className="text-[32px] font-black text-primary tabular-nums leading-none">Rs. {finalTotal.toLocaleString()}</span>
+                        <span className="text-[32px] font-black text-primary tabular-nums leading-none">Rs. {formatRs(finalTotal)}</span>
                     </div>
                 </div>
 
@@ -319,8 +344,11 @@ export const NewInvoice: React.FC = () => {
             </div>
         </div>
 
-        {/* FLOATING ACTION BAR */}
-        <div className="fixed bottom-10 left-6 right-6 z-[80]">
+        {/* FLOATING ACTION BAR — anchored above iPhone home indicator. */}
+        <div
+          className="fixed left-6 right-6 z-fab max-w-md mx-auto"
+          style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 1.5rem)' }}
+        >
             <motion.button 
                 whileTap={{ scale: 0.95 }}
                 onClick={handleSave}
@@ -329,7 +357,7 @@ export const NewInvoice: React.FC = () => {
             >
                 <div className="text-left">
                    <p className="text-[9px] font-black uppercase opacity-60 tracking-[0.2em] mb-0.5">Final Amount</p>
-                   <p className="text-[24px] font-black tracking-tight tabular-nums leading-none">Rs. {finalTotal.toLocaleString()}</p>
+                   <p className="text-[24px] font-black tracking-tight tabular-nums leading-none">Rs. {formatRs(finalTotal)}</p>
                 </div>
                 <div className="flex items-center gap-4">
                     <span className="text-[14px] font-black uppercase tracking-widest px-6 py-3 bg-white/10 rounded-2xl shadow-sm backdrop-blur-md border border-white/5">Confirm Sale</span>

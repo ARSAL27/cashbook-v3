@@ -304,7 +304,7 @@ export const Settings: React.FC = () => {
   return (
     <PageTransition> <div className="w-full bg-[#FAFAFA] dark:bg-[#0A0A0A] font-outfit max-w-md mx-auto transition-colors duration-300 h-screen overflow-hidden flex flex-col">
         {/* HEADER */}
-        <div className="pt-8 pb-3 sticky top-0 z-50 transition-colors duration-300 px-5 flex items-center gap-4 bg-background/80 backdrop-blur-xl border-b border-border/40 shadow-sm shrink-0">
+        <div className="pt-page pb-3 sticky top-0 z-sticky transition-colors duration-300 px-5 flex items-center gap-4 bg-background/80 backdrop-blur-xl border-b border-border/40 shadow-sm shrink-0">
           <button onClick={() => navigate(-1)} className="w-9 h-9 flex items-center justify-center rounded-xl bg-card border border-border shadow-sm active:scale-95 transition-all text-text-primary">
             <ArrowLeft size={18} strokeWidth={2.5} />
           </button>

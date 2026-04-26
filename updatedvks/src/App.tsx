@@ -61,8 +61,8 @@ const BalanceHistory = lazyNamed(() => import('./pages/BalanceHistory'), 'Balanc
 // ─── THE EXACT DISNEY+ APP SPLASH REPLICA ('KiryanaBook' Edition) ────────────
 const SplashLoader = () => {
   return (
-    <div 
-      className="fixed inset-0 z-[10000] flex flex-col items-center justify-center overflow-hidden"
+    <div
+      className="fixed inset-0 z-splash flex flex-col items-center justify-center overflow-hidden"
       style={{ background: 'radial-gradient(circle at center, #051A0F 0%, #000000 100%)' }}
     >
       <motion.div 
@@ -271,7 +271,7 @@ function AppRoutes() {
 
   return (
     <>
-      <Toaster position="top-right" />
+      <Toaster position="top-center" containerStyle={{ zIndex: 'var(--z-toast)' as any }} toastOptions={{ duration: 3000, style: { fontFamily: 'Outfit, sans-serif', fontWeight: 700, fontSize: 13 } }} />
       {user && isSecurityReady && location.pathname !== '/help' && location.pathname !== '/verify-email' && <SecurityPinScreen />}
       <Suspense fallback={<SplashLoader />}>
       <Routes>

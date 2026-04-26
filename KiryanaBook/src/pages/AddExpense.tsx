@@ -7,6 +7,7 @@ import { motion } from 'framer-motion';
 import { useTheme } from '../context/ThemeContext';
 import toast from 'react-hot-toast';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
+import { parseDiscount } from '../utils/money';
 
 export const AddExpense: React.FC = () => {
     const { addExpense } = useShop();
@@ -29,19 +30,25 @@ export const AddExpense: React.FC = () => {
 
     const handleSave = async () => {
         if (loading) return;
-        const val = parseFloat(amount);
-        if (!val || val <= 0) return toast.error('Amount sahi likhein');
+        // parseDiscount handles non-finite + negatives → returns 0 if junk.
+        const val = parseDiscount(amount);
+        if (val <= 0) {
+            toast.error('Amount sahi likhein');
+            return;
+        }
         const finalCategory = category === 'Other' ? (otherText.trim() || 'Other') : category;
         setLoading(true);
         try {
-            Haptics.impact({ style: ImpactStyle.Heavy });
-            addExpense(val, note || finalCategory, finalCategory);
+            Haptics.impact({ style: ImpactStyle.Heavy }).catch(() => {});
+            // ✅ Await — was fire-and-forget; toast was lying about success on offline failures.
+            await addExpense(val, note || finalCategory, finalCategory);
             toast.success('Kharcha darj ho gaya');
             navigate(-1);
-        } catch (e) {
-            toast.error('Kuch galti hui');
+        } catch (e: any) {
+            toast.error(e?.message || 'Kuch galti hui');
+        } finally {
+            setLoading(false);
         }
-        setLoading(false);
     };
 
     const colors = {
@@ -55,7 +62,7 @@ export const AddExpense: React.FC = () => {
     return (
         <PageTransition> <div className="w-full font-outfit max-w-md mx-auto bg-background text-text-primary ">
                 {/* HEADER */}
-                <div className="pt-16 pb-4 px-5 flex items-center justify-between sticky top-0 z-50 bg-inherit border-b border-border transition-all" style={{ backgroundColor: isDarkMode ? '#0A0A0A' : '#FAFAFA' }}>
+                <div className="pt-page pb-4 px-5 flex items-center justify-between sticky top-0 z-sticky bg-inherit border-b border-border transition-all" style={{ backgroundColor: isDarkMode ? '#0A0A0A' : '#FAFAFA' }}>
                     <button onClick={() => navigate(-1)} className="p-2 rounded-xl bg-card shadow-sm border border-border text-text-primary active:scale-90 transition-transform">
                         <ArrowLeft size={18} />
                     </button>

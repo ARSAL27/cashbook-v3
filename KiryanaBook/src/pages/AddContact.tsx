@@ -6,6 +6,7 @@ import { ArrowLeft, User, Phone, MapPin, HelpCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { useTheme } from '../context/ThemeContext';
+import { parseDiscount, formatRs } from '../utils/money';
 
 export const AddContact: React.FC = () => {
   const navigate = useNavigate();
@@ -69,7 +70,8 @@ export const AddContact: React.FC = () => {
       }
 
       const formattedPhone = phone.trim();
-      const balVal = parseFloat(initialBalance) || 0;
+      // parseDiscount: NaN/negative/empty → 0, else valid number rounded to paisa.
+      const balVal = parseDiscount(initialBalance);
       let finalBalance = 0;
       if (type === 'customer') {
           finalBalance = balanceDir === 'udhaar' ? balVal : -balVal;
@@ -207,7 +209,7 @@ export const AddContact: React.FC = () => {
                 <div>
                   <p className="text-white/50 text-[9px] font-black uppercase tracking-widest">Initial Ledger Balance</p>
                   <p className="text-white text-[32px] font-black leading-tight">
-                    PKR {parseFloat(initialBalance || '0').toLocaleString() || '0.00'}
+                    PKR {formatRs(parseDiscount(initialBalance))}
                   </p>
                 </div>
                 <div className="grid grid-cols-2 gap-1">

@@ -344,8 +344,11 @@ export const NewInvoice: React.FC = () => {
             </div>
         </div>
 
-        {/* FLOATING ACTION BAR */}
-        <div className="fixed bottom-10 left-6 right-6 z-[80]">
+        {/* FLOATING ACTION BAR — anchored above iPhone home indicator. */}
+        <div
+          className="fixed left-6 right-6 z-fab max-w-md mx-auto"
+          style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 1.5rem)' }}
+        >
             <motion.button 
                 whileTap={{ scale: 0.95 }}
                 onClick={handleSave}

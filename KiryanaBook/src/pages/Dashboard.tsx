@@ -199,7 +199,7 @@ const Dashboard: React.FC = () => {
     <PageTransition> <div className="w-full bg-[#F2F2F7] dark:bg-[#0A0A0A] font-outfit max-w-md mx-auto transition-colors duration-300 pb-32">
 
         {/* ── STICKY HEADER ── */}
-        <div className="pt-8 pb-3 sticky top-0 z-50 px-5 border-b transition-all duration-300 dark:border-white/5 shadow-sm" style={{ backgroundColor: isDarkMode ? '#0A0A0A' : '#1A5C38' }}>
+        <div className="pt-page pb-3 sticky top-0 z-sticky px-5 border-b transition-all duration-300 dark:border-white/5 shadow-sm" style={{ backgroundColor: isDarkMode ? '#0A0A0A' : '#1A5C38' }}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <button 

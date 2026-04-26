@@ -96,44 +96,43 @@ export const Reports: React.FC = () => {
   const debtorsCount = new Set(filteredData.u.map(u => u.customerName)).size;
 
     const flowData = useMemo(() => {
-        const data: Record<string, any> = {};
-        
-        // Helper to get day name safely
-        const getDayName = (dateStr: string) => {
-            try {
-                const date = new Date(dateStr);
-                return isNaN(date.getTime()) ? '' : date.toLocaleDateString('en-US', { weekday: 'short' });
-            } catch (e) { return ''; }
+        // Build the last 7 calendar days (in LOCAL time) as fixed buckets.
+        // Old code grouped by weekday name across all-time, so 5 Mondays collapsed
+        // into one bar — totals were wildly wrong. Now we key by YYYY-MM-DD.
+        const days: { key: string; name: string; date: Date }[] = [];
+        const now = new Date();
+        for (let i = 6; i >= 0; i--) {
+            const d = new Date(now);
+            d.setHours(0, 0, 0, 0);
+            d.setDate(d.getDate() - i);
+            const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+            days.push({ key, name: d.toLocaleDateString('en-US', { weekday: 'short' }), date: d });
+        }
+        const buckets: Record<string, { name: string; income: number; expense: number; udhaar: number; profit: number }> = {};
+        days.forEach(d => { buckets[d.key] = { name: d.name, income: 0, expense: 0, udhaar: 0, profit: 0 }; });
+
+        const localKey = (dateStr: string): string | null => {
+            const date = new Date(dateStr);
+            if (isNaN(date.getTime())) return null;
+            return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
         };
 
         sales.forEach(s => {
-            const day = getDayName(s.date);
-            if (!day) return;
-            if (!data[day]) data[day] = { name: day, income: 0, expense: 0, udhaar: 0, profit: 0 };
-            data[day].income += (Number(s.total) || 0);
+            const k = localKey(s.date);
+            if (k && buckets[k]) buckets[k].income += (Number(s.total) || 0);
         });
-
         expenses.forEach(e => {
-            const day = getDayName(e.date);
-            if (!day) return;
-            if (!data[day]) data[day] = { name: day, income: 0, expense: 0, udhaar: 0, profit: 0 };
-            data[day].expense += (Number(e.amount) || 0);
+            const k = localKey(e.date);
+            if (k && buckets[k]) buckets[k].expense += (Number(e.amount) || 0);
         });
-
         udhaars.forEach(u => {
-            const day = getDayName(u.date);
-            if (!day) return;
-            if (!data[day]) data[day] = { name: day, income: 0, expense: 0, udhaar: 0, profit: 0 };
-            data[day].udhaar += (Number(u.amount) || 0);
+            const k = localKey(u.date);
+            if (k && buckets[k]) buckets[k].udhaar += (Number(u.amount) || 0);
         });
 
-        const daysOrder = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-        return daysOrder.map(d => {
-            const dayData = data[d] || { name: d, income: 0, expense: 0, udhaar: 0, profit: 0 };
-            return {
-                ...dayData,
-                profit: dayData.income - dayData.expense
-            };
+        return days.map(d => {
+            const b = buckets[d.key];
+            return { ...b, profit: b.income - b.expense };
         });
     }, [sales, expenses, udhaars]);
 
@@ -269,7 +268,7 @@ export const Reports: React.FC = () => {
       <div className="w-full transition-colors duration-300 font-outfit max-w-md mx-auto bg-background text-text-primary min-h-screen pb-40">
         
         {/* HEADER */}
-        <div className="pt-16 pb-4 px-5 flex items-center justify-between sticky top-0 bg-background/90 backdrop-blur-xl z-20 border-b border-border/10">
+        <div className="pt-page pb-4 px-5 flex items-center justify-between sticky top-0 bg-background/90 backdrop-blur-xl z-sticky border-b border-border/10">
             <div className="flex items-center gap-3">
                 <button onClick={() => navigate(-1)} className="p-2 -ml-2 text-text-primary active:scale-90 transition-transform">
                     <ArrowLeft size={22} />
