@@ -20,14 +20,11 @@ export const Reports: React.FC = () => {
     const [activeTab, setActiveTab] = useState('Today');
     const [customRange, setCustomRange] = useState({ start: '', end: '' });
     const [showCustom, setShowCustom] = useState(false);
-    const [chartWidth, setChartWidth] = useState(window.innerWidth - 40);
 
+    // Removed window-resize listener that set unused chartWidth state — caused
+    // page jitter on Android keyboard show/hide. Charts already use ResponsiveContainer.
     React.useEffect(() => {
         window.scrollTo(0, 0);
-        const handleResize = () => setChartWidth(Math.min(window.innerWidth - 40, 400));
-        handleResize();
-        window.addEventListener('resize', handleResize);
-        return () => window.removeEventListener('resize', handleResize);
     }, []);
 
   const colors = {
@@ -149,94 +146,213 @@ export const Reports: React.FC = () => {
 
   const exportToPDF = async () => {
     const doc = new jsPDF() as any;
+    const pageWidth = doc.internal.pageSize.getWidth();
     const margin = 14;
-    let yPos = 20;
+    const contentWidth = pageWidth - margin * 2;
+    let yPos = 0;
 
-    // --- HEADER ---
-    doc.setFontSize(22);
-    doc.setTextColor(10, 61, 36);
-    doc.text(`${profile?.name || 'KiryanaBook'} - ${activeTab} Report`, margin, yPos);
-    yPos += 8;
+    const fmt = (n: number) => `Rs. ${Math.round(n).toLocaleString('en-PK')}`;
+    const today = new Date();
+    const periodLabel = activeTab === 'Custom' && customRange.start && customRange.end
+      ? `${customRange.start} to ${customRange.end}`
+      : activeTab;
+
+    // ─── HEADER BAND ───────────────────────────────────────────────────────
+    // Branded green band with shop name, owner, period.
+    doc.setFillColor(10, 61, 36);
+    doc.rect(0, 0, pageWidth, 38, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(18);
+    doc.setFont('helvetica', 'bold');
+    doc.text(profile?.name || 'KiryanaBook', margin, 16);
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(180, 230, 200);
+    doc.text(`${profile?.owner || ''}${profile?.city ? ` · ${profile.city}` : ''}`, margin, 22);
+    doc.setFontSize(8);
+    doc.text(`${profile?.phone || ''}`, margin, 27);
+    // Right side: report meta
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.text('BUSINESS REPORT', pageWidth - margin, 14, { align: 'right' });
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(180, 230, 200);
+    doc.text(`Period: ${periodLabel}`, pageWidth - margin, 20, { align: 'right' });
+    doc.text(`Generated: ${today.toLocaleString('en-PK')}`, pageWidth - margin, 25, { align: 'right' });
+    yPos = 50;
+
+    // ─── EXECUTIVE SUMMARY CARDS ───────────────────────────────────────────
+    // 4 KPI boxes in a row — Revenue / Expenses / Profit / Udhaar.
+    doc.setTextColor(80, 80, 80);
     doc.setFontSize(10);
-    doc.setTextColor(100);
-    doc.text(`Generated: ${new Date().toLocaleString()}`, margin, yPos);
+    doc.setFont('helvetica', 'bold');
+    doc.text('EXECUTIVE SUMMARY', margin, yPos);
     yPos += 4;
-    doc.setDrawColor(200);
-    doc.line(margin, yPos, 196, yPos);
-    yPos += 15;
+    const cardW = (contentWidth - 9) / 4;
+    const cardH = 22;
+    const cards = [
+      { label: 'REVENUE', value: fmt(totalRevenue), color: [240, 248, 255], text: [10, 61, 36] },
+      { label: 'EXPENSE', value: fmt(totalExpense), color: [255, 245, 245], text: [197, 34, 34] },
+      { label: netProfit >= 0 ? 'NET PROFIT' : 'NET LOSS', value: fmt(Math.abs(netProfit)), color: netProfit >= 0 ? [232, 250, 240] : [255, 235, 235], text: netProfit >= 0 ? [0, 130, 60] : [180, 0, 0] },
+      { label: 'PENDING UDHAAR', value: fmt(udhaarPending), color: [255, 248, 235], text: [180, 100, 0] },
+    ];
+    cards.forEach((c, i) => {
+      const x = margin + i * (cardW + 3);
+      doc.setFillColor(c.color[0], c.color[1], c.color[2]);
+      doc.roundedRect(x, yPos, cardW, cardH, 2, 2, 'F');
+      doc.setTextColor(120, 120, 120);
+      doc.setFontSize(7);
+      doc.setFont('helvetica', 'bold');
+      doc.text(c.label, x + 3, yPos + 6);
+      doc.setTextColor(c.text[0], c.text[1], c.text[2]);
+      doc.setFontSize(11);
+      doc.text(c.value, x + 3, yPos + 16);
+    });
+    yPos += cardH + 10;
 
-    // --- 1. FINANCIAL SUMMARY ---
-    doc.setFontSize(16);
-    doc.setTextColor(0);
-    doc.text('1. Financial Summary', margin, yPos);
-    yPos += 10;
-    
-    doc.setFontSize(12);
-    doc.setTextColor(40);
-    doc.text(`Revenue: Rs. ${totalRevenue.toLocaleString()}`, margin + 5, yPos); yPos += 8;
-    doc.text(`Expense: Rs. ${totalExpense.toLocaleString()}`, margin + 5, yPos); yPos += 8;
-    
-    if (netProfit >= 0) {
-        doc.setTextColor(0, 150, 0);
-        doc.text(`Net Profit: Rs. ${netProfit.toLocaleString()}`, margin + 5, yPos); yPos += 8;
-    } else {
-        doc.setTextColor(200, 0, 0);
-        doc.text(`Net Loss: Rs. ${Math.abs(netProfit).toLocaleString()}`, margin + 5, yPos); yPos += 8;
+    // ─── COMPUTED INSIGHTS ─────────────────────────────────────────────────
+    const grossMargin = totalRevenue > 0 ? (grossProfit / totalRevenue) * 100 : 0;
+    const expenseRatio = totalRevenue > 0 ? (totalExpense / totalRevenue) * 100 : 0;
+    const debtorsList = [...udhaars].filter(u => u.amount > 0);
+    const totalReceivable = debtorsList.reduce((s, u) => s + u.amount, 0);
+    doc.setTextColor(80, 80, 80);
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.text('KEY INSIGHTS', margin, yPos);
+    yPos += 6;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(60, 60, 60);
+    const insights = [
+      `Gross Margin:  ${grossMargin.toFixed(1)}%   (industry healthy: 20-35%)`,
+      `Expense / Revenue:  ${expenseRatio.toFixed(1)}%   (lower is better)`,
+      `Total Receivable from Customers:  ${fmt(totalReceivable)}  across ${debtorsList.length} debtor(s)`,
+      `Best-selling SKU:  ${bestSelling[0]?.name || 'No sales yet'}${bestSelling[0] ? `  (${bestSelling[0].qty} units, ${fmt(bestSelling[0].rev)})` : ''}`,
+    ];
+    insights.forEach(line => { doc.text(`•  ${line}`, margin + 2, yPos); yPos += 5; });
+    if (showCogsWarning) {
+      doc.setTextColor(180, 100, 0);
+      doc.text(`!  Cost of goods is Rs. 0 — set buying price for items to see real profit.`, margin + 2, yPos); yPos += 5;
     }
-    
-    doc.setTextColor(251, 146, 60);
-    doc.text(`Pending Udhaar: Rs. ${udhaarPending.toLocaleString()}`, margin + 5, yPos);
-    yPos += 20;
-
-    // --- 2. CASH FLOW (Last 7 Days) ---
-    doc.setFontSize(16);
-    doc.setTextColor(0);
-    doc.text('2. Cash Flow (Recent)', margin, yPos);
-    yPos += 6;
-    
-    autoTable(doc, {
-        startY: yPos,
-        head: [['Day', 'Income', 'Expense']],
-        body: flowData.map(d => [d.name, `Rs. ${d.income.toLocaleString()}`, `Rs. ${d.expense.toLocaleString()}`]),
-        theme: 'grid',
-        headStyles: { fillColor: [40, 40, 40] }
-    });
-    yPos = (doc as any).lastAutoTable.finalY + 15;
-
-    if (yPos > 230) { doc.addPage(); yPos = 20; }
-
-    // --- 3. TOP PERFORMING PRODUCTS ---
-    doc.setFontSize(16);
-    doc.setTextColor(0);
-    doc.text('3. Top Performing Products', margin, yPos);
-    yPos += 6;
-    
-    autoTable(doc, {
-        startY: yPos,
-        head: [['Rank', 'Product Name', 'Sold Qty', 'Revenue generated']],
-        body: bestSelling.map((p, i) => [`# ${i+1}`, p.name, p.qty, `Rs. ${p.rev.toLocaleString()}`]),
-        theme: 'grid',
-        headStyles: { fillColor: [10, 61, 36] }
-    });
-    yPos = (doc as any).lastAutoTable.finalY + 15;
-
-    if (yPos > 230) { doc.addPage(); yPos = 20; }
-
-    // --- 4. TOP DEBTORS ---
-    doc.setFontSize(16);
-    doc.setTextColor(0);
-    doc.text('4. Top Debtors (Udhaar)', margin, yPos);
     yPos += 6;
 
+    // ─── DAILY CASH FLOW ───────────────────────────────────────────────────
+    doc.setTextColor(80, 80, 80);
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.text('DAILY CASH FLOW (Last 7 Days)', margin, yPos);
+    yPos += 4;
     autoTable(doc, {
-        startY: yPos,
-        head: [['Rank', 'Customer Name', 'Amount Pending']],
-        body: topDebtors.map((d, i) => [`# ${i+1}`, d.customerName, `Rs. ${d.amount.toLocaleString()}`]),
-        theme: 'grid',
-        headStyles: { fillColor: [197, 34, 34] }
+      startY: yPos,
+      head: [['Day', 'Income', 'Expense', 'Net']],
+      body: flowData.map(d => [
+        d.name,
+        fmt(d.income),
+        fmt(d.expense),
+        { content: fmt(d.income - d.expense), styles: { textColor: (d.income - d.expense) >= 0 ? [0, 130, 60] : [180, 0, 0] } }
+      ]),
+      theme: 'striped',
+      headStyles: { fillColor: [10, 61, 36], textColor: 255, fontStyle: 'bold' },
+      styles: { fontSize: 9, cellPadding: 3 },
+      margin: { left: margin, right: margin },
     });
+    yPos = doc.lastAutoTable.finalY + 10;
+    if (yPos > 240) { doc.addPage(); yPos = 20; }
 
-    const fileName = `KiryanaBook_${activeTab}_Report.pdf`;
+    // ─── TOP PRODUCTS ──────────────────────────────────────────────────────
+    doc.setTextColor(80, 80, 80);
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.text('TOP-SELLING PRODUCTS', margin, yPos);
+    yPos += 4;
+    if (bestSelling.length === 0) {
+      doc.setFont('helvetica', 'italic'); doc.setFontSize(9); doc.setTextColor(150);
+      doc.text('No sales recorded for this period.', margin + 2, yPos + 4); yPos += 10;
+    } else {
+      autoTable(doc, {
+        startY: yPos,
+        head: [['#', 'Product', 'Qty Sold', 'Revenue', 'Avg / Unit']],
+        body: bestSelling.map((p, i) => [
+          i + 1, p.name, p.qty, fmt(p.rev), fmt(p.qty > 0 ? p.rev / p.qty : 0)
+        ]),
+        theme: 'striped',
+        headStyles: { fillColor: [10, 61, 36], textColor: 255 },
+        styles: { fontSize: 9, cellPadding: 3 },
+        margin: { left: margin, right: margin },
+      });
+      yPos = doc.lastAutoTable.finalY + 10;
+    }
+    if (yPos > 240) { doc.addPage(); yPos = 20; }
+
+    // ─── TOP DEBTORS ───────────────────────────────────────────────────────
+    doc.setTextColor(80, 80, 80);
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.text('TOP DEBTORS — Udhaar Pending', margin, yPos);
+    yPos += 4;
+    const debtorRows = topDebtors.filter(d => d.amount > 0);
+    if (debtorRows.length === 0) {
+      doc.setFont('helvetica', 'italic'); doc.setFontSize(9); doc.setTextColor(150);
+      doc.text('No outstanding udhaar — sab clear hai!', margin + 2, yPos + 4); yPos += 10;
+    } else {
+      autoTable(doc, {
+        startY: yPos,
+        head: [['#', 'Customer', 'Last Note', 'Amount Pending']],
+        body: debtorRows.map((d, i) => [
+          i + 1, d.customerName, d.note || '—', { content: fmt(d.amount), styles: { textColor: [197, 34, 34], fontStyle: 'bold' } }
+        ]),
+        theme: 'striped',
+        headStyles: { fillColor: [197, 34, 34], textColor: 255 },
+        styles: { fontSize: 9, cellPadding: 3 },
+        margin: { left: margin, right: margin },
+      });
+      yPos = doc.lastAutoTable.finalY + 10;
+    }
+    if (yPos > 250) { doc.addPage(); yPos = 20; }
+
+    // ─── LOW STOCK ALERTS ──────────────────────────────────────────────────
+    const lowStock = stock.filter(s => (s.quantity || 0) <= (s.minThreshold || 5));
+    if (lowStock.length > 0) {
+      doc.setTextColor(80, 80, 80);
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'bold');
+      doc.text('LOW STOCK ALERTS', margin, yPos);
+      yPos += 4;
+      autoTable(doc, {
+        startY: yPos,
+        head: [['Product', 'Category', 'In Stock', 'Min Required']],
+        body: lowStock.slice(0, 15).map(s => [s.name, s.category || '—', `${s.quantity || 0} ${s.unit || ''}`, `${s.minThreshold || 5}`]),
+        theme: 'striped',
+        headStyles: { fillColor: [180, 100, 0], textColor: 255 },
+        styles: { fontSize: 9, cellPadding: 3 },
+        margin: { left: margin, right: margin },
+      });
+      yPos = doc.lastAutoTable.finalY + 10;
+    }
+
+    // ─── FOOTER ON EVERY PAGE ──────────────────────────────────────────────
+    const totalPages = doc.internal.pages.length - 1;
+    for (let p = 1; p <= totalPages; p++) {
+      doc.setPage(p);
+      doc.setFontSize(7);
+      doc.setTextColor(150);
+      doc.setFont('helvetica', 'normal');
+      doc.text(
+        `KiryanaBook · ${profile?.name || 'Shop'} · Page ${p} of ${totalPages}`,
+        margin,
+        doc.internal.pageSize.getHeight() - 6
+      );
+      doc.text(
+        `${today.toLocaleDateString('en-PK')}`,
+        pageWidth - margin,
+        doc.internal.pageSize.getHeight() - 6,
+        { align: 'right' }
+      );
+    }
+
+    const fileName = `KiryanaBook_${activeTab}_Report_${today.toISOString().slice(0, 10)}.pdf`;
 
     try {
       if (Capacitor.isNativePlatform()) {

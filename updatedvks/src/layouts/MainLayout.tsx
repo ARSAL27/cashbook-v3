@@ -6,12 +6,14 @@ import { Haptics, ImpactStyle } from '@capacitor/haptics';
 import toast from 'react-hot-toast';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { Capacitor } from '@capacitor/core';
+import { sendNativeNotification } from '../utils/notifications';
 import { motion } from 'framer-motion';
 
 export const MainLayout: React.FC = () => {
   const location = useLocation();
-  const { notifications } = useShop();
+  const { notifications, stock } = useShop();
   const prevNotifyCount = useRef(notifications.length);
+  const lowStockNotifiedDayRef = useRef<string | null>(null);
 
   const triggerHaptic = (style: ImpactStyle = ImpactStyle.Light) => {
     Haptics.impact({ style }).catch(() => {});
@@ -36,6 +38,35 @@ export const MainLayout: React.FC = () => {
     };
     initNotifications();
   }, []);
+
+  // Daily low-stock summary — fires at most ONCE per day per app session.
+  // Old behaviour relied entirely on admin-broadcast notifications from
+  // Firestore; shopkeeper got no proactive nudge about their own running-out items.
+  useEffect(() => {
+    if (!Array.isArray(stock) || stock.length === 0) return;
+    const todayKey = new Date().toDateString();
+    if (lowStockNotifiedDayRef.current === todayKey) return;
+
+    const lowItems = stock.filter(s =>
+      s.status !== 'inactive' &&
+      (s.quantity || 0) <= (s.minThreshold || 5)
+    );
+    if (lowItems.length === 0) return;
+
+    lowStockNotifiedDayRef.current = todayKey;
+
+    // Slight delay so we don't fire during the initial loading frenzy.
+    const timer = setTimeout(() => {
+      const top = lowItems.slice(0, 3).map(i => i.name).join(', ');
+      const more = lowItems.length > 3 ? ` aur ${lowItems.length - 3} aur` : '';
+      sendNativeNotification(
+        '⚠️ Stock alert',
+        `${lowItems.length} item kam ho rahe hain: ${top}${more}. Re-order karein.`,
+        '/stock'
+      ).catch(() => {});
+    }, 4000);
+    return () => clearTimeout(timer);
+  }, [stock]);
 
   useEffect(() => {
     if (notifications.length > prevNotifyCount.current) {

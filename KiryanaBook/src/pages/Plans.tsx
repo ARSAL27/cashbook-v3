@@ -15,6 +15,9 @@ export const Plans: React.FC = () => {
     Haptics.impact({ style }).catch(() => {});
   };
 
+  // Three tiers: Free → Basic (with 14-day trial) → Premium.
+  // Old pricing (Business 2999, Pro 5499) was unrealistic for the Pakistani
+  // kiryana-store target market. Updated to match real local SaaS pricing.
   const plans = [
     {
       id: 'free',
@@ -27,26 +30,40 @@ export const Plans: React.FC = () => {
       features: ['Unlimited Sales', 'Unlimited Customers', 'Unlimited Stock', 'Digital Assistant Chat', 'Cloud Sync', 'Contains Ads'],
     },
     {
-      id: 'business',
-      name: 'Business',
-      price: '₨ 2999',
+      id: 'basic',
+      name: 'Basic',
+      price: '₨ 500',
       period: '/month',
       color: 'bg-primary/5 border-primary/20',
       accent: 'text-primary',
       icon: Zap,
-      badge: 'POPULAR',
-      features: ['Unlimited Sales', 'Unlimited Customers', 'Full Staff Management', 'Digital Assistant Chat', 'Voice Entry Support', 'No Ads'],
+      badge: '14-DAY FREE TRIAL',
+      features: [
+        'Free plan ki sab features',
+        'Ad-free experience',
+        'Daily backup & cloud sync',
+        'Unlimited invoices + PDF',
+        'Priority customer support',
+        '14 din free trial — credit card nahi chahiye',
+      ],
     },
     {
-      id: 'pro',
-      name: 'Pro',
-      price: '₨ 5499',
+      id: 'premium',
+      name: 'Premium',
+      price: '₨ 800',
       period: '/month',
       color: 'bg-secondary/5 border-secondary/20',
       accent: 'text-secondary',
       icon: Crown,
-      badge: 'ENTERPRISE',
-      features: ['Multi-Shop Support', 'Inventory Mastery', 'Daily PDF Exports', 'Priority 24/7 Support', 'Custom Branding', 'Voice Entry Support'],
+      badge: 'POPULAR',
+      features: [
+        'Basic plan ki sab features',
+        'Full staff management',
+        'Multiple shop control (multi-branch)',
+        'Role-based access (Manager/Cashier)',
+        'Advanced reports + audit logs',
+        'Voice entry support',
+      ],
     },
   ];
 
@@ -59,7 +76,7 @@ export const Plans: React.FC = () => {
   return (
     <PageTransition> <div className="w-full bg-background font-outfit ">
         {/* HEADER */}
-        <header className="pt-12 pb-3 shrink-0 sticky top-0 z-40 bg-card/80 backdrop-blur-md border-b border-border px-4 flex items-center justify-between shadow-sm">
+        <header className="pt-page pb-3 shrink-0 sticky top-0 z-sticky bg-card/80 backdrop-blur-md border-b border-border px-4 flex items-center justify-between shadow-sm">
           <div className="flex items-center space-x-3">
              <button onClick={() => { triggerHaptic(); navigate(-1); }} className="p-2 text-text-muted hover:text-text-primary transition-colors">
                <ArrowLeft size={20} />
@@ -78,8 +95,8 @@ export const Plans: React.FC = () => {
             {plans.map((plan, i) => {
               const isActive = currentPlan === plan.id;
               const Icon = plan.icon;
-              const isBusiness = plan.id === 'business';
-              const isPro = plan.id === 'pro';
+              const isBusiness = plan.id === 'basic';
+              const isPro = plan.id === 'premium';
 
               return (
                 <motion.div 
@@ -146,7 +163,7 @@ export const Plans: React.FC = () => {
                           'bg-text-primary text-background'
                     }`}
                   >
-                    {isActive ? 'Active Plan' : isBusiness ? 'Switch to Business' : `Select ${plan.name}`}
+                    {isActive ? 'Active Plan' : isBusiness ? 'Start 14-Day Trial' : `Select ${plan.name}`}
                   </button>
                 </motion.div>
               );

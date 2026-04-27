@@ -5,7 +5,7 @@ import { Users, Plus, Minus, Bell, HandCoins, BarChart2, Filter, ArrowDownLeft, 
 import { Sidebar } from '../components/Sidebar';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { AreaChart, Area, XAxis, CartesianGrid } from 'recharts';
+import { AreaChart, Area, XAxis, CartesianGrid, ResponsiveContainer } from 'recharts';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 import { MarqueeText } from '../components/MarqueeText';
@@ -21,14 +21,10 @@ const Dashboard: React.FC = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [amountRange, setAmountRange] = useState({ min: 0, max: Infinity });
   const [showFilter, setShowFilter] = useState(false);
-  const [chartWidth, setChartWidth] = useState(window.innerWidth - 40);
-
-  React.useEffect(() => {
-    const handleResize = () => setChartWidth(Math.min(window.innerWidth - 40, 400));
-    handleResize();
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
+  // Removed chartWidth + window resize listener — caused page jitter on Android
+  // every time the soft keyboard opened/closed (resize event → setState → reflow).
+  // The chart now uses ResponsiveContainer which fits its parent without
+  // listening to window events.
 
   const stats = useMemo(() => {
     // Convert contacts to Map for O(1) lookups
@@ -390,25 +386,23 @@ const Dashboard: React.FC = () => {
 
 
 
-        {/* ── QUICK ACTIONS GRID ── */}
-        <div className="px-8 mt-5 grid grid-cols-2 gap-6">
+        {/* ── QUICK ACTIONS GRID ──
+            Was 110px aspect-square with gap-6 px-8 → rendered as huge boxes filling the screen.
+            Now: compact horizontal pills, fixed comfortable height, icon+label inline. */}
+        <div className="px-5 mt-5 grid grid-cols-2 gap-3">
           {[
-            { icon: <Plus size={32} strokeWidth={3} className="text-[#1A5C38] dark:text-[#4BFF94]" />, label: 'SALE', path: '/add-sale', bg: '#E8F5EE', darkBg: '#1A3A25' },
-            { icon: <Minus size={32} strokeWidth={3} className="text-red-500" />, label: 'EXPENSE', path: '/add-expense', bg: '#FEF2F2', darkBg: '#3A1A1A' },
+            { icon: <Plus size={20} strokeWidth={3} className="text-[#1A5C38] dark:text-[#4BFF94]" />, label: 'Sale', path: '/add-sale', bg: '#E8F5EE', darkBg: '#1A3A25' },
+            { icon: <Minus size={20} strokeWidth={3} className="text-red-500" />, label: 'Expense', path: '/add-expense', bg: '#FEF2F2', darkBg: '#3A1A1A' },
           ].map((a, i) => (
-            <motion.button 
-              key={i} 
-              whileTap={{ scale: 0.9 }} 
-              onClick={() => navigate(a.path)} 
-              className="flex flex-col items-center gap-3 group"
+            <motion.button
+              key={i}
+              whileTap={{ scale: 0.96 }}
+              onClick={() => navigate(a.path)}
+              className="flex items-center justify-center gap-2 h-14 rounded-2xl shadow-sm border border-transparent dark:border-white/5 transition-all active:shadow-inner"
+              style={{ backgroundColor: isDarkMode ? (a as any).darkBg : a.bg }}
             >
-              <div 
-                className="w-full max-w-[110px] aspect-square rounded-[1.8rem] flex items-center justify-center shadow-sm border border-transparent dark:border-white/5 transition-all group-hover:shadow-md active:shadow-inner" 
-                style={{ backgroundColor: isDarkMode ? (a as any).darkBg : a.bg }}
-              >
-                {a.icon}
-              </div>
-              <p className="text-[11px] font-black text-gray-600 dark:text-[#B0B0B0] uppercase tracking-[0.15em] text-center leading-none">{a.label}</p>
+              {a.icon}
+              <span className="text-[14px] font-black uppercase tracking-wider text-gray-700 dark:text-white/90">{a.label}</span>
             </motion.button>
           ))}
         </div>
@@ -425,8 +419,9 @@ const Dashboard: React.FC = () => {
               <p className="text-[14px] font-black text-gray-800 dark:text-white">Hisaab Ka Graph</p>
               <p className="text-[11px] text-gray-400 dark:text-[#B0B0B0] font-semibold">Last 7 Days</p>
             </div>
-            <div className="h-32 w-full mt-2 flex justify-center">
-              <AreaChart width={chartWidth} height={128} data={weeklyData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
+            <div className="h-32 w-full mt-2">
+              <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={weeklyData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
                 <defs>
                   <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor={isDarkMode ? '#00E676' : '#1A5C38'} stopOpacity={0.2}/>
@@ -437,6 +432,7 @@ const Dashboard: React.FC = () => {
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDarkMode ? '#2A2A2A' : '#F3F4F6'} />
                 <XAxis dataKey="dayName" axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: isDarkMode ? '#555' : '#9ca3af', fontWeight: 'bold' }} />
               </AreaChart>
+              </ResponsiveContainer>
             </div>
           </motion.div>
         </div>

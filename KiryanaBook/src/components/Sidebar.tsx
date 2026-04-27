@@ -23,7 +23,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
     { label: 'Customers', icon: Users, path: '/customers', color: '#448AFF' },
     { label: 'Inventory', icon: Package, path: '/stock', color: '#FCD34D' },
     { label: 'Invoices', icon: FileText, path: '/invoices', color: '#B0B0B0' },
-    { label: 'Staff Management', icon: ShieldCheck, path: '/staff', color: '#00C853' },
+    // Staff Management hidden — work-in-progress. Routes/code retained on purpose
+    // so it can be re-enabled with a one-line uncomment when ready.
+    // { label: 'Staff Management', icon: ShieldCheck, path: '/staff', color: '#00C853' },
     { label: 'Notifications', icon: Bell, path: '/notifications', color: '#FF5252' }, // Added Notifications
     { label: 'Settings', icon: Settings, path: '/settings', color: '#6366F1' },
   ];

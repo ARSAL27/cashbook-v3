@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Send, UserCog, History, X, Trash2, ChevronRight, MessageCircle, Mic, Volume2, VolumeX, Sparkles, ArrowLeft, HelpCircle } from 'lucide-react';
 import { askLocalAgent, detectMicroAnomalies } from '../lib/localAgent';
+import { computeBusinessHealth } from '../utils/businessHealth';
 import { useShop } from '../context/ShopContext';
 import { useAuth } from '../context/AuthContext';
 import { GoogleGenerativeAI } from '@google/generative-ai';
@@ -72,7 +73,7 @@ function StressMeter({ score }: { score: number }) {
 }
 
 // ─── Message Renderer (Simplified & Ultra-Safe) ──────────────────────────
-function renderBotMessage(text: string, isWelcome?: boolean, anomalies?: string[], onAction?: (a: string) => void) {
+function renderBotMessage(text: string, isWelcome?: boolean, anomalies?: string[], onAction?: (a: string) => void, healthScore?: number) {
   const safeText = text || '';
   const lines = safeText.split('\n');
   return (
@@ -136,7 +137,10 @@ function renderBotMessage(text: string, isWelcome?: boolean, anomalies?: string[
       
       {isWelcome && (
         <div className="pt-2 mt-2 space-y-2 border-t border-gray-100 dark:border-white/5">
-           <StressMeter score={Math.min(100, Math.max(40, 80 + (anomalies?.length ? -anomalies.length * 10 : 10)))} />
+           {/* Real multi-factor business-health score (0-100). Old line was
+               a fake placeholder (`80 + -anomalies.length * 10`). Now derived
+               from profitability + cash flow + inventory + customer mix + consistency. */}
+           <StressMeter score={typeof healthScore === 'number' ? healthScore : 50} />
           {anomalies && anomalies.length > 0 ? (
             <div className="bg-red-50 dark:bg-red-500/5 p-3 rounded-xl border border-red-100 dark:border-red-500/10">
               <p className="text-[12px] font-bold text-red-600 dark:text-red-400 leading-snug">⚠️ {(anomalies[0] || '').replace(/\*\*/g, '')}</p>
@@ -288,6 +292,17 @@ export const Manager: React.FC = () => {
     }
   }, [shopData]);
 
+  // ✅ Real business-health score replacing the old fake `80 + ...` math.
+  // Multi-factor weighted score (profitability, cash flow, inventory,
+  // customer mix, operational consistency). See utils/businessHealth.ts.
+  const businessHealth = useMemo(() => computeBusinessHealth({
+    sales: shopData.sales,
+    expenses: shopData.expenses,
+    udhaars: shopData.udhaars,
+    stock: shopData.stock,
+    contacts: shopData.contacts,
+  }), [shopData]);
+
   const [messages, setMessages] = useState<Message[]>([makeWelcomeMessage()]);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -339,8 +354,15 @@ export const Manager: React.FC = () => {
     inputRef.current = input;
   }, [input]);
 
-  // Auto-scroll
+  // Auto-scroll: only when a NEW message lands AFTER the first render.
+  // Old behaviour scrolled to bottom on mount too — page landed at the
+  // welcome message bottom and user had to scroll up to see the start.
+  const hasMountedRef = useRef(false);
   useEffect(() => {
+    if (!hasMountedRef.current) {
+      hasMountedRef.current = true;
+      return; // Skip the initial mount — let the page render at top.
+    }
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isTyping]);
 
@@ -671,17 +693,32 @@ export const Manager: React.FC = () => {
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-1.5">
-            <button 
-              onClick={() => toast('Guide: Aap yahan voice ya text se sawal pooch sakte hain. Maslan: "Aaj ki sale kitni hai?"', { icon: '💡' })} 
-              className="w-9 h-9 text-blue-500 bg-blue-50 dark:bg-blue-500/10 rounded-xl flex items-center justify-center"
+          {/* Top-right action icons — equalized 36×36 buttons with consistent gap.
+              Old layout had inconsistent backgrounds (one had bg, others didn't) and 6px gap that looked cramped. */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => toast('Aap yahan text se sawal pooch sakte hain. Maslan: "Aaj ki sale kitni hai?"', { icon: '💡', duration: 4000 })}
+              className="w-9 h-9 text-blue-500 bg-blue-50 dark:bg-blue-500/10 rounded-xl flex items-center justify-center active:scale-90 transition-all"
+              aria-label="Help"
             >
                <HelpCircle size={18} />
             </button>
-            <button onClick={() => setShowHistory(true)} className="w-9 h-9 text-gray-400 hover:text-gray-900 dark:hover:text-white transition-all">
+            <button
+              onClick={() => setShowHistory(true)}
+              className="w-9 h-9 text-gray-500 dark:text-white/60 bg-gray-50 dark:bg-white/5 rounded-xl flex items-center justify-center active:scale-90 transition-all"
+              aria-label="History"
+            >
                <History size={18} />
             </button>
-            <button onClick={toggleSpeaker} className={`w-9 h-9 transition-all ${isSpeakerOn ? 'text-[#00C853]' : 'text-gray-300'}`}>
+            <button
+              onClick={toggleSpeaker}
+              className={`w-9 h-9 rounded-xl flex items-center justify-center active:scale-90 transition-all ${
+                isSpeakerOn
+                  ? 'text-[#00C853] bg-emerald-50 dark:bg-emerald-500/10'
+                  : 'text-gray-400 bg-gray-50 dark:bg-white/5'
+              }`}
+              aria-label="Toggle speaker"
+            >
                {isSpeakerOn ? <Volume2 size={18} /> : <VolumeX size={18} />}
             </button>
           </div>
@@ -708,8 +745,14 @@ export const Manager: React.FC = () => {
               : 'bg-[#00E676] text-[#0A0A0A] rounded-tr-none'}`}
             >
              
-              {msg?.isBot 
-                ? renderBotMessage(msg?.text || '', msg?.isWelcome, allAnomalies, (action) => handleSend(`${action} ke baray mein batao`)) 
+              {msg?.isBot
+                ? renderBotMessage(
+                    msg?.text || '',
+                    msg?.isWelcome,
+                    allAnomalies,
+                    (action) => handleSend(`${action} ke baray mein batao`),
+                    businessHealth.score
+                  )
                 : <p className="text-[15px] font-black tracking-tight leading-relaxed">{(msg?.text || '')}</p>
               }
               <div className={`flex items-center gap-1 mt-2.5 ${msg?.isBot ? 'justify-start' : 'justify-end'}`}>
@@ -760,22 +803,18 @@ export const Manager: React.FC = () => {
       <div className="shrink-0 px-4 py-3 bg-white dark:bg-[#0A0A0A] border-t dark:border-white/5 shadow-sm">
         <div className="flex gap-2 items-center">
           <div className="relative flex-1">
+             {/* Mic button removed — speech-recognition state was unreliable
+                 (only worked once per chat session, required full app refresh
+                 to re-arm). Reintroduce after refactoring SpeechRecognition
+                 listener cleanup so it can be started/stopped repeatedly. */}
              <input
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSend()}
               placeholder="Manager se baat karein..."
-              className="w-full bg-gray-50 dark:bg-[#141414] text-gray-900 dark:text-white rounded-2xl py-4.5 pl-6 pr-14 font-black text-[13.5px] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#00E676]/20 transition-all"
+              className="w-full bg-gray-50 dark:bg-[#141414] text-gray-900 dark:text-white rounded-2xl py-4 pl-5 pr-5 font-black text-[14px] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#00E676]/20 transition-all"
             />
-            <button 
-              onClick={() => startListening()}
-              className={`absolute right-1 top-1/2 -translate-y-1/2 w-11 h-11 rounded-xl flex items-center justify-center transition-all ${
-                isListening ? 'bg-red-500 text-white shadow-lg' : 'text-gray-400 bg-transparent'
-              }`}
-            >
-              <Mic size={20} strokeWidth={2.5} />
-            </button>
           </div>
 
           <button onClick={() => handleSend()} disabled={!input.trim()}

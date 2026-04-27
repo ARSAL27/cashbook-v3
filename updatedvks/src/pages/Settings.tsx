@@ -350,21 +350,20 @@ export const Settings: React.FC = () => {
                 </div>
             </section>
 
-            {/* QUICK STATS / STORAGE */}
-            <div className="grid grid-cols-2 gap-3 shrink-0">
-                <div className="bg-card border border-border/60 rounded-3xl p-4 shadow-sm">
-                    <div className="w-8 h-8 bg-blue-500/10 text-blue-500 rounded-xl flex items-center justify-center mb-2.5">
-                        <Database size={16} strokeWidth={2.5} />
+            {/* QUICK STATS — Storage card removed; that metric required Firebase Pro
+                plan (paid tier) to be meaningful. Plan card promoted to full-width. */}
+            <div className="shrink-0">
+                <div className="bg-card border border-border/60 rounded-3xl p-4 shadow-sm flex items-center gap-3">
+                    <div className="w-10 h-10 bg-orange-500/10 text-orange-500 rounded-xl flex items-center justify-center">
+                        <Crown size={20} strokeWidth={2.5} />
                     </div>
-                    <p className="text-[9px] font-black text-text-muted uppercase tracking-widest leading-none mb-1">Storage</p>
-                    <h4 className="text-[14px] font-black text-text-primary">{storageUsed.value} <span className="text-[9px] opacity-40">{storageUsed.unit}</span></h4>
-                </div>
-                <div className="bg-card border border-border/60 rounded-3xl p-4 shadow-sm">
-                    <div className="w-8 h-8 bg-orange-500/10 text-orange-500 rounded-xl flex items-center justify-center mb-2.5">
-                        <Crown size={16} strokeWidth={2.5} />
+                    <div className="flex-1">
+                        <p className="text-[9px] font-black text-text-muted uppercase tracking-widest leading-none mb-1">Current Plan</p>
+                        <h4 className="text-[14px] font-black text-text-primary">{profile?.plan?.toUpperCase() || 'FREE'}</h4>
                     </div>
-                    <p className="text-[9px] font-black text-text-muted uppercase tracking-widest leading-none mb-1">Plan</p>
-                    <h4 className="text-[14px] font-black text-text-primary">{profile?.plan?.toUpperCase() || 'FREE'}</h4>
+                    <button onClick={() => navigate('/plans')} className="text-[10px] font-black text-orange-500 uppercase tracking-widest active:scale-95">
+                        Upgrade
+                    </button>
                 </div>
             </div>
 

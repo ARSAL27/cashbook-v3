@@ -351,12 +351,14 @@ export const Customers: React.FC = () => {
           )}
         </div>
 
-        {/* ADD FAB */}
+        {/* ADD FAB — was bottom-24 (96px) which overlapped the nav on phones with home indicator.
+            Now lifted by nav height + safe-area-inset-bottom. */}
         <button
           onClick={() => navigate('/add-udhaar', { state: { type: activeTab === 'suppliers' ? 'supplier' : 'customer' } })}
-          className="fixed bottom-24 right-6 w-16 h-16 bg-[#4BFF94] text-[#0A3D24] rounded-2xl shadow-[0_8px_30px_rgb(75,255,148,0.3)] flex items-center justify-center active:scale-90 transition-all z-50 border-4 border-[#10251A]"
+          className="fixed right-6 w-14 h-14 bg-[#4BFF94] text-[#0A3D24] rounded-2xl shadow-[0_8px_30px_rgb(75,255,148,0.3)] flex items-center justify-center active:scale-90 transition-all z-fab border-4 border-[#10251A]"
+          style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + var(--nav-h) + 1rem)' }}
         >
-          <Plus size={32} strokeWidth={3} />
+          <Plus size={28} strokeWidth={3} />
         </button>
       </div>
     </PageTransition>

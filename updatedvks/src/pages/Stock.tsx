@@ -402,7 +402,10 @@ export const Stock: React.FC = () => {
         </div>
 
         {/* ── MODERN FAB MENU ── */}
-        <div className="fixed bottom-32 right-6 flex flex-col items-end gap-3 z-[100]">
+        <div
+          className="fixed right-6 flex flex-col items-end gap-3 z-fab"
+          style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + var(--nav-h) + 1rem)' }}
+        >
           <AnimatePresence>
             {isFABOpen && (
               <motion.div 
